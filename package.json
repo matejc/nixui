@@ -1,0 +1,43 @@
+{
+  "name": "nixjs",
+  "version": "0.0.1",
+  "description": "weecloud clone written with reactjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "weechat",
+    "weecloud",
+    "react",
+    "chat",
+    "irc"
+  ],
+  "author": "Matej Cotman",
+  "license": "BSD 2-Clause",
+  "homepage": "https://github.com/matejc/nixjs",
+  "bugs": {
+    "url": "https://github.com/matejc/nixjs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/matejc/nixjs.git"
+  },
+  "dependencies": {
+    "express": "^4.0.0",
+    "passport": "^0.2.0",
+    "passport-local": "^1.0.0",
+    "yargs": "^1.2.1",
+    "express-flash": "0.0.2",
+    "cookie-parser": "^1.0.1",
+    "express-session": "^1.0.2",
+    "body-parser": "^1.0.1",
+    "connect-ensure-login": "^0.1.1",
+    "socket.io": "^0.9.16",
+    "envify": "^1.2.1",
+    "react": "^0.10.0",
+    "react-async": "^0.9.1",
+    "react-router-component": "^0.18.2",
+    "amdefine": "^0.1.0"
+  }
+}

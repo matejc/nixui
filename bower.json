@@ -1,0 +1,31 @@
+{
+  "name": "nixjs",
+  "version": "0.0.0",
+  "homepage": "https://github.com/matejc/nixjs",
+  "authors": [
+    "Matej Cotman <cotman.matej@gmail.com>"
+  ],
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "nixjs",
+    "nix",
+    "package manager"
+  ],
+  "license": "BSD 2-Clause",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.1.1",
+    "react": "~0.10.0",
+    "requirejs": "~2.1.11",
+    "requirejs-domready": "~2.0.1",
+    "react-router-component": "~0.18.0"
+  }
+}
