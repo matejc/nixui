@@ -11,14 +11,14 @@ define([
       return {results: null};
     },
 
-    check: function() {
-      $.ajax({
-        url: '/search/get',
+    check: function() {  // TODO
+      /*$.ajax({
+        url: '/api/search',
         success: function(data) {
           this.setState({results: data});
           this.stopCheck();
         }.bind(this)
-      });
+      });*/
     },
 
     startCheck: function() {
@@ -29,37 +29,27 @@ define([
       clearInterval(this.interval);
     },
 
-    handleSubmit: function(e) {
-      e.preventDefault();
-      this.startCheck();
+    handleChange: function(e) {
+      this.setState({query: e.target.value});
     },
-
+    handleInput: function(e) {
+      if (e.keyCode === 13) {
+        this.setState({results: this.state.query});
+      }
+    },
     render: function() {
       return React.DOM.div(null,
-        React.DOM.form({
-          action: '/search',
-          method: 'post',
-          role: 'form',
-          onSubmit: this.handleSubmit
-        }, [
-          React.DOM.div({ key: 'field-query', className: 'form-group' }, [
-            React.DOM.label({ key: 'label', htmlFor: 'query'}, 'Query'),
-            React.DOM.input({
-              key: 'input', 
-              className: 'form-control',
-              type: 'text',
-              id: 'query',
-              name: 'query'
-            })
-          ]),
-          React.DOM.button({
-            key: 'button-submit',
-            className: 'btn btn-large btn-primary',
-            type: 'submit'
-          }, 'Search')
-        ]),
+        React.DOM.input({
+          key: 'input', 
+          className: 'form-control',
+          type: 'text',
+          id: 'query',
+          name: 'query',
+          onChange: this.handleChange,
+          onKeyPress: this.handleInput
+        }),
         React.DOM.div(null, this.state.results)
-      );
+      )
     }
 
   });

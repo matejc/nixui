@@ -180,27 +180,21 @@ app.route('/logout')
 app.route('/')
   .get(ensureLoggedIn('/login'), renderApp)
 
-var search_results = null;
 
 app.route('/search')
-  .get(ensureLoggedIn('/login'), renderApp)
-  .post(ensureLoggedIn('/login'), function(request, response, next) {
-    nix.search(request.params.query, function(data) {
+  .get(renderApp)
+
+var search_results = null;
+app.route('/api/search')
+  .post(function(request, response, next) {
+    nix.search(request.param('query'), function(data) {
       search_results = data;
     });
-    response.end();
-  });
-
-app.route('/search/get')
-  .get(ensureLoggedIn('/login'), function(request, response, next) {
-    output = JSON.stringify(search_results)
-    response.writeHead(200, {
-      'Content-Length': output.length,
-      'Content-Encoding': 'utf-8',
-      'Content-Type': 'Application/JSON'
-    });
-    response.end(output);
-    search_results = null;
+    response.send({query: request.param('query')});
+  })
+  .get(function(request, response, next) {
+    response.send({data: search_results});
+    //search_results = null;
   });
 
 
