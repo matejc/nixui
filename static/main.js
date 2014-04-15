@@ -16,7 +16,7 @@ require([
   domready(function() {
     React.renderComponent(App({
       path: window.location.pathname
-    }), document.body.childNodes[0]);
+    }), document.getElementById('maincontainer'));
   });
 
 });

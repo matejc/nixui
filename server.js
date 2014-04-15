@@ -154,7 +154,9 @@ var renderApp = function(req, res, next) {
       '  <script data-main="/static/main.js" src="/bower_components/requirejs/require.js"></script>' +
       ' </head>' +
       ' <body>' +
-      '  <div class="container">' + content + '</div>' +
+      ' <div class="container">' +
+      '  <div id="maincontainer">' + content + '</div>' +
+      ' </div>' +
       ' </body>' +
       '</html>')
 
