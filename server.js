@@ -34,6 +34,15 @@ var yargs = require('yargs')
     describe: 'Name of server instance.',
     default: 'NixJS'
   })
+  .options('file', {
+    describe: 'nix-env -f <file> ...',
+    alias: 'f',
+    default: null
+  })
+  .options('bin_prefix', {
+    describe: '<bin_prefix>/nix-env',
+    default: '/run/current-system/sw/bin'
+  })
   .options('port', {
     describe: 'Port.',
     alias: 'P',
@@ -190,12 +199,14 @@ var search_results = [];
 
 app.route('/api/search')
   .post(function(request, response, next) {
-    nix.search(request.param('query'), function(query, result) {
-      search_results.push({query: query, results: result});
-      while (search_results.length > 3) {
-        search_results.shift();
+    nix.search(argv.bin_prefix, request.param('query'), argv.file,
+      function(query, result) {
+        search_results.push({query: query, results: result});
+        while (search_results.length > 3) {
+          search_results.shift();
+        }
       }
-    });
+    );
     response.send();
   })
   .get(function(request, response, next) {

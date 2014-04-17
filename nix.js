@@ -2,15 +2,9 @@
 var spawn = require('child_process').spawn;
 var console = require('console');
 
-
-var nix_env = function(args, callback) {
-    var env = {
-        NIX_PATH: "nixpkgs=/home/matej/workarea/nixpkgs:nixos=/home/matej/workarea/nixpkgs/nixos",
-        HOME: "/home/matej",
-        NIX_STATE_DIR: "/nix/var/nix",
-        NIX_REMOTE: "daemon"
-    }
-    var nixenv = spawn('/run/current-system/sw/bin/nix-env', args, env);
+var nix_env = function(bin_prefix, args, callback) {
+    var nixenv = spawn(
+        bin_prefix + '/nix-env', args, process.env);
 
     var storage = '';
 
@@ -19,7 +13,7 @@ var nix_env = function(args, callback) {
     });
 
     nixenv.stderr.on('data', function (data) {
-        console.log('stderr: ' + data);
+        console.error('stderr: ' + data);
     });
 
     nixenv.on('close', function (code) {
@@ -27,7 +21,7 @@ var nix_env = function(args, callback) {
     });
 };
 
-exports.search = function(query, callback) {
+exports.search = function(bin_prefix, query, file_arg, callback) {
     var process = function(data) {
         results = [];
         lines = (''+data).split('\n');
@@ -43,5 +37,9 @@ exports.search = function(query, callback) {
         };
         callback(query, results);
     };
-    nix_env(['-f', '/home/matej/workarea/nixpkgs', '-qaP'], process);
+    var args = ['-qaP'];
+    if (file_arg !== null) {
+        args.unshift('-f', file_arg);
+    }
+    nix_env(bin_prefix, args, process);
 };
