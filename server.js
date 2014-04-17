@@ -142,7 +142,7 @@ var renderApp = function(req, res, next) {
 
     var content = React.renderComponentToString(App({
       path: url.parse(req.url).pathname
-    }))
+    }));
 
     res.send(
       '<!doctype html>' +
@@ -158,10 +158,10 @@ var renderApp = function(req, res, next) {
       '  <div id="maincontainer">' + content + '</div>' +
       ' </div>' +
       ' </body>' +
-      '</html>')
+      '</html>');
 
   } catch(err) {
-    return next(err)
+    return next(err);
   }
 };
 
@@ -186,17 +186,27 @@ app.route('/')
 app.route('/search')
   .get(renderApp)
 
-var search_results = null;
+var search_results = [];
+
 app.route('/api/search')
   .post(function(request, response, next) {
-    nix.search(request.param('query'), function(data) {
-      search_results = data;
+    nix.search(request.param('query'), function(query, result) {
+      search_results.push({query: query, results: result});
+      while (search_results.length > 3) {
+        search_results.shift();
+      }
     });
-    response.send({query: request.param('query')});
+    response.send();
   })
   .get(function(request, response, next) {
-    response.send({data: search_results});
-    //search_results = null;
+    var item = {query: '', results: []};
+    for (var i=0; i<search_results.length; i++) {
+      if (search_results[i].query == request.param('query')) {
+        item = {query: search_results[i].query, results: search_results[i].results};
+        break;
+      }
+    }
+    response.send(item);
   });
 
 

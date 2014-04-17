@@ -41,7 +41,7 @@ exports.search = function(query, callback) {
             };
             results.push([arr[1], arr[2]]);
         };
-        callback(results);
+        callback(query, results);
     };
-    nix_env(['-qaP'], process);
+    nix_env(['-f', '/home/matej/workarea/nixpkgs', '-qaP'], process);
 };
