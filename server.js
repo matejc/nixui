@@ -195,29 +195,19 @@ app.route('/')
 app.route('/search')
   .get(renderApp)
 
-var search_results = [];
-
 app.route('/api/search')
-  .post(function(request, response, next) {
-    nix.search(argv.bin_prefix, request.param('query'), argv.file,
-      function(query, result) {
-        search_results.push({query: query, results: result});
-        while (search_results.length > 3) {
-          search_results.shift();
-        }
-      }
-    );
-    response.send();
-  })
   .get(function(request, response, next) {
-    var item = {query: '', results: []};
-    for (var i=0; i<search_results.length; i++) {
-      if (search_results[i].query == request.param('query')) {
-        item = {query: search_results[i].query, results: search_results[i].results};
-        break;
-      }
+    query = request.param('query');
+    if (packageList == null) {
+      fillPackageList(function(){
+        response.send(searchPackageList(query));
+      });
+    } else {
+      response.send(searchPackageList(query));
     }
-    response.send(item);
+  })
+  .delete(function(request, response, next) {
+    packageList = null;
   });
 
 
@@ -226,7 +216,7 @@ app.route('/api/search')
 //
 
 var server = require('http').createServer(app),
-   io = require('socket.io').listen(server);
+    io = require('socket.io').listen(server);
 
 server
   .listen(argv.port, function() {
@@ -239,3 +229,28 @@ io.sockets.on('connection', function (socket) {
     console.log(data);
   });
 });
+
+//
+// --- LOGIC ---
+//
+
+var packageList = null;
+
+var fillPackageList = function(callback) {
+  nix.all_pkgs(argv.bin_prefix, argv.file,
+    function(result) {
+      packageList = result;
+      callback(result);
+    }
+  );
+}
+
+var searchPackageList = function(query) {
+  var items = [];
+  for (var i in packageList) {
+    if ((new RegExp(query, 'i')).test(packageList[i].attribute) || (new RegExp(query, 'i')).test(packageList[i].name)) {
+      items.push(packageList[i]);
+    }
+  }
+  return items;
+}
