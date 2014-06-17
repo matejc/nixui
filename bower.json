@@ -1,7 +1,7 @@
 {
-  "name": "nixjs",
+  "name": "nixui",
   "version": "0.0.0",
-  "homepage": "https://github.com/matejc/nixjs",
+  "homepage": "https://github.com/matejc/nixui",
   "authors": [
     "Matej Cotman <cotman.matej@gmail.com>"
   ],
@@ -9,7 +9,7 @@
     "amd"
   ],
   "keywords": [
-    "nixjs",
+    "nixui",
     "nix",
     "package manager"
   ],

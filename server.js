@@ -32,7 +32,7 @@ var yargs = require('yargs')
   .describe('cookie-secret', 'Enabled signed cookie support.')
   .options('title', {
     describe: 'Name of server instance.',
-    default: 'NixJS'
+    default: 'NixUI'
   })
   .options('file', {
     describe: 'nix-env -f <file> ...',

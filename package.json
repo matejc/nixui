@@ -1,7 +1,7 @@
 {
-  "name": "nixjs",
+  "name": "nixui",
   "version": "0.0.1",
-  "description": "weecloud clone written with reactjs",
+  "description": "nix-env frontend written with reactjs",
   "main": "server.js",
   "scripts": {
     "test": "test"
@@ -15,13 +15,13 @@
   ],
   "author": "Matej Cotman",
   "license": "BSD 2-Clause",
-  "homepage": "https://github.com/matejc/nixjs",
+  "homepage": "https://github.com/matejc/nixui",
   "bugs": {
-    "url": "https://github.com/matejc/nixjs/issues"
+    "url": "https://github.com/matejc/nixui/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/matejc/nixjs.git"
+    "url": "git://github.com/matejc/nixui.git"
   },
   "dependencies": {
     "express": "^4.0.0",
