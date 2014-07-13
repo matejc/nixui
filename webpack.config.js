@@ -4,15 +4,14 @@ module.exports = {
 
   output: {
     path: __dirname + "/_lib/",
-    filename: "[name].bundle.js"
+    filename: "[name].entry.js"
   },
 
   debug: false,
   devtool: false,
-  entry: [
-    "./node_modules/bootstrap/less/bootstrap.less",
-    "./src/client.jsx"
-  ],
+  entry: {
+    client: "./src/client.jsx"
+  },
 
   stats: {
     colors: true,
@@ -26,6 +25,9 @@ module.exports = {
       loader: "jshint"
     }],
     loaders: [
+      { test: /\.html$/,
+        loader: "html-loader"
+      },
       { test: /\.jsx$/,
         loader: "jsx-loader"
       },
@@ -42,7 +44,7 @@ module.exports = {
             "less-loader"
         ]
       },
-      { test: /\.png/, loader: "url?limit=100000&minetype=image/png" },
+      { test: /\.png$/, loader: "url?limit=100000&minetype=image/png" },
       { test: /\.woff$/, loader: "url-loader?limit=10000&minetype=application/font-woff" },
       { test: /\.ttf$/, loader: "file-loader" },
       { test: /\.eot$/, loader: "file-loader" },
