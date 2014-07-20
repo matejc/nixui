@@ -20,7 +20,8 @@
   <link rel="import" href="/bower_components/core-overlay/core-overlay.html">
   <link rel="import" href="/bower_components/paper-progress/paper-progress.html">
   <link rel="import" href="/bower_components/paper-checkbox/paper-checkbox.html">
-  <script src="/bower_components/jquery/dist/jquery.js"></script>
+  <link rel="import" href="/bower_components/paper-menu-button/paper-menu-button.html">
+  <link rel="import" href="/bower_components/paper-item/paper-item.html">
   <style>
   html,body {
     height: 100%;
@@ -44,9 +45,6 @@
     height: 100%;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-  }
-  query-input {
-    font-color: #005aa0;
   }
   core-toolbar {
     background: white;
@@ -73,8 +71,16 @@
       display:none;
       z-index:1;
   }
+  paper-menu-button {
+    color: #005aa0;
+  }
+  paper-item {
+    margin: 0.5em;
+    font-size: 80%;
+  }
   </style>
   <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
+  <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
   <core-header-panel id="contentpanel" mode="seamed">
     <div id="dimmer"></div>
     <div class="core-header">
@@ -83,18 +89,26 @@
           <a href="https://github.com/matejc/nixui" class="nixuilink">NixUI<paper-ripple fit></paper-ripple></a>
         </div>
         <div flex></div>
-        <query-input></query-input>
+        <query-input id="queryfield" query="{{query}}"></query-input>
         <div flex></div>
-        <core-icon-button icon="more-vert"></core-icon-button>
+        <paper-menu-button icon="more-vert" halign="right" valign="bottom">
+          <paper-item on-click="{{searchFor}}" data-query="!i" label="Search installed"></paper-item>
+          <paper-item on-click="{{searchFor}}" data-query="!u" label="Search upgradeable"></paper-item>
+          <paper-item on-click="{{openMarkedDialog}}" label="Manage marked ..."></paper-item>
+          <paper-item on-click="{{resetCache}}" label="Reset Search Cache"></paper-item>
+        </paper-menu-button>
       </core-toolbar>
       <progress-bar><progress-bar>
     </div>
 
-      <list-packages></list-packages>
+    <list-packages></list-packages>
   </core-header-panel>
 
-  <package-dialog></package-dialog>
-  <error-dialog></error-dialog>
+  <package-dialog controlDim="true"></package-dialog>
+  <error-dialog controlDim="true"></error-dialog>
+  <marked-dialog controlDim="true"></marked-dialog>
+
+  <ajax-wrapper id="ajax"></ajax-wrapper>
   </template>
   <script>
   (function() {
@@ -102,7 +116,25 @@
     Polymer('nixui-body', {
       dimSignal: function(e, detail, sender) {
         this.$.dimmer.style.display=(detail)?"block":"none";
-      }
+      },
+      searchFor: function(e, detail, sender) {
+        this.query = sender.getAttribute("data-query");
+      },
+      openMarkedDialog: function(e, detail, sender) {
+        this.fire('core-signal', {name: "openmarked"});
+      },
+      resetCache: function() {
+        this.$.ajax.go("/api/search", null, "DELETE", function(data) {
+          this.$.queryfield.setPackages();
+        }.bind(this));
+        // $.ajax({
+        //         url: '/api/search',
+        //         type: 'DELETE',
+        //         success: function(data) {
+        //           this.$.queryfield.setPackages();
+        //         }.bind(this)
+        //       });
+      },
     });
 
   })();
@@ -110,38 +142,86 @@
   </polymer-element>
 
 
-  <polymer-element name="query-input" on-keypress="{{keypressHandler}}">
+  <polymer-element name="ajax-wrapper" attributes="url params method oncomplete">
+  <template>
+    <core-ajax id="coreajax" url="{{url}}" params='{{params}}'
+      method={{method}} on-core-complete={{complete}}>
+    </core-ajax>
+  </template>
+  <script>
+  (function() {
+    Polymer('ajax-wrapper', {
+      complete: function(e) {
+        if (this.oncomplete)
+          this.oncomplete(JSON.parse(e.detail.xhr.response));
+      },
+      go: function(url, params, method, oncomplete) {
+        this.url = url ? url : this.url;
+        this.params = params ? JSON.stringify(params) : this.params;
+        this.method = method ? method : this.method;
+        this.oncomplete = oncomplete ? oncomplete : this.oncomplete;
+
+        this.$.coreajax.go();
+      }
+    });
+  })();
+  </script>
+  </polymer-element>
+
+
+  <polymer-element name="ajax-queue">
+  <template>
+    <core-ajax id="coreajax" url="{{url}}" params='{{params}}'
+      method={{method}} on-core-complete={{complete}}>
+    </core-ajax>
+  </template>
+  <script>
+  (function() {
+    Polymer('ajax-queue', {
+      add: function(url, params, method, oncomplete) {
+        var instance = document.createElement('ajax-wrapper');
+        instance.go(url, params, method, function(data){
+          oncomplete(data);
+          instance.unbindAll();
+        }.bind(oncomplete).bind(instance));
+      }
+    });
+  })();
+  </script>
+  </polymer-element>
+
+
+  <polymer-element name="query-input" attributes="query" on-keypress="{{keypressHandler}}">
     <template>
       <style type="text/css">
-        .iconmiddle {
+        #searchfield {
+          top: 0.4em;
           vertical-align: middle;
+        }
+        core-icon-button {
+          color: #005aa0;
         }
       </style>
       <span>
-        <!-- <core-icon-button on-click="{{resetCache}}" icon="refresh"></core-icon-button> -->
-        <core-icon-button icon="check"></core-icon-button>
-        <paper-input class="iconmiddle" on-keyup="{{keyHandler}}" value="{{value}}" label="Search packages ..."></paper-input>
+        <paper-input id="searchfield" on-keyup="{{keyHandler}}" value="{{value}}" label="Search packages ..."></paper-input>
         <core-icon-button on-click="{{setPackages}}" icon="search"></core-icon-button>
       </span>
+      <ajax-queue id="ajax"></ajax-queue>
     </template>
     <script>
       Polymer('query-input', {
         setPackages: function () {
           this.fire('core-signal', {name: "progress", data: "start"});
-          $.ajax({
-                  url: '/api/search',
-                  data: {
-                    'query': this.value
-                  },
-                  success: function(data) {
-                    if (data.error) {
-                      this.fire('core-signal', {name: "error", data: data.error});
-                    } else {
-                      this.fire('core-signal', {name: "query", data: data});
-                    }
-                    this.fire('core-signal', {name: "progress", data: "finish"});
-                  }.bind(this)
-                });
+          this.$.ajax.add("/api/search", {
+            'query': this.value
+          }, "GET", function(data) {
+            if (data.error) {
+              this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+            } else {
+              this.fire('core-signal', {name: "query", data: data});
+            }
+            this.fire('core-signal', {name: "progress", data: "finish"});
+          }.bind(this));
         },
         ready: function() {
           this.value = "";
@@ -152,14 +232,12 @@
             this.setPackages();
           }
         },
-        resetCache: function() {
-          $.ajax({
-                  url: '/api/search',
-                  type: 'DELETE',
-                  success: function(data) {
-                    this.setPackages();
-                  }.bind(this)
-                });
+        queryChanged: function() {
+          if (this.query) {
+            this.value = this.query;
+            this.setPackages();
+            this.query = "";  // unset so that next time change is detected
+          }
         }
       });
     </script>
@@ -179,6 +257,14 @@
         text-align: right;
         color: #646464;
       }
+      .pkgstate {
+        float: left;
+        font-family: 'RobotoDraft', sans-serif;
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 60%;
+        margin-left: 2em;
+      }
       .package {
         position: relative;
         height: 32px;
@@ -190,20 +276,23 @@
       .package:hover {
         background-color: #eeeeee;
       }
+      .available {
+        display:none;
+      }
       .uptodate {
-        background-color: #bbeeff;
+        display: block;
+        color: #00a05a;
       }
       .different {
-        background-color: #bbffee;
-      }
-      #listcontainer {
-        margin-top: 0.5em;
+        display: block;
+        color: #a05a5a;
       }
     </style>
     <div id="listcontainer">
     <template repeat="{{package in packages}}" bind="{{classNameFromCompare as classNameFromCompare}}">
-      <div on-click="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package {{package.compare | classNameFromCompare}}">
+      <div on-click="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package">
         <div class="pkgname">{{package.name}}</div>
+        <div class="pkgstate {{package.compare | classNameFromCompare}}" class="pkgstate">{{package.compare}}</div>
         <div class="pkgattr">{{package.attribute}}</div>
         <paper-ripple fit></paper-ripple>
       </div>
@@ -215,10 +304,16 @@
     Polymer('list-packages', {
       classNameFromCompare: function(value) {
         var result = "";
-        if (value[0] == "=") {
-          result = "uptodate";
-        } else if (value[0] in ["<", ">"]) {
-          result = "different"
+        switch (value[0]) {
+          case "-":
+            result = "available";
+            break;
+          case "=":
+            result = "uptodate";
+            break;
+          case "<":
+          case ">":
+            result = "different";
         }
         return result;
       },
@@ -232,7 +327,7 @@
         var attribute = sender.getAttribute('data-pkgattr');
         var name = sender.getAttribute('data-pkgname');
         var compare = sender.getAttribute('data-pkgcomp');
-        this.fire('core-signal', {name: "pkginfo", data: {pkgattr: attribute, pkgname: name, pkgcomp: compare}});
+        this.fire('core-signal', {name: "pkginfo", data: {pkgattr: attribute, pkgname: name, pkgcomp: compare, controlDim: true}});
       }
     });
   })();
@@ -240,7 +335,7 @@
   </polymer-element>
 
 
-  <polymer-element name="package-dialog">
+  <polymer-element name="package-dialog" attributes="controlDim">
   <template>
     <core-signals on-core-signal-pkginfo="{{pkginfoSignal}}"></core-signals>
     <style>
@@ -250,6 +345,8 @@
       border-style: solid;
       border-width: 2px;
       border-color: #4a9ae0;
+      left: 3em;
+      right: 3em;
     }
     #pkgmark {
       color: {{markobj.color}};
@@ -258,8 +355,8 @@
       color: #646464;
     }
     </style>
-    <my-dialog id="pkgdialog" heading="{{pkginfo.name}}" transition="paper-dialog-transition-bottom" closeSelector="[dismissive]">
-      <labeled-panel label="Attribute" content="{{packageobj.pkgattr}}"></labeled-panel>
+    <my-dialog id="pkgdialog" heading="{{pkginfo.name}}" transition="paper-dialog-transition-bottom" controlDim="{{controlDim}}" closeSelector="[dismissive]">
+      <labeled-panel label="Attribute" content="{{signalobj.pkgattr}}"></labeled-panel>
       <labeled-panel label="Path" content="{{pkginfo.path}}"></labeled-panel>
 
       <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
@@ -274,6 +371,7 @@
 
       <paper-checkbox id="pkgmark" on-click="{{donotclick}}" on-change="{{marked}}" label="{{markobj.label}}" checked="{{markobj.checked}}" affirmative autofocus></paper-checkbox>
     </my-dialog>
+    <ajax-queue id="ajax"></ajax-queue>
   </template>
   <script>
   (function() {
@@ -289,53 +387,43 @@
           {name: "uninstall", label: "Marked for removal!", color: "#a05a00", checked: false},
         ];
       },
+      toggle: function() {
+        this.$.pkgdialog.controlDim = this.signalobj.controlDim;
+        this.$.pkgdialog.toggle();
+      },
       pkginfoSignal: function(e, detail, sender) {
-        this.packageobj = detail;
-        $.ajax({
-                url: '/api/mark',
-                data: {
-                  'attribute': this.packageobj.pkgattr
-                },
-                success: function(data) {
-                  if (data.error) {
-                    this.fire('core-signal', {name: "error", data: data.error});
-                    return;
-                  }
-                  this.markobj = this.getMarkObj(data.mark);
-                }.bind(this)
-              });
-        $.ajax({
-                url: '/api/info',
-                data: {
-                  'attribute': this.packageobj.pkgattr
-                },
-                success: function(data) {
-                  if (data.error) {
-                    this.fire('core-signal', {name: "error", data: data.error});
-                    return;
-                  }
-                  this.pkginfo = JSON.parse(data);
-                  var dialog = this.$.pkgdialog;
-                  dialog.toggle();
-                }.bind(this)
-              });
+        this.signalobj = detail;
+        this.$.ajax.add("/api/mark", {
+          'attribute': this.signalobj.pkgattr
+        }, "GET", function(data) {
+          if (data.error) {
+            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+            return;
+          }
+          this.markobj = this.getMarkObj(data.mark);
+        }.bind(this));
+
+        this.$.ajax.add("/api/info", {
+          'attribute': this.signalobj.pkgattr
+        }, "GET", function(data) {
+          if (data.error) {
+            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+            return;
+          }
+          this.pkginfo = data;
+          this.toggle();
+        }.bind(this));
       },
       marked: function(e, detail, sender) {
-        console.log("clicked:"+this.packageobj.pkgattr);
-        $.ajax({
-                url: '/api/mark/' + (sender.checked? "install":"uninstall"),
-                data: {
-                  'attribute': this.packageobj.pkgattr
-                },
-                success: function(data) {
-                  this.markobj = this.getMarkObj(data.mark);
-                  console.log(this.markobj);
-                }.bind(this)
-              });
+        this.$.ajax.add('/api/mark/' + (sender.checked? "install":"uninstall"), {
+          'attribute': this.signalobj.pkgattr
+        }, "GET", function(data) {
+          this.markobj = this.getMarkObj(data.mark);
+        }.bind(this));
       },
       closeBtnDown: function(e, detail, sender) {
         if (e.keyCode == 13) {
-          this.$.pkgdialog.toggle();
+          this.toggle();
         }
       },
       getMarkObj: function(mark) {
@@ -350,7 +438,7 @@
         if (mark == "install" || mark == "uninstall") {
           return _find(mark);
         }
-        if (this.packageobj.pkgcomp[0] != "-")
+        if (this.signalobj.pkgcomp[0] != "-")
           return _find("installed");
         return _find("available");
       },
@@ -369,7 +457,7 @@
             license: ""
           }
         };
-        this.packageobj = {pkgattr: "", pkgname: "", pkgcomp: ""};
+        this.signalobj = {pkgattr: "", pkgname: "", pkgcomp: "", controlDim: false};
         this.pkginfo = emptyInfo;
       }
     });
@@ -443,7 +531,7 @@
   </polymer-element>
 
 
-  <polymer-element name="error-dialog">
+  <polymer-element name="error-dialog" attributes="controlDim">
   <template>
     <core-signals on-core-signal-error="{{errorSignal}}"></core-signals>
     <style>
@@ -457,14 +545,16 @@
       border-style: solid;
       border-width: 2px;
       border-color: #FF8585;
+      left: 2em;
+      right: 2em;
     }
     paper-shadow {
       display: none;
       z-index: -1;
     }
     </style>
-    <my-dialog id="errordialog" heading="Error" transition="paper-dialog-transition-bottom">
-      <p class="errortext" on-click="{{selectAll}}">{{errortext}}</p>
+    <my-dialog id="errordialog" heading="Error" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom">
+      <p class="errortext" on-click="{{selectAll}}">{{signalobj.text}}</p>
       <paper-button label="Close" dismissive></paper-button>
     </my-dialog>
   </template>
@@ -472,12 +562,15 @@
   (function() {
     Polymer('error-dialog', {
       errorSignal: function(e, detail, sender) {
-        this.errortext = detail;
-        var dialog = this.$.errordialog;
-        dialog.toggle();
+        this.signalobj = detail;
+        this.toggle();
+      },
+      toggle: function() {
+        this.$.errordialog.controlDim = this.signalobj.controlDim;
+        this.$.errordialog.toggle();
       },
       ready: function() {
-        this.dialogtext = "N/A";
+        this.signalobj = {text: "", controlDim: false};
       },
       selectAll: function() {
         $(".errortext").select();
@@ -488,8 +581,8 @@
   </polymer-element>
 
 
-  <!-- copy of paper-dialog, without shadow -->
-  <polymer-element name="my-dialog" attributes="opened heading transition autoCloseDisabled backdrop layered closeSelector" role="dialog">
+  <!-- copy of paper-dialog, without shadow with dimming support -->
+  <polymer-element name="my-dialog" attributes="opened heading transition autoCloseDisabled backdrop layered closeSelector controlDim" role="dialog">
     <template>
       <style type="text/css">
       :host {
@@ -544,6 +637,7 @@
         closeSelector: '[dismissive],[affirmative]',
         heading: '',
         transition: '',
+        controlDim: false,
         toggle: function() {
           this.$.overlay.toggle();
         },
@@ -551,7 +645,9 @@
           this.setAttribute('aria-label', this.heading);
         },
         observeOpened: function(oldValue, newValue) {
-          this.fire('core-signal', {name: "dim", data: newValue});
+          if (this.controlDim) {
+            this.fire('core-signal', {name: "dim", data: newValue});
+          }
         },
         observe: {
           '$.overlay.opened': 'observeOpened'
@@ -561,12 +657,12 @@
   </polymer-element>
 
 
-  <polymer-element name="progress-bar">
+  <polymer-element name="progress-bar" attributes="progress progressFromSignal">
   <template>
     <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
     <style>
     paper-progress::shadow #activeProgress {
-      background-color: #005aa0;
+      background-color: {{progressColor}};
     }
     paper-progress::shadow #progressContainer {
       background-color: #e0e0e0;
@@ -581,11 +677,18 @@
   <script>
   (function() {
     Polymer('progress-bar', {
+      progress: "start",
+      progressFromSignal: true,
+      progressColor: "#00a05a",
       progressSignal: function(e, detail, sender) {
-        if (detail == "start")
-          this.startProgress();
-        else
-          this.finishProgress();
+        if (!this.progressFromSignal)
+          return;
+        this.doProgress(detail)
+      },
+      progressChanged: function() {
+        if (this.progressFromSignal)
+          return;
+        this.doProgress(this.progress)
       },
       nextProgress: function() {
         if (this.position < 1000) {
@@ -598,9 +701,29 @@
         }
         this.async(this.nextProgress, null, this.delay);
       },
+      doProgress: function(command) {
+        switch (command) {
+          case "start":
+            this.startProgress();
+            break;
+          case "finish":
+            this.finishProgress();
+            break;
+          case "wait":
+            this.waitProgress();
+            break;
+          case "error":
+            this.errorProgress();
+            break;
+        }
+      },
+      waitProgress: function() {
+        this.animating = false;
+      },
       startProgress: function() {
         this.position = 0;
         this.step = 5;
+        this.progressColor = "#00a05a";
         if (!this.animating) {
           this.delay = 200;
           this.animating = true;
@@ -609,12 +732,218 @@
       },
       ready: function() {
         this.$.progressbar.max = 1000;
-        this.startProgress();
+        this.doProgress(this.progress);
       },
       finishProgress: function() {
         this.step = 50;
         this.delay = 10;
-        this.animating = false;
+        this.progressColor = "#005aa0";
+        if (this.animating)
+          this.animating = false;
+        else {
+          this.animating = false;
+          this.nextProgress();
+        }
+      },
+      errorProgress: function() {
+        this.step = 50;
+        this.delay = 10;
+        this.progressColor = "#a05a5a";
+        if (this.animating)
+          this.animating = false;
+        else {
+          this.animating = false;
+          this.nextProgress();
+        }
+      }
+    });
+  })();
+  </script>
+  </polymer-element>
+
+
+  <polymer-element name="marked-dialog" attributes="controlDim">
+  <template>
+    <core-signals on-core-signal-openmarked="{{openMarkedSignal}}"></core-signals>
+    <style>
+    #dialog {
+      font-family: 'RobotoDraft', sans-serif;
+      font-size: 90%;
+      border-style: solid;
+      border-width: 2px;
+      border-color: #4a9ae0;
+      top: 2em;
+      bottom: 2em;
+      right: 2em;
+      left: 2em;
+    }
+    paper-button {
+      color: #646464;
+    }
+    </style>
+    <my-dialog id="dialog" heading="Manage Marked" autoCloseDisabled="true" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom" closeSelector="[dismissive]">
+      <list-marked id="listmarked"></list-marked>
+      <paper-button on-keydown="{{closeBtnDown}}" label="Close" dismissive></paper-button>
+      <paper-button on-click="{{clearAll}}" label="Clear All" affirmative></paper-button>
+      <paper-button on-click="{{applyAll}}" label="Apply All" affirmative></paper-button>
+    </my-dialog>
+    <ajax-queue id="ajax"></ajax-queue>
+  </template>
+  <script>
+  (function() {
+    Polymer('marked-dialog', {
+      openMarkedSignal: function(e, detail, sender) {
+        this.$.listmarked.setList(function() {
+          var dialog = this.$.dialog;
+          dialog.toggle();
+        }.bind(this));
+      },
+      closeBtnDown: function(e, detail, sender) {
+        if (e.keyCode == 13) {
+          this.$.dialog.toggle();
+        }
+      },
+      applyAll: function() {
+        this.$.listmarked.applyAll();
+      },
+      clearAll: function() {
+        this.$.ajax.add('/api/mark/list', null, "DELETE", function(data) {
+          this.$.dialog.toggle();
+        }.bind(this));
+      }
+    });
+  })();
+  </script>
+  </polymer-element>
+
+
+  <polymer-element name="list-marked" attributes="list">
+  <template>
+    <style>
+      thead tr td {
+        font-family: 'RobotoDraft', sans-serif;
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 70%;
+        color: #005aa0;
+      }
+      .package {
+        position: relative;
+        color: #646464;
+        padding-right: 0.5em;
+        padding-left: 0.5em;
+        height: 100%;
+      }
+      .package:hover {
+        background-color: #eeeeee;
+      }
+      .center {
+        text-align: center;
+      }
+      .right {
+        float: right;
+      }
+      table {
+        margin-top: 0.5em;
+        width: 100%;
+        border-spacing: 0px;
+      }
+    </style>
+    <div id="listcontainer">
+
+    <table>
+      <thead>
+        <tr>
+          <td>Name</td>
+          <td>Attribute</td>
+          <td>Marked for</td>
+          <td></td>
+          <td class="right">Options</td>
+        </tr>
+      </thead>
+      <tbody>
+        <template repeat="{{entry in list}}">
+          <tr class="package">
+            <td class="pkgname">{{entry.name}}</td>
+            <td class="pkgattr">{{entry.attribute}}</td>
+            <td>{{entry.mark}}</td>
+            <td style="width:100px;">
+              <progress-bar progressFromSignal="false" progress="{{entry.progress}}"><progress-bar>
+            </td>
+            <td class="right" data-pkgattr="{{entry.attribute}}" data-pkgname="{{entry.name}}" data-pkgcomp="{{entry.compare}}" data-pkgmark="{{entry.mark}}">
+              <core-icon-button on-click="{{onApplyClick}}" icon="check"></core-icon-button>
+              <core-icon-button on-click="{{onRemoveClick}}" icon="clear"></core-icon-button>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="4">
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    </div>
+    <ajax-queue id="ajax"></ajax-queue>
+  </template>
+  <script>
+  (function() {
+    Polymer('list-marked', {
+      setList: function(callback) {
+        this.$.ajax.add('/api/mark/list', null, "GET", function(data) {
+          if (data.error) {
+            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
+            return;
+          }
+          this.list = data;
+          if (callback)
+            callback(data);
+        }.bind(this));
+      },
+      retryUntilStart: function(attribute) {
+        this.setList(function(list) {
+          for (var i in list) {
+            if (attribute && (attribute == list[i].attribute && list[i].progress == "wait")) {
+              setTimeout(function(){this.retryUntilStart(attribute);}.bind(this).bind(attribute), 1000);
+              break;
+            } else if (list[i].progress == "wait") {
+              setTimeout(function(){this.retryUntilStart();}.bind(this), 1000);
+              break;
+            }
+          }
+        }.bind(this).bind(attribute));
+      },
+      applyAll: function() {
+        this.retryUntilStart();
+        this.$.ajax.add('/api/mark/apply', null, "GET", function(data) {
+          this.setList();
+          if (data.error) {
+            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
+            return;
+          }
+          this.fire('core-signal', {name: "resetcache"});
+        }.bind(this));
+      },
+      onApplyClick: function(e) {
+        var attr = e.target.parentNode.getAttribute("data-pkgattr");
+        this.retryUntilStart(attr);
+        this.$.ajax.add('/api/mark/apply', {
+          "attribute": attr
+        }, "GET", function(data) {
+          this.setList();
+          if (data.error) {
+            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
+            return;
+          }
+          this.fire('core-signal', {name: "resetcache"});
+        }.bind(this));
+      },
+      onRemoveClick: function(e) {
+        this.$.ajax.add('/api/mark/delete', {
+          "attribute": e.target.parentNode.getAttribute("data-pkgattr")
+        }, "GET", function(data) {
+          if (data.removed)
+            this.setList();
+        }.bind(this));
       }
     });
   })();

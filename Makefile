@@ -1,20 +1,15 @@
 
-build:
-	nix-shell --command "./node_modules/webpack/bin/webpack.js --config=./webpack.config.js"
-
-develop:
-	nix-shell --command "node src/server.js -f /home/matej/workarea/nixpkgs/default.nix"
-
-debug:
-	nix-shell --command "node debug src/server.js"
-
-bower:
-	rm -rf ./bower_components
-	bower install
+clean:
+	rm node_packages_generated.nix \
+		bower_components node_modules
 
 generate:
-	npm2nix package.json package.nix
+	output_path=`nix-build --argstr action generate`; test -d "$$output_path" && ln -sfv "$$output_path"/* .
 
-package.json: generate
+build: generate
+	output_path=`nix-build --argstr action build`; test -d "$$output_path" && ln -sfv "$$output_path"/* .
 
-.PHONY: develop bower build generate
+develop: build
+	nix-shell --command "node src/server.js -f /home/matej/workarea/nixpkgs/default.nix"
+
+.PHONY: develop build generate clean

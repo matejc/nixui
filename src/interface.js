@@ -6,16 +6,17 @@ exports.nixEnv = function(args, callback, error_callback) {
   var outerr = "";
 
   var nixProcess = spawn('nix-env', args);
+  console.log("nix-env: " + args);
 
   nixProcess.stdout.on("data", function(data) {
     output += data;
   });
-  
+
   nixProcess.stderr.on("data", function(data) {
-    console.error("nix-env error: " + data);
+    console.error("nix-env: " + data);
     outerr += data;
   });
-  
+
   nixProcess.on("exit", function(code) {
     if(code == 0)
       callback(output.substring(0, output.length - 1));
@@ -27,21 +28,21 @@ exports.nixEnv = function(args, callback, error_callback) {
 exports.nixInstantiate = function (args, expression, removeQuotations, callback, error_callback) {
   var output = "";
   var outerr = "";
-  
+
   var nixProcess = spawn("nix-instantiate", args.concat(["-"]));
-  
+
   nixProcess.stdin.write(expression);
   nixProcess.stdin.end();
 
   nixProcess.stdout.on("data", function(data) {
     output += data;
   });
-  
+
   nixProcess.stderr.on("data", function(data) {
-    console.error("nix-instantiate error: " + data);
+    console.error("nix-instantiate: " + data);
     outerr += data;
   });
-  
+
   nixProcess.on("exit", function(code) {
     if(code == 0)
       if (removeQuotations) {
@@ -110,7 +111,7 @@ exports.allPackages = function(file_arg, profile_arg, callback, error_callback) 
 exports.installPackage = function(pkg_attribute, file_arg, profile_arg, callback, error_callback) {
   var args = createArgsArray(
     ['-iA', pkg_attribute], file_arg, profile_arg, []);
-  exports.nixEnv(args, doInstall, error_callback);
+  exports.nixEnv(args, callback, error_callback);
 };
 
 exports.uninstallPackage = function(pkg_name, file_arg, profile_arg, callback, error_callback) {

@@ -22,15 +22,10 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer",
-    "core-elements": "Polymer/core-elements",
-    "core-signals": "Polymer/core-signals",
-    "paper-elements": "Polymer/paper-elements",
-    "jquery": "jquery/jquery#~2.1.1"
-  },
-  "resolutions": {
-    "polymer": "0.3.3",
-    "platform": ">=0.3.0 <1.0.0",
-    "core-component-page": ">=0.3.0 <1.0.0"
+    "polymer": "https://github.com/Polymer/polymer.git#master",
+    "core-elements": "https://github.com/Polymer/core-elements.git#master",
+    "core-signals": "https://github.com/Polymer/core-signals.git#master",
+    "paper-elements": "https://github.com/Polymer/paper-elements.git#master",
+    "paper-menu-button": "https://github.com/Polymer/paper-menu-button.git#master"
   }
 }
