@@ -171,19 +171,28 @@
 
   <polymer-element name="ajax-queue">
   <template>
-    <core-ajax id="coreajax" url="{{url}}" params='{{params}}'
-      method={{method}} on-core-complete={{complete}}>
-    </core-ajax>
+    <div id="ajaxqueue"></div>
   </template>
   <script>
   (function() {
     Polymer('ajax-queue', {
+      makeid: function() {
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        for( var i=0; i < 20; i++ )
+          text += possible.charAt(Math.floor(Math.random() * possible.length));
+        return text;
+      },
       add: function(url, params, method, oncomplete) {
         var instance = document.createElement('ajax-wrapper');
+        instance.setAttribute("id", this.makeid());
+        var ajaxqueue = this.$.ajaxqueue;
+        ajaxqueue.appendChild(instance);
+
         instance.go(url, params, method, function(data){
           oncomplete(data);
-          instance.unbindAll();
-        }.bind(oncomplete).bind(instance));
+          ajaxqueue.removeChild(instance);
+        }.bind(oncomplete).bind(instance).bind(ajaxqueue));
       }
     });
   })();
@@ -209,6 +218,7 @@
       <ajax-queue id="ajax"></ajax-queue>
     </template>
     <script>
+    (function() {
       Polymer('query-input', {
         setPackages: function () {
           this.fire('core-signal', {name: "progress", data: "start"});
@@ -225,7 +235,7 @@
         },
         ready: function() {
           this.value = "";
-          this.setPackages();
+          setTimeout(this.setPackages.bind(this), 1);
         },
         keyHandler: function(event, detail, sender) {
           if (event.keyCode == 13) {
@@ -240,6 +250,7 @@
           }
         }
       });
+    })();
     </script>
   </polymer-element>
 
@@ -672,14 +683,11 @@
       width: 100%;
     }
     </style>
-    <paper-progress id="progressbar" value="{{position}}"></paper-progress>
+    <paper-progress id="progressbar" value="{{position}}" max="1000"></paper-progress>
   </template>
   <script>
   (function() {
     Polymer('progress-bar', {
-      progress: "start",
-      progressFromSignal: true,
-      progressColor: "#00a05a",
       progressSignal: function(e, detail, sender) {
         if (!this.progressFromSignal)
           return;
@@ -731,7 +739,9 @@
         }
       },
       ready: function() {
-        this.$.progressbar.max = 1000;
+        this.progressFromSignal = true,
+        this.progressColor = "#00a05a",
+        this.progress = "wait",
         this.doProgress(this.progress);
       },
       finishProgress: function() {
