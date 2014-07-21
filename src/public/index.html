@@ -878,9 +878,9 @@
             <td class="pkgattr">{{entry.attribute}}</td>
             <td>{{entry.mark}}</td>
             <td style="width:100px;">
-              <progress-bar progressFromSignal="false" progress="{{entry.progress}}"><progress-bar>
+              <progress-bar name="workanim" data-pkgattr="{{entry.attribute}}" progressFromSignal="false" progress="{{entry.progress}}"><progress-bar>
             </td>
-            <td class="right" data-pkgattr="{{entry.attribute}}" data-pkgname="{{entry.name}}" data-pkgcomp="{{entry.compare}}" data-pkgmark="{{entry.mark}}">
+            <td class="right" data-pkgattr="{{entry.attribute}}">
               <core-icon-button on-click="{{onApplyClick}}" icon="check"></core-icon-button>
               <core-icon-button on-click="{{onRemoveClick}}" icon="clear"></core-icon-button>
             </td>
@@ -909,21 +909,23 @@
             callback(data);
         }.bind(this));
       },
-      retryUntilStart: function(attribute) {
-        this.setList(function(list) {
-          for (var i in list) {
-            if (attribute && (attribute == list[i].attribute && list[i].progress == "wait")) {
-              setTimeout(function(){this.retryUntilStart(attribute);}.bind(this).bind(attribute), 1000);
-              break;
-            } else if (list[i].progress == "wait") {
-              setTimeout(function(){this.retryUntilStart();}.bind(this), 1000);
+      startByPkgAttr: function(attribute) {
+        var bars = this.shadowRoot.querySelectorAll("progress-bar[name=workanim]").array();
+        if (attribute) {
+          for (var i in bars) {
+            if (attribute == bars[i].getAttribute("data-pkgattr")) {
+              bars[i].doProgress("start");
               break;
             }
           }
-        }.bind(this).bind(attribute));
+        } else {
+          for (var i in bars) {
+            bars[i].doProgress("start");
+          }
+        }
       },
       applyAll: function() {
-        this.retryUntilStart();
+        this.startByPkgAttr();
         this.$.ajax.add('/api/mark/apply', null, "GET", function(data) {
           this.setList();
           if (data.error) {
@@ -935,7 +937,7 @@
       },
       onApplyClick: function(e) {
         var attr = e.target.parentNode.getAttribute("data-pkgattr");
-        this.retryUntilStart(attr);
+        this.startByPkgAttr(attr);
         this.$.ajax.add('/api/mark/apply', {
           "attribute": attr
         }, "GET", function(data) {

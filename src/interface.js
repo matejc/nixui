@@ -84,7 +84,7 @@ exports.allPackages = function(file_arg, profile_arg, callback, error_callback) 
       items = [];
       lines = (''+data).split('\n');
       for (var n=0; n<lines.length; n++) {
-        arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=\<\>\-]+\ [\w\.\-\?]+)/.exec(lines[n]);
+        arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=\<\>\-]+\ {0,1}[\w\.\-\?]*)/.exec(lines[n]);
         if (arr == null) {
           console.warn("line skipped: " + lines[n]);
           continue;
