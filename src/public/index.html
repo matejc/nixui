@@ -35,6 +35,7 @@
 <body unresolved touch-action="auto">
 
   <nixui-body></nixui-body>
+  <!-- <test-progress></test-progress> -->
 
 </body>
 
@@ -93,7 +94,7 @@
         <div flex></div>
         <paper-menu-button icon="more-vert" halign="right" valign="bottom">
           <paper-item on-click="{{searchFor}}" data-query="!i" label="Search installed"></paper-item>
-          <paper-item on-click="{{searchFor}}" data-query="!u" label="Search upgradeable"></paper-item>
+          <paper-item on-click="{{searchFor}}" data-query="!u" label="Search upgradable"></paper-item>
           <paper-item on-click="{{openMarkedDialog}}" label="Manage marked ..."></paper-item>
           <paper-item on-click="{{resetCache}}" label="Reset Search Cache"></paper-item>
         </paper-menu-button>
@@ -127,13 +128,6 @@
         this.$.ajax.go("/api/search", null, "DELETE", function(data) {
           this.$.queryfield.setPackages();
         }.bind(this));
-        // $.ajax({
-        //         url: '/api/search',
-        //         type: 'DELETE',
-        //         success: function(data) {
-        //           this.$.queryfield.setPackages();
-        //         }.bind(this)
-        //       });
       },
     });
 
@@ -359,10 +353,10 @@
       left: 3em;
       right: 3em;
     }
-    #pkgmark {
-      color: {{markobj.color}};
+    #markedbtn {
+      color: {{markItem.color}};
     }
-    paper-button {
+    #closebtn {
       color: #646464;
     }
     </style>
@@ -378,9 +372,11 @@
 
       <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
 
-      <paper-button on-keydown="{{closeBtnDown}}" label="Close" dismissive></paper-button>
+      <paper-button id="closebtn" on-keydown="{{closeBtnDown}}" label="Close" dismissive></paper-button>
 
-      <paper-checkbox id="pkgmark" on-click="{{donotclick}}" on-change="{{marked}}" label="{{markobj.label}}" checked="{{markobj.checked}}" affirmative autofocus></paper-checkbox>
+      <!-- <paper-checkbox id="pkgmark" on-click="{{donotclick}}" on-change="{{marked}}" label="{{markItem.label}}" checked="{{markItem.checked}}" affirmative autofocus></paper-checkbox> -->
+
+      <paper-button id="markedbtn" label="{{markItem.label}}" on-click="{{toggleMarked}}" affirmative></paper-button>
     </my-dialog>
     <ajax-queue id="ajax"></ajax-queue>
   </template>
@@ -388,15 +384,8 @@
   (function() {
     Polymer('package-dialog', {
       donotclick: function(e, detail, sender) {
+        e.preventDefault();
         e.stopPropagation();
-      },
-      markObjects: function() {
-        return [
-          {name: "installed", label: "Installed!", color: "#005aa0", checked: true},
-          {name: "available", label: "Available!", color: "#646464", checked: false},
-          {name: "install", label: "Marked for installation!", color: "#00a05a", checked: true},
-          {name: "uninstall", label: "Marked for removal!", color: "#a05a00", checked: false},
-        ];
       },
       toggle: function() {
         this.$.pkgdialog.controlDim = this.signalobj.controlDim;
@@ -404,14 +393,10 @@
       },
       pkginfoSignal: function(e, detail, sender) {
         this.signalobj = detail;
-        this.$.ajax.add("/api/mark", {
+        this.$.ajax.add("/api/mark/get", {
           'attribute': this.signalobj.pkgattr
         }, "GET", function(data) {
-          if (data.error) {
-            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
-            return;
-          }
-          this.markobj = this.getMarkObj(data.mark);
+          this.markItem = this.getMarkItem(data);
         }.bind(this));
 
         this.$.ajax.add("/api/info", {
@@ -425,11 +410,11 @@
           this.toggle();
         }.bind(this));
       },
-      marked: function(e, detail, sender) {
-        this.$.ajax.add('/api/mark/' + (sender.checked? "install":"uninstall"), {
-          'attribute': this.signalobj.pkgattr
+      toggleMarked: function(e, detail, sender) {
+        this.$.ajax.add('/api/mark/toggle', {
+          'attribute': this.signalobj.pkgattr,
         }, "GET", function(data) {
-          this.markobj = this.getMarkObj(data.mark);
+          this.markItem = this.getMarkItem(data);
         }.bind(this));
       },
       closeBtnDown: function(e, detail, sender) {
@@ -437,23 +422,35 @@
           this.toggle();
         }
       },
-      getMarkObj: function(mark) {
-        var markobjects = this.markObjects();
-        var _find = function(name) {
-          for (var i in markobjects) {
-            if (markobjects[i].name == name) {
-              return markobjects[i];
+      getMarkItem: function(markObj) {
+        var _get = function(mark) {
+          for (var i in this.markArray) {
+            if (this.markArray[i].mark == mark) {
+              return this.markArray[i];
             }
           }
-        };
-        if (mark == "install" || mark == "uninstall") {
-          return _find(mark);
+        }.bind(this);
+
+        if (markObj.mark == "install" || markObj.mark == "uninstall") {
+          return _get(markObj.mark);
         }
-        if (this.signalobj.pkgcomp[0] != "-")
-          return _find("installed");
-        return _find("available");
+
+        switch (this.signalobj.pkgcomp[0]) {
+        case "-":
+          return _get("available");
+        case "=":
+        case ">":
+        case "<":
+          return _get("installed");
+        }
       },
       ready: function() {
+        this.markArray = [
+          {mark: "installed", label: "Installed!", color: "#005aa0"},
+          {mark: "available", label: "Available!", color: "#646464"},
+          {mark: "install", label: "Marked for install!", color: "#00a05a"},
+          {mark: "uninstall", label: "Marked for removal!", color: "#a05a00"},
+        ];
         var emptyInfo = {
           name: "",
           path: "",
@@ -693,11 +690,11 @@
           return;
         this.doProgress(detail)
       },
-      progressChanged: function() {
-        if (this.progressFromSignal)
-          return;
-        this.doProgress(this.progress)
-      },
+      // progressChanged: function() {
+      //   if (this.progressFromSignal)
+      //     return;
+      //   this.doProgress(this.progress)
+      // },
       nextProgress: function() {
         if (this.position < 1000) {
           this.position += (this.step || 1);
@@ -710,17 +707,23 @@
         this.async(this.nextProgress, null, this.delay);
       },
       doProgress: function(command) {
+        if (this.progress == command)
+          return;
         switch (command) {
           case "start":
+            this.progress = command;
             this.startProgress();
             break;
           case "finish":
+            this.progress = command;
             this.finishProgress();
             break;
           case "wait":
+            this.progress = command;
             this.waitProgress();
             break;
           case "error":
+            this.progress = command;
             this.errorProgress();
             break;
         }
@@ -765,6 +768,9 @@
           this.animating = false;
           this.nextProgress();
         }
+      },
+      getProgress: function() {
+        return this.progress;
       }
     });
   })();
@@ -791,9 +797,9 @@
       color: #646464;
     }
     </style>
-    <my-dialog id="dialog" heading="Manage Marked" autoCloseDisabled="true" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom" closeSelector="[dismissive]">
+    <my-dialog id="dialog" heading="Manage Marked" autoCloseDisabled="true" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom" closeSelector="">
       <list-marked id="listmarked"></list-marked>
-      <paper-button on-keydown="{{closeBtnDown}}" label="Close" dismissive></paper-button>
+      <paper-button on-keydown="{{closeBtnDown}}" on-click="{{closeDialog}}" label="Close" dismissive></paper-button>
       <paper-button on-click="{{clearAll}}" label="Clear All" affirmative></paper-button>
       <paper-button on-click="{{applyAll}}" label="Apply All" affirmative></paper-button>
     </my-dialog>
@@ -803,22 +809,25 @@
   (function() {
     Polymer('marked-dialog', {
       openMarkedSignal: function(e, detail, sender) {
-        this.$.listmarked.setList(function() {
-          var dialog = this.$.dialog;
-          dialog.toggle();
-        }.bind(this));
+        var dialog = this.$.dialog;
+        dialog.toggle();
+        this.$.listmarked.openedDialog();
       },
       closeBtnDown: function(e, detail, sender) {
         if (e.keyCode == 13) {
-          this.$.dialog.toggle();
+          this.closeDialog();
         }
+      },
+      closeDialog: function() {
+        this.$.dialog.toggle();
+        this.$.listmarked.closedDialog();
       },
       applyAll: function() {
         this.$.listmarked.applyAll();
       },
       clearAll: function() {
-        this.$.ajax.add('/api/mark/list', null, "DELETE", function(data) {
-          this.$.dialog.toggle();
+        this.$.ajax.add('/api/mark/removeall', null, "GET", function(data) {
+          this.closeDialog();
         }.bind(this));
       }
     });
@@ -842,13 +851,10 @@
         color: #646464;
         padding-right: 0.5em;
         padding-left: 0.5em;
-        height: 100%;
+        height: 42px;
       }
       .package:hover {
         background-color: #eeeeee;
-      }
-      .center {
-        text-align: center;
       }
       .right {
         float: right;
@@ -858,16 +864,18 @@
         width: 100%;
         border-spacing: 0px;
       }
+      .pkgprogressbar {
+        margin-top: 19px;
+        float: left;
+        width: 120px;
+      }
     </style>
-    <div id="listcontainer">
-
     <table>
       <thead>
         <tr>
           <td>Name</td>
           <td>Attribute</td>
           <td>Marked for</td>
-          <td></td>
           <td class="right">Options</td>
         </tr>
       </thead>
@@ -877,84 +885,87 @@
             <td class="pkgname">{{entry.name}}</td>
             <td class="pkgattr">{{entry.attribute}}</td>
             <td>{{entry.mark}}</td>
-            <td style="width:100px;">
-              <progress-bar name="workanim" data-pkgattr="{{entry.attribute}}" progressFromSignal="false" progress="{{entry.progress}}"><progress-bar>
-            </td>
-            <td class="right" data-pkgattr="{{entry.attribute}}">
-              <core-icon-button on-click="{{onApplyClick}}" icon="check"></core-icon-button>
-              <core-icon-button on-click="{{onRemoveClick}}" icon="clear"></core-icon-button>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="4">
+            <td>
+              <progress-bar class="pkgprogressbar" data-pkgattr="{{entry.attribute}}" progressFromSignal="false"></progress-bar>
+              <div style="float: right;">
+                <core-icon-button on-click="{{onApplyClick}}" data-pkgattr="{{entry.attribute}}" icon="check"></core-icon-button>
+                <core-icon-button on-click="{{onRemoveClick}}" data-pkgattr="{{entry.attribute}}" icon="clear"></core-icon-button>
+              </div>
             </td>
           </tr>
         </template>
       </tbody>
     </table>
-    </div>
     <ajax-queue id="ajax"></ajax-queue>
   </template>
   <script>
   (function() {
     Polymer('list-marked', {
-      setList: function(callback) {
-        this.$.ajax.add('/api/mark/list', null, "GET", function(data) {
+      openedDialog: function() {
+        this.active = true;
+        this.fetchNextProgress();
+      },
+      setList: function() {
+        this.$.ajax.add('/api/mark/get', null, "GET", function(data) {
           if (data.error) {
             this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
             return;
           }
           this.list = data;
-          if (callback)
-            callback(data);
         }.bind(this));
       },
-      startByPkgAttr: function(attribute) {
-        var bars = this.shadowRoot.querySelectorAll("progress-bar[name=workanim]").array();
-        if (attribute) {
-          for (var i in bars) {
-            if (attribute == bars[i].getAttribute("data-pkgattr")) {
-              bars[i].doProgress("start");
-              break;
-            }
-          }
-        } else {
-          for (var i in bars) {
-            bars[i].doProgress("start");
-          }
-        }
-      },
-      applyAll: function() {
-        this.startByPkgAttr();
-        this.$.ajax.add('/api/mark/apply', null, "GET", function(data) {
-          this.setList();
+      fetchNextProgress: function() {
+        this.$.ajax.add("/api/mark/get", null, "GET", function(data) {
           if (data.error) {
-            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
+            console.log(data.error);
             return;
           }
-          this.fire('core-signal', {name: "resetcache"});
+          if (!this.list || this.list.length != data.length) {
+            this.list = data;
+          }
+
+          var bars = this.shadowRoot.querySelectorAll("progress-bar.pkgprogressbar").array();
+          for (var i in bars) {
+            var attribute = bars[i].getAttribute("data-pkgattr");
+            var progress = bars[i].getProgress();
+            for (var j in data) {
+              if (data[j].attribute == attribute && data[j].state != progress) {
+                bars[i].doProgress(data[j].state);
+              }
+            }
+          }
+
+          if (this.active && data)
+            setTimeout(this.fetchNextProgress.bind(this), 500);
         }.bind(this));
       },
       onApplyClick: function(e) {
-        var attr = e.target.parentNode.getAttribute("data-pkgattr");
-        this.startByPkgAttr(attr);
+        var pkgattr = e.target.getAttribute("data-pkgattr");
+        if (!pkgattr)
+          return;
         this.$.ajax.add('/api/mark/apply', {
-          "attribute": attr
+          "attribute": pkgattr
         }, "GET", function(data) {
-          this.setList();
           if (data.error) {
             this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
-            return;
           }
-          this.fire('core-signal', {name: "resetcache"});
         }.bind(this));
       },
       onRemoveClick: function(e) {
-        this.$.ajax.add('/api/mark/delete', {
-          "attribute": e.target.parentNode.getAttribute("data-pkgattr")
+        var pkgattr = e.target.getAttribute("data-pkgattr");
+        this.$.ajax.add('/api/mark/remove', {
+          "attribute": pkgattr
         }, "GET", function(data) {
-          if (data.removed)
-            this.setList();
+        }.bind(this));
+      },
+      applyAll: function() {
+        this.$.ajax.add('/api/mark/applyall', null, "GET", function(data) {
+        }.bind(this));
+      },
+      closedDialog: function() {
+        this.active = false;
+        this.fire('core-signal', {name: "resetcache"});
+        this.$.ajax.add('/api/mark/removefinished', null, "GET", function(data) {
         }.bind(this));
       }
     });

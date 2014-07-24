@@ -1,11 +1,16 @@
 var console = require('console');
 var spawn = require('child_process').spawn;
 
+var nixEnvProcesses = [];
+
 exports.nixEnv = function(args, callback, error_callback) {
   var output = "";
   var outerr = "";
 
   var nixProcess = spawn('nix-env', args);
+  var nixEnvProcessesItem = {process: nixProcess};
+  nixEnvProcesses.push(nixEnvProcessesItem);
+
   console.log("nix-env: " + args);
 
   nixProcess.stdout.on("data", function(data) {
@@ -18,11 +23,20 @@ exports.nixEnv = function(args, callback, error_callback) {
   });
 
   nixProcess.on("exit", function(code) {
+    for (var i in nixEnvProcesses) {
+      if (nixProcess === nixEnvProcesses[i].process) {
+        nixEnvProcesses.splice(i, 1);
+        break;
+      }
+    }
     if(code == 0)
       callback(output.substring(0, output.length - 1));
     else
       error_callback(outerr+"\nnix-env exited with status: " + code);
-  });
+    console.error("\nnix-env exited with status: " + code);
+  }.bind(nixProcess));
+
+  return nixEnvProcessesItem;
 };
 
 exports.nixInstantiate = function (args, expression, removeQuotations, callback, error_callback) {
@@ -111,13 +125,28 @@ exports.allPackages = function(file_arg, profile_arg, callback, error_callback) 
 exports.installPackage = function(pkg_attribute, file_arg, profile_arg, callback, error_callback) {
   var args = createArgsArray(
     ['-iA', pkg_attribute], file_arg, profile_arg, []);
-  exports.nixEnv(args, callback, error_callback);
+  exports.nixEnv(args, callback, error_callback).attribute = pkg_attribute;
 };
 
-exports.uninstallPackage = function(pkg_name, file_arg, profile_arg, callback, error_callback) {
+exports.uninstallPackage = function(pkg_attribute, pkg_name, file_arg, profile_arg, callback, error_callback) {
   var args = createArgsArray(
     ['-e', pkg_name], file_arg, profile_arg, []);
-  exports.nixEnv(args, callback, error_callback);
+  exports.nixEnv(args, callback, error_callback).attribute = pkg_attribute;
+};
+
+exports.killNixEnvByAttribute = function(pkg_attribute) {
+  for (var i in nixEnvProcesses) {
+    if (pkg_attribute == nixEnvProcesses[i].attribute) {
+      nixEnvProcesses[i].process.kill("SIGKILL");
+      break;
+    }
+  }
+};
+
+exports.killNixEnvAll = function() {
+  for (var i in nixEnvProcesses) {
+    nixEnvProcesses[i].process.kill("SIGKILL");
+  }
 };
 
 exports.packageInfo = function (packageAttrStr, callback, error_callback) {

@@ -98,62 +98,147 @@ app.route('/api/info')
     });
   });
 
-app.route('/api/mark')
+// app.route('/api/mark')
+//   .get(function (request, response, next) {
+//     attribute = request.param('attribute');
+//     getMarkFor(attribute, function(attr, mark, progress){
+//       response.send({"attribute": attr, "mark": mark, "progress": progress});
+//     });
+//   });
+//
+// app.route('/api/mark/delete')
+//   .get(function (request, response, next) {
+//     attribute = request.param('attribute');
+//     delMarkFor(attribute, function(attr, removed){
+//       response.send({"attribute": attr, "removed": removed});
+//     });
+//   });
+//
+// app.route('/api/mark/list')
+//   .get(function (request, response, next) {
+//     response.send(markList);
+//   })
+//   .delete(function(request, response, next) {
+//     markList = [];
+//     response.send({"state": 200});
+//   });
+//
+// app.route('/api/mark/install')
+//   .get(function (request, response, next) {
+//     attribute = request.param('attribute');
+//     setMarkFor(attribute, "install", function(attr, mark){
+//       response.send({"attribute": attr, "mark": mark});
+//     }, function(data){
+//       response.send({"error": data});
+//     });
+//   });
+//
+// app.route('/api/mark/uninstall')
+//   .get(function (request, response, next) {
+//     attribute = request.param('attribute');
+//     setMarkFor(attribute, "uninstall", function(attr, mark){
+//       response.send({"attribute": attr, "mark": mark});
+//     }, function(data){
+//       response.send({"error": data});
+//     });
+//   });
+//
+// app.route('/api/mark/apply')
+//   .get(function(request, response, next) {
+//     attribute = request.param('attribute');
+//     applyMarked(
+//       attribute,
+//       function(data){  // finish
+//         response.send({"attribute": data});
+//       }, function(data){  // error
+//         response.send({"error": data});
+//       });
+//   });
+
+app.route('/api/mark/set')
   .get(function (request, response, next) {
-    attribute = request.param('attribute');
-    getMarkFor(attribute, function(attr, mark){
-      response.send({"attribute": attr, "mark": mark});
-    });
+    var attribute = request.param('attribute');
+    var mark = request.param('mark');  // install/uninstall
+
+    var result = setMark(attribute, mark);
+    if (result.error)
+      response.send({"error": result.error}); // NOT_FOUND, NOT_MARKED, ALREADY_MARKED
+    else
+      response.send(result);
+  });
+app.route('/api/mark/toggle')
+  .get(function (request, response, next) {
+    var attribute = request.param('attribute');
+    var markObj = getMarkObjByAttribute(attribute);
+    var result;
+
+    if (!markObj) {
+      var pkg = getPackageByAttribute(attribute);
+      result = setMark(attribute, (pkg.compare[0]=='=' ? 'uninstall' : 'install'));
+
+    } else if (markObj.mark == "install") {
+      removeMark(attribute);
+      result = setMark(attribute, "uninstall");
+
+    } else if (markObj.mark == "uninstall") {
+      removeMark(attribute);
+      result = setMark(attribute, "install");
+
+    } else {
+      result = markObj;
+    }
+
+    if (result.error)
+      response.send({"error": result.error}); // NOT_FOUND, NOT_MARKED, ALREADY_MARKED
+    else
+      response.send(result);
   });
 
-app.route('/api/mark/delete')
+app.route('/api/mark/get')
   .get(function (request, response, next) {
-    attribute = request.param('attribute');
-    delMarkFor(attribute, function(attr, removed){
-      response.send({"attribute": attr, "removed": removed});
-    });
-  });
+    var attribute = request.param('attribute');
 
-app.route('/api/mark/list')
+    var result;
+    if (attribute) {
+      result = getMarkObjByAttribute(attribute);
+      if (!result)
+        result = {};
+    } else {
+      result = markList;
+    }
+    response.send(result);
+  });
+app.route('/api/mark/remove')
   .get(function (request, response, next) {
-    response.send(markList);
-  })
-  .delete(function(request, response, next) {
+    var attribute = request.param('attribute');
+    NixInterface.killNixEnvByAttribute(attribute);
+    response.send({"removed": removeMark(attribute)});
+  });
+app.route('/api/mark/removeall')
+  .get(function (request, response, next) {
+    NixInterface.killNixEnvAll();
     markList = [];
-    response.send({"state": 200});
+    response.send({"removed": true});
   });
-
-app.route('/api/mark/install')
+app.route('/api/mark/removefinished')
   .get(function (request, response, next) {
-    attribute = request.param('attribute');
-    setMarkFor(attribute, "install", function(attr, mark){
-      response.send({"attribute": attr, "mark": mark});
-    }, function(data){
-      response.send({"error": data});
-    });
-  });
-
-app.route('/api/mark/uninstall')
-  .get(function (request, response, next) {
-    attribute = request.param('attribute');
-    setMarkFor(attribute, "uninstall", function(attr, mark){
-      response.send({"attribute": attr, "mark": mark});
-    }, function(data){
-      response.send({"error": data});
-    });
+    removeMarkedByState("finish");
+    response.send({"removed": true});
   });
 
 app.route('/api/mark/apply')
-  .get(function(request, response, next) {
-    attribute = request.param('attribute');
-    applyMarked(
-      attribute,
-      function(data){  // finish
-        response.send({"attribute": data});
-      }, function(data){  // error
-        response.send({"error": data});
-      });
+  .get(function (request, response, next) {
+    var attribute = request.param('attribute');
+    var markObj = getMarkObjByAttribute(attribute);
+    applyMark(markObj.attribute, markObj.name, markObj.mark);
+    response.send(markObj);
   });
+app.route('/api/mark/applyall')
+  .get(function (request, response, next) {
+    applyAll();
+    response.send({});
+  });
+
 
 
 //
@@ -172,7 +257,6 @@ server
 //
 
 var packageList = null;
-var markList = [];
 
 var fillPackageList = function(callback, error_callback) {
   var catchResult = function(result) {
@@ -211,172 +295,126 @@ var searchPackageList = function(query, limit) {
   return items.slice(0, limit);
 };
 
-var getMarkObj = function(attribute) {
-  if (attribute)
-    for (var i in markList)
-      if (attribute == markList[i].attribute)
-        return {markIndex: i, markObj: markList[i]};
-  return {markIndex: -1, markObj: null};
-};
 
-var _mark = function(attribute, name, compare, wantToMark) {
+var markList = [];
 
-  var foundIndex = getMarkObj(attribute).markIndex;
-
-  var mark = null;
-
-  if (foundIndex == -1) {  // not marked
-
-  // (not marked and not installed and want to install) OR (not marked and installed and want to uninstall)
-    if ((compare[0] == "-" && wantToMark == "install") || (compare[0] != "-" && wantToMark == "uninstall")) {
-      // add
-      mark = wantToMark;
-      markList.push({
-        "attribute": attribute,
-        "name": name,
-        "compare": compare,
-        "mark": mark,
-        "progress": "wait"
-      });
-
-    } else if (compare[0] == "-" && wantToMark == "uninstall") {
-      mark = "installed";
-
-    } else if (compare[0] != "-" && wantToMark == "install") {
-      mark = "available";
-    }
-
-    return {attribute: attribute, mark: mark};
-  } else if (compare[0] == "-") {  // marked and not installed
-
-    if (wantToMark == "install") {
-      // mark for install
-      mark = wantToMark;
-      markList[foundIndex].mark = mark;
-
-    } else if (wantToMark == "uninstall") {
-      // pkg is not installed
-      mark = "available";
-      markList.splice(foundIndex, 1);
-    }
-
-  } else {  // marked and installed
-
-    if (wantToMark == "install") {
-      // pkg is installed
-      mark = "installed";
-      markList.splice(foundIndex, 1);
-
-    } else if (wantToMark == "uninstall") {
-      // mark for uninstall
-      mark = wantToMark;
-      markList[foundIndex].mark = mark;
-    }
-
-  }
-
-  return {attribute: attribute, mark: mark};
-};
-
-var setMarkFor = function(attribute, mark, callback, error_callback) {
-  var result;
+var getPackageByAttribute = function(attribute) {
+  var pkg;
   for (var i in packageList) {
-    if (attribute == packageList[i].attribute) {
-      result = _mark(
-        packageList[i].attribute,
-        packageList[i].name,
-        packageList[i].compare,
-        mark
-      )
+    if (packageList[i].attribute == attribute) {
+      pkg = packageList[i];
       break;
     }
   }
-  if (result)
-    callback(result.attribute, result.mark);
-  else
-    error_callback("Problem with "+attribute+" (might not exist)!");
+  return pkg;
 };
-
-var getMarkFor = function(attribute, callback) {
-  var o = getMarkObj(attribute);
-  if (o.markObj)
-    callback(o.markObj.attribute, o.markObj.mark);
-  else
-    callback(attribute, null);
+var getMarkObjByAttribute = function(attribute) {
+  for (var i in markList) {
+    if (markList[i].attribute == attribute) {
+      return markList[i];
+    }
+  }
 };
-
-var delMarkFor = function(attribute, callback) {
-  var o = getMarkObj(attribute);
-  if (o.markObj) {
-    markList.splice(o.markIndex, 1);
-    callback(attribute, true);
+var setMarkObjValueByAttribute = function(attribute, key, value) {
+  for (var i in markList) {
+    if (markList[i].attribute == attribute) {
+      markList[i][key] = value;
+    }
+  }
+};
+var _canMarkAs = function(pkg, mark) {
+  var canMark = false;
+  switch (pkg.compare[0]) {
+  case "-":  // not installed
+    canMark = mark == "install";
+    break;
+  case "=":
+    canMark = mark == "uninstall";
+    break;
+  case ">":
+  case "<":
+    canMark = true;
+    break;
+  }
+  return canMark;
+};
+var setMark = function(attribute, mark) {
+  var pkg = getPackageByAttribute(attribute);
+  if (!pkg) {
+    return {error: "NOT_FOUND"};
+  }
+  var markObj = getMarkObjByAttribute(attribute);
+  if (!_canMarkAs(pkg, mark)) {
+    return {error: "CAN_NOT_MARK"};
+  }
+  if (markObj) {
+    setMarkObjValueByAttribute(attribute, "mark", mark);
+    // markObj.mark = mark;
   } else {
-    callback(attribute, false);
+    markObj = {
+      "attribute": pkg.attribute,
+      "name": pkg.name,
+      "mark": mark,
+      "state": "wait"
+    }
+    markList.push(markObj);
   }
+  return markObj;
 };
-
-var _apply = function(markObj, finish_callback, error_callback) {
-  markObj.progress = "start";
-
-  var onFinish = function(data) {
-    markObj.progress = "finish";
-    finish_callback(markObj.attribute);
-  };
-  var onError = function(data) {
-    markObj.progress = "error";
-    error_callback(markObj.attribute, data);
-  };
-
-  if (markObj.mark == "install") {
-    NixInterface.installPackage(markObj.attribute, argv.file, argv.profile, onFinish, onError);
-
-  } else if (markObj.mark == "uninstall") {
-    NixInterface.uninstallPackage(markObj.name, argv.file, argv.profile, onFinish, onError);
+var removeMark = function(attribute) {
+  for (var i in markList) {
+    if (markList[i].attribute == attribute) {
+      markList.splice(i, 1);
+      return true;
+    }
   }
-
+  return false;
+};
+var removeMarkedByState = function(state) {
+  for (var i=markList.length-1; i >= 0; i--) {
+    if (markList[i].state == state) {
+      markList.splice(i, 1);
+    }
+  }
 };
 
 var getNextInLineMarkObj = function() {
   for (var i in markList)
-    if (markList[i].mark == "uninstall" && markList[i].progress == "wait")
-      return {markIndex: i, markObj: markList[i]};
+    if (markList[i].mark == "uninstall" && markList[i].state == "wait")
+      return markList[i];
   for (var i in markList)
-    if (markList[i].progress == "wait")
-      return {markIndex: i, markObj: markList[i]};
-  return {markIndex: -1, markObj: null};
+    if (markList[i].state == "wait")
+      return markList[i];
 };
 
-var applyMarked = function(attribute, finish_callback, error_callback) {
+var applyAll = function() {
+  var callback = function() {
+    var markObj = getNextInLineMarkObj();
+    if (markObj)
+      applyMark(markObj.attribute, markObj.name, markObj.mark, callback, callback);
+  };
+  var markObj = getNextInLineMarkObj();
+  applyMark(markObj.attribute, markObj.name, markObj.mark, callback, callback);
+};
 
-  if (attribute) {
-    var o = getMarkObj(attribute);
-    _apply(o.markObj, finish_callback, error_callback);
+var applyMark = function(attribute, name, mark, finish_callback, error_callback) {
+  setMarkObjValueByAttribute(attribute, "state", "start");
 
-  } else {
-    // apply all
-    var stderr = "";
+  var onFinish = function(data) {
+    setMarkObjValueByAttribute(attribute, "state", "finish");
+    if (finish_callback)
+      finish_callback(data);
+  };
+  var onError = function(data) {
+    setMarkObjValueByAttribute(attribute, "state", "error");
+    if (error_callback)
+      error_callback(data);
+  };
 
-    var markObj = getNextInLineMarkObj().markObj;
-    function f(o) {
-      if (o) {
-        _apply(
-          o,
-          function (data) {  // exit 0
-            f(getNextInLineMarkObj().markObj);
-          },
-          function (data) {  // error
-            stderr += data;
-            f(getNextInLineMarkObj().markObj);
-          });
-      } else {
-        if (stderr)
-          error_callback(stderr);
-        else
-          finish_callback();
-      }
-    }
-    f(markObj);
+  if (mark == "install") {
+    NixInterface.installPackage(attribute, argv.file, argv.profile, onFinish, onError);
 
+  } else if (mark == "uninstall") {
+    NixInterface.uninstallPackage(attribute, name, argv.file, argv.profile, onFinish, onError);
   }
-
 };

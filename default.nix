@@ -6,12 +6,12 @@ let
 
   npm2nix = pkgs.nodePackages.buildNodePackage rec {
     name = "npm2nix-${rev}";
-    rev = "697ad0714bb628d26f747fef937f541b2d8f5583";
+    rev = "d5f32c257dfa806df593a1caeabe52fc5c45fbcf";
     src = [
       (pkgs.fetchgit {
-        url = "https://github.com/garbas/npm2nix";
+        url = "https://github.com/NixOS/npm2nix";
         inherit rev;
-        sha256 = "0dwzz8wyrk2ynl7pjpjc4braa1fbqjdzm2fbbmp5nffz02g6zxpi";
+        sha256 = "19adqd5ar19yrcsvmzh8bwhzbwqmymj82wsg4zfj0226fbkdwrx9";
       })
     ];
     buildInputs = [ pkgs.nodePackages.coffee-script ];
