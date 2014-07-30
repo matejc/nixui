@@ -55,8 +55,9 @@ let
       export GIT_SSL_CAINFO=${pkgs.cacert}/etc/ca-bundle.crt
       mkdir -p $out
       export HOME="/tmp/bower_home"
-      echo "running ${pkgs.nodePackages.bower2nix}/bin/bower2nix"
+      echo "running ${pkgs.nodePackages.bower2nix}/bin/bower2nix ${bowerjson} $out/bower_packages_generated.nix"
       ${pkgs.nodePackages.bower2nix}/bin/bower2nix ${bowerjson} $out/bower_packages_generated.nix
+      rm -rf /tmp/bower_home
     '';
   };
 
