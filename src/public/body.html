@@ -11,6 +11,7 @@
 <link rel="import" href="/bower_components/core-signals/core-signals.html">
 <link rel="import" href="/bower_components/paper-menu-button/paper-menu-button.html">
 <link rel="import" href="/bower_components/paper-item/paper-item.html">
+<link rel="import" href="/bower_components/paper-toast/paper-toast.html">
 
 
 <polymer-element name="nixui-body">
@@ -56,6 +57,7 @@ paper-item {
 </style>
 <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
 <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
+<core-signals on-core-signal-message="{{message}}"></core-signals>
 <core-header-panel id="contentpanel" mode="seamed">
   <div id="dimmer"></div>
   <div class="core-header">
@@ -84,6 +86,7 @@ paper-item {
 <marked-dialog controlDim="true"></marked-dialog>
 
 <ajax-wrapper id="ajax"></ajax-wrapper>
+<paper-toast id="message" text="PLACEHOLDER"></paper-toast>
 </template>
 <script>
 (function() {
@@ -103,6 +106,17 @@ paper-item {
         this.$.queryfield.setPackages();
       }.bind(this));
     },
+    message: function(e, detail, sender) {
+      this.$.message.text = detail.text;
+      var color = "#005aa0";
+      switch (detail.type) {
+      case "error":
+          color = "#a05a5a";
+          break;
+      }
+      this.$.message.style.color = color;
+      this.$.message.show();
+    }
   });
 
 })();

@@ -4,13 +4,20 @@
 <polymer-element name="ajax-wrapper" attributes="url params method oncomplete">
 <template>
   <core-ajax id="coreajax" url="{{url}}" params='{{params}}'
-    method={{method}} on-core-complete={{complete}}>
+    method={{method}} on-core-response={{onresponse}} on-core-error="onerror">
   </core-ajax>
 </template>
 <script>
 (function() {
   Polymer('ajax-wrapper', {
-    complete: function(e) {
+    ready: function() {
+      window.onerror = function(message, url, lineNumber) {  
+        this.fire('core-signal', {name: "message", data: {type: "error", text: message}});
+        // returning true will prevent the firing of the default handler, and returning false will let the default handler run
+        return false;
+      }.bind(this);
+    },
+    onresponse: function(e) {
       if (this.oncomplete)
         this.oncomplete(JSON.parse(e.detail.xhr.response));
     },
@@ -21,6 +28,9 @@
       this.oncomplete = oncomplete ? oncomplete : this.oncomplete;
 
       this.$.coreajax.go();
+    },
+    onerror: function(e) {
+      this.fire('core-signal', {name: "message", data: {type: "error", text: e.detail}});
     }
   });
 })();
