@@ -1,0 +1,110 @@
+<link rel="import" href="/bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="/bower_components/core-signals/core-signals.html">
+
+
+<polymer-element name="progress-bar" attributes="progress progressFromSignal">
+<template>
+  <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
+  <style>
+  paper-progress::shadow #activeProgress {
+    background-color: {{progressColor}};
+  }
+  paper-progress::shadow #progressContainer {
+    background-color: #e0e0e0;
+  }
+  #progressbar {
+    display: block;
+    width: 100%;
+  }
+  </style>
+  <paper-progress id="progressbar" value="{{position}}" max="1000"></paper-progress>
+</template>
+<script>
+(function() {
+  Polymer('progress-bar', {
+    progressSignal: function(e, detail, sender) {
+      if (!this.progressFromSignal)
+        return;
+      this.doProgress(detail)
+    },
+    nextProgress: function() {
+      if (this.position < 1000) {
+        this.position += (this.step || 1);
+      } else {
+        if (this.animating)
+          this.position = 0;
+        else
+          return;
+      }
+      this.async(this.nextProgress, null, this.delay);
+    },
+    doProgress: function(command) {
+      if (this.progress == command)
+        return;
+      switch (command) {
+        case "start":
+          this.progress = command;
+          this.startProgress();
+          break;
+        case "finish":
+          this.progress = command;
+          this.finishProgress();
+          break;
+        case "wait":
+          this.progress = command;
+          this.waitProgress();
+          break;
+        case "error":
+          this.progress = command;
+          this.errorProgress();
+          break;
+      }
+    },
+    waitProgress: function() {
+      this.animating = false;
+    },
+    startProgress: function() {
+      this.position = 0;
+      this.step = 5;
+      this.progressColor = "#00a05a";
+      if (!this.animating) {
+        this.delay = 200;
+        this.animating = true;
+        this.nextProgress();
+      }
+    },
+    ready: function() {
+      this.progressFromSignal = true,
+      this.progressColor = "#00a05a",
+      this.progress = "wait",
+      this.doProgress(this.progress);
+    },
+    finishProgress: function() {
+      this.step = 50;
+      this.delay = 10;
+      this.progressColor = "#005aa0";
+      if (this.animating)
+        this.animating = false;
+      else {
+        this.animating = false;
+        this.nextProgress();
+      }
+    },
+    errorProgress: function() {
+      this.step = 50;
+      this.delay = 10;
+      this.progressColor = "#a05a5a";
+      if (this.animating)
+        this.animating = false;
+      else {
+        this.animating = false;
+        this.nextProgress();
+      }
+    },
+    getProgress: function() {
+      return this.progress;
+    }
+  });
+})();
+</script>
+</polymer-element>

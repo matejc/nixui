@@ -1,0 +1,59 @@
+<link rel="import" href="/bower_components/core-ajax/core-ajax.html">
+
+
+<polymer-element name="ajax-wrapper" attributes="url params method oncomplete">
+<template>
+  <core-ajax id="coreajax" url="{{url}}" params='{{params}}'
+    method={{method}} on-core-complete={{complete}}>
+  </core-ajax>
+</template>
+<script>
+(function() {
+  Polymer('ajax-wrapper', {
+    complete: function(e) {
+      if (this.oncomplete)
+        this.oncomplete(JSON.parse(e.detail.xhr.response));
+    },
+    go: function(url, params, method, oncomplete) {
+      this.url = url ? url : this.url;
+      this.params = params ? JSON.stringify(params) : this.params;
+      this.method = method ? method : this.method;
+      this.oncomplete = oncomplete ? oncomplete : this.oncomplete;
+
+      this.$.coreajax.go();
+    }
+  });
+})();
+</script>
+</polymer-element>
+
+
+<polymer-element name="ajax-queue">
+<template>
+  <div id="ajaxqueue"></div>
+</template>
+<script>
+(function() {
+  Polymer('ajax-queue', {
+    makeid: function() {
+      var text = "";
+      var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      for( var i=0; i < 20; i++ )
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+      return text;
+    },
+    add: function(url, params, method, oncomplete) {
+      var instance = document.createElement('ajax-wrapper');
+      instance.setAttribute("id", this.makeid());
+      var ajaxqueue = this.$.ajaxqueue;
+      ajaxqueue.appendChild(instance);
+
+      instance.go(url, params, method, function(data){
+        oncomplete(data);
+        ajaxqueue.removeChild(instance);
+      }.bind(oncomplete).bind(instance).bind(ajaxqueue));
+    }
+  });
+})();
+</script>
+</polymer-element>

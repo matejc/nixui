@@ -1,0 +1,201 @@
+<link rel="import" href="/ajax.html">
+<link rel="import" href="/dialog.html">
+<link rel="import" href="/bower_components/core-signals/core-signals.html">
+<link rel="import" href="/bower_components/paper-button/paper-button.html">
+<link rel="import" href="/bower_components/paper-dialog/paper-dialog-transition.html">
+
+
+<polymer-element name="marked-dialog" attributes="controlDim">
+<template>
+  <core-signals on-core-signal-openmarked="{{openMarkedSignal}}"></core-signals>
+  <style>
+  #dialog {
+    font-family: 'RobotoDraft', sans-serif;
+    font-size: 90%;
+    border-style: solid;
+    border-width: 2px;
+    border-color: #4a9ae0;
+    top: 2em;
+    bottom: 2em;
+    right: 2em;
+    left: 2em;
+  }
+  paper-button {
+    color: #646464;
+  }
+  </style>
+  <my-dialog id="dialog" heading="Manage Marked" autoCloseDisabled="true" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom" closeSelector="">
+    <list-marked id="listmarked"></list-marked>
+    <paper-button on-keydown="{{closeBtnDown}}" on-click="{{closeDialog}}" label="Close" dismissive></paper-button>
+    <paper-button on-click="{{clearAll}}" label="Clear All" affirmative></paper-button>
+    <paper-button on-click="{{applyAll}}" label="Apply All" affirmative></paper-button>
+  </my-dialog>
+  <ajax-queue id="ajax"></ajax-queue>
+</template>
+<script>
+(function() {
+  Polymer('marked-dialog', {
+    openMarkedSignal: function(e, detail, sender) {
+      var dialog = this.$.dialog;
+      dialog.toggle();
+      this.$.listmarked.openedDialog();
+    },
+    closeBtnDown: function(e, detail, sender) {
+      if (e.keyCode == 13) {
+        this.closeDialog();
+      }
+    },
+    closeDialog: function() {
+      this.$.dialog.toggle();
+      this.$.listmarked.closedDialog();
+    },
+    applyAll: function() {
+      this.$.listmarked.applyAll();
+    },
+    clearAll: function() {
+      this.$.ajax.add('/api/mark/removeall', null, "GET", function(data) {
+        this.closeDialog();
+      }.bind(this));
+    }
+  });
+})();
+</script>
+</polymer-element>
+
+
+<polymer-element name="list-marked" attributes="list">
+<template>
+  <style>
+    thead tr td {
+      font-family: 'RobotoDraft', sans-serif;
+      text-transform: uppercase;
+      font-weight: bold;
+      font-size: 70%;
+      color: #005aa0;
+    }
+    .package {
+      position: relative;
+      color: #646464;
+      padding-right: 0.5em;
+      padding-left: 0.5em;
+      height: 42px;
+    }
+    .package:hover {
+      background-color: #eeeeee;
+    }
+    .right {
+      float: right;
+    }
+    table {
+      margin-top: 0.5em;
+      width: 100%;
+      border-spacing: 0px;
+    }
+    .pkgprogressbar {
+      margin-top: 19px;
+      float: left;
+      width: 120px;
+    }
+  </style>
+  <table>
+    <thead>
+      <tr>
+        <td>Name</td>
+        <td>Attribute</td>
+        <td>Marked for</td>
+        <td class="right">Options</td>
+      </tr>
+    </thead>
+    <tbody>
+      <template repeat="{{entry in list}}">
+        <tr class="package">
+          <td class="pkgname">{{entry.name}}</td>
+          <td class="pkgattr">{{entry.attribute}}</td>
+          <td>{{entry.mark}}</td>
+          <td>
+            <progress-bar class="pkgprogressbar" data-pkgattr="{{entry.attribute}}" progressFromSignal="false"></progress-bar>
+            <div style="float: right;">
+              <core-icon-button on-click="{{onApplyClick}}" data-pkgattr="{{entry.attribute}}" icon="check"></core-icon-button>
+              <core-icon-button on-click="{{onRemoveClick}}" data-pkgattr="{{entry.attribute}}" icon="clear"></core-icon-button>
+            </div>
+          </td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+  <ajax-queue id="ajax"></ajax-queue>
+</template>
+<script>
+(function() {
+  Polymer('list-marked', {
+    openedDialog: function() {
+      this.active = true;
+      this.fetchNextProgress();
+    },
+    setList: function() {
+      this.$.ajax.add('/api/mark/get', null, "GET", function(data) {
+        if (data.error) {
+          this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
+          return;
+        }
+        this.list = data;
+      }.bind(this));
+    },
+    fetchNextProgress: function() {
+      this.$.ajax.add("/api/mark/get", null, "GET", function(data) {
+        if (data.error) {
+          console.log(data.error);
+          return;
+        }
+        if (!this.list || this.list.length != data.length) {
+          this.list = data;
+        }
+
+        var bars = this.shadowRoot.querySelectorAll("progress-bar.pkgprogressbar").array();
+        for (var i in bars) {
+          var attribute = bars[i].getAttribute("data-pkgattr");
+          var progress = bars[i].getProgress();
+          for (var j in data) {
+            if (data[j].attribute == attribute && data[j].state != progress) {
+              bars[i].doProgress(data[j].state);
+            }
+          }
+        }
+
+        if (this.active && data)
+          setTimeout(this.fetchNextProgress.bind(this), 500);
+      }.bind(this));
+    },
+    onApplyClick: function(e) {
+      var pkgattr = e.target.getAttribute("data-pkgattr");
+      if (!pkgattr)
+        return;
+      this.$.ajax.add('/api/mark/apply', {
+        "attribute": pkgattr
+      }, "GET", function(data) {
+        if (data.error) {
+          this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
+        }
+      }.bind(this));
+    },
+    onRemoveClick: function(e) {
+      var pkgattr = e.target.getAttribute("data-pkgattr");
+      this.$.ajax.add('/api/mark/remove', {
+        "attribute": pkgattr
+      }, "GET", function(data) {
+      }.bind(this));
+    },
+    applyAll: function() {
+      this.$.ajax.add('/api/mark/applyall', null, "GET", function(data) {
+      }.bind(this));
+    },
+    closedDialog: function() {
+      this.active = false;
+      this.fire('core-signal', {name: "resetcache"});
+      this.$.ajax.add('/api/mark/removefinished', null, "GET", function(data) {
+      }.bind(this));
+    }
+  });
+})();
+</script>
+</polymer-element>

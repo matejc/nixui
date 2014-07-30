@@ -1,0 +1,76 @@
+<link rel="import" href="/bower_components/core-overlay/core-overlay.html">
+
+<!-- copy of paper-dialog, without shadow with dimming support -->
+<polymer-element name="my-dialog" attributes="opened heading transition autoCloseDisabled backdrop layered closeSelector controlDim" role="dialog">
+  <template>
+    <style type="text/css">
+    :host {
+      background: white;
+      color: rgba(0, 0, 0, 0.87);
+    }
+    #container {
+      overflow: hidden;
+    }
+    #main {
+      height: auto;
+      -webkit-order: 1;
+      -ms-flex-order: 1;
+      order: 1;
+      padding: 24px;
+      overflow: auto;
+    }
+    h1 {
+      margin: 0;
+    }
+    #actions {
+      -webkit-order: 2;
+      -ms-flex-order: 2;
+      order: 2;
+      padding: 4px 16px 20px;
+    }
+    polymer-next-selector { content: ':host > *'; }
+    ::content > * {
+      font: inherit;
+      border: 0;
+    }
+    </style>
+    <core-overlay id="overlay" opened?="{{opened}}" autoCloseDisabled?="{{autoCloseDisabled}}" backdrop?="{{backdrop}}" layered?="{{layered}}" target="{{}}" sizingTarget="{{$.container}}" closeSelector="{{closeSelector}}" transition="{{transition}}" margin="20"></core-overlay>
+    <div id="container" layout vertical>
+      <div id="actions" layout horizontal>
+        <content select="[dismissive]"></content>
+        <div flex auto></div>
+        <content select="[affirmative]"></content>
+      </div>
+      <div id="main" flex auto>
+        <h1>{{heading}}</h1>
+        <content></content>
+      </div>
+    </div>
+  </template>
+  <script>
+    Polymer('my-dialog', {
+      opened: false,
+      backdrop: false,
+      layered: false,
+      autoCloseDisabled: false,
+      closeSelector: '[dismissive],[affirmative]',
+      heading: '',
+      transition: '',
+      controlDim: false,
+      toggle: function() {
+        this.$.overlay.toggle();
+      },
+      headingChanged: function() {
+        this.setAttribute('aria-label', this.heading);
+      },
+      observeOpened: function(oldValue, newValue) {
+        if (this.controlDim) {
+          this.fire('core-signal', {name: "dim", data: newValue});
+        }
+      },
+      observe: {
+        '$.overlay.opened': 'observeOpened'
+      }
+    });
+  </script>
+</polymer-element>

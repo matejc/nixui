@@ -1,0 +1,201 @@
+<link rel="import" href="/ajax.html">
+<link rel="import" href="/dialog.html">
+<link rel="import" href="/bower_components/core-signals/core-signals.html">
+<link rel="import" href="/bower_components/paper-dialog/paper-dialog-transition.html">
+
+
+<polymer-element name="package-dialog" attributes="controlDim">
+<template>
+  <core-signals on-core-signal-pkginfo="{{pkginfoSignal}}"></core-signals>
+  <style>
+  #pkgdialog {
+    font-family: 'RobotoDraft', sans-serif;
+    font-size: 90%;
+    border-style: solid;
+    border-width: 2px;
+    border-color: #4a9ae0;
+    left: 3em;
+    right: 3em;
+  }
+  #markedbtn {
+    color: {{markItem.color}};
+  }
+  #closebtn {
+    color: #646464;
+  }
+  </style>
+  <my-dialog id="pkgdialog" heading="{{pkginfo.name}}" transition="paper-dialog-transition-bottom" controlDim="{{controlDim}}" closeSelector="[dismissive]">
+    <labeled-panel label="Attribute" content="{{signalobj.pkgattr}}"></labeled-panel>
+    <labeled-panel label="Path" content="{{pkginfo.path}}"></labeled-panel>
+
+    <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
+    <labeled-panel label="propagated Native Build Inputs" content="{{pkginfo.propagatedNativeBuildInputs}}"></labeled-panel>
+
+    <labeled-panel label="Description" content="{{pkginfo.meta.description}}"></labeled-panel>
+    <labeled-panel label="Long Description" content="{{pkginfo.meta.longDescription}}"></labeled-panel>
+
+    <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
+
+    <paper-button id="closebtn" on-keydown="{{closeBtnDown}}" label="Close" dismissive></paper-button>
+
+    <paper-button id="markedbtn" label="{{markItem.label}}" on-click="{{toggleMarked}}" affirmative></paper-button>
+  </my-dialog>
+  <ajax-queue id="ajax"></ajax-queue>
+</template>
+<script>
+(function() {
+  Polymer('package-dialog', {
+    donotclick: function(e, detail, sender) {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    toggle: function() {
+      this.$.pkgdialog.controlDim = this.signalobj.controlDim;
+      this.$.pkgdialog.toggle();
+    },
+    pkginfoSignal: function(e, detail, sender) {
+      this.signalobj = detail;
+      this.$.ajax.add("/api/mark/get", {
+        'attribute': this.signalobj.pkgattr
+      }, "GET", function(data) {
+        this.markItem = this.getMarkItem(data);
+      }.bind(this));
+
+      this.$.ajax.add("/api/info", {
+        'attribute': this.signalobj.pkgattr
+      }, "GET", function(data) {
+        if (data.error) {
+          this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+          return;
+        }
+        this.pkginfo = data;
+        this.toggle();
+      }.bind(this));
+    },
+    toggleMarked: function(e, detail, sender) {
+      this.$.ajax.add('/api/mark/toggle', {
+        'attribute': this.signalobj.pkgattr,
+      }, "GET", function(data) {
+        this.markItem = this.getMarkItem(data);
+      }.bind(this));
+    },
+    closeBtnDown: function(e, detail, sender) {
+      if (e.keyCode == 13) {
+        this.toggle();
+      }
+    },
+    getMarkItem: function(markObj) {
+      var _get = function(mark) {
+        for (var i in this.markArray) {
+          if (this.markArray[i].mark == mark) {
+            return this.markArray[i];
+          }
+        }
+      }.bind(this);
+
+      if (markObj.mark == "install" || markObj.mark == "uninstall") {
+        return _get(markObj.mark);
+      }
+
+      switch (this.signalobj.pkgcomp[0]) {
+      case "-":
+        return _get("available");
+      case "=":
+      case ">":
+      case "<":
+        return _get("installed");
+      }
+    },
+    ready: function() {
+      this.markArray = [
+        {mark: "installed", label: "Installed!", color: "#005aa0"},
+        {mark: "available", label: "Available!", color: "#646464"},
+        {mark: "install", label: "Marked for install!", color: "#00a05a"},
+        {mark: "uninstall", label: "Marked for removal!", color: "#a05a00"},
+      ];
+      var emptyInfo = {
+        name: "",
+        path: "",
+        propagatedNativeBuildInputs: [],
+        nativeBuildInputs: [],
+        meta: {
+          description: "",
+          longDescription: "",
+          maintainers: [],
+          position: "",
+          homepage: "",
+          license: ""
+        }
+      };
+      this.signalobj = {pkgattr: "", pkgname: "", pkgcomp: "", controlDim: false};
+      this.pkginfo = emptyInfo;
+    }
+  });
+})();
+</script>
+</polymer-element>
+
+
+<polymer-element name="labeled-panel" attributes="label content">
+<template>
+  <style>
+  #panellabel {
+    font-family: 'RobotoDraft', sans-serif;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 60%;
+    color: #005aa0;
+  }
+  #panelcontent {
+    font-family: 'RobotoDraft', sans-serif;
+    color: #646464;
+  }
+  .hidden {
+    display: none;
+  }
+  .shown {
+    padding-top: 0.6em;
+  }
+  </style>
+  <div class="{{emptyEntryClass}}">
+    <div id="panellabel">{{label}}</div>
+    <div id="panelcontent">{{content | contentToString}}</div>
+  </div>
+</template>
+<script>
+(function() {
+  Polymer('labeled-panel', {
+    contentToString: function(entry) {
+
+      var result = null;
+
+      if (entry instanceof Array) {
+        var array = [];
+        for (var key in entry) {
+          if (entry[key].hasOwnProperty["name"] && typeof entry[key].name == "string") {
+            array.push(entry[key].name);
+          } else {
+            array.push(entry[key]);
+          }
+        }
+        result = array.join(", ");
+      } else {
+        result = entry;
+      }
+
+      if (result) {
+        this.emptyEntryClass = "shown";
+        return result;
+      } else {
+        this.emptyEntryClass = "hidden";
+        return "";
+      }
+
+    },
+    ready: function() {
+      this.emptyEntryClass = "";
+    }
+  });
+})();
+</script>
+</polymer-element>
