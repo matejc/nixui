@@ -1,4 +1,3 @@
-var console = require('console');
 var spawn = require('child_process').spawn;
 
 var nixEnvProcesses = [];
@@ -29,7 +28,7 @@ exports.nixEnv = function(args, callback, error_callback) {
         break;
       }
     }
-    if(code == 0)
+    if(code === 0)
       callback(output.substring(0, output.length - 1));
     else
       error_callback(outerr+"\nnix-env exited with status: " + code);
@@ -39,11 +38,14 @@ exports.nixEnv = function(args, callback, error_callback) {
   return nixEnvProcessesItem;
 };
 
-exports.nixInstantiate = function (args, expression, removeQuotations, callback, error_callback) {
+exports.nixInstantiate = function (prefix_args, expression, removeQuotations, callback, error_callback) {
   var output = "";
   var outerr = "";
 
-  var nixProcess = spawn("nix-instantiate", args.concat(["-"]));
+  var args = exports.createArgsArray(prefix_args, null, null, ["-"]);
+
+  var nixProcess = spawn("nix-instantiate", args);
+  console.log("nix-instantiate: " + args);
 
   nixProcess.stdin.write(expression);
   nixProcess.stdin.end();
@@ -58,7 +60,7 @@ exports.nixInstantiate = function (args, expression, removeQuotations, callback,
   });
 
   nixProcess.on("exit", function(code) {
-    if(code == 0)
+    if(code === 0)
       if (removeQuotations) {
         callback(output.substring(1, output.length - 2));
       } else {
@@ -70,7 +72,7 @@ exports.nixInstantiate = function (args, expression, removeQuotations, callback,
   });
 };
 
-createArgsArray = function(prefix_args, file_arg, profile_arg, postfix_args) {
+exports.createArgsArray = function(prefix_args, file_arg, profile_arg, postfix_args) {
   var args = [];
 
   args.push.apply(args, prefix_args);
@@ -90,30 +92,30 @@ createArgsArray = function(prefix_args, file_arg, profile_arg, postfix_args) {
   args.push.apply(args, postfix_args);
 
   return args;
-}
+};
 
 exports.allPackages = function(file_arg, profile_arg, callback, error_callback) {
   exports.currentSystem(function (currentSystem) {
     var process = function(data) {
-      items = [];
-      lines = (''+data).split('\n');
+      var items = [];
+      var lines = (''+data).split('\n');
       for (var n=0; n<lines.length; n++) {
-        arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=\<\>\-]+\ {0,1}[\w\.\-\?]*)/.exec(lines[n]);
-        if (arr == null) {
+        var arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=<\>\-]+\ {0,1}[\w\.\-\?]*)/.exec(lines[n]);
+        if (arr === null) {
           console.warn("line skipped: " + lines[n]);
           continue;
         }
 
         var attr = arr[1];
-        if ((new RegExp(/^nixos\./)).test(attr)) { attr = attr.substring(6); };
-        if (!(new RegExp(/^pkgs\./)).test(attr)) { attr = "pkgs." + attr; };
+        if ((new RegExp(/^nixos\./)).test(attr)) { attr = attr.substring(6); }
+        if (!(new RegExp(/^pkgs\./)).test(attr)) { attr = "pkgs." + attr; }
         items.push({attribute: attr, name: arr[2], compare: arr[3]});
       }
       console.log("allPackages: " + items.length);
       callback(items);
     };
 
-    var args = createArgsArray(
+    var args = exports.createArgsArray(
       ['-qacP'], file_arg, profile_arg,
       (currentSystem)? ['--system-filter', currentSystem]:[]
     );
@@ -123,13 +125,13 @@ exports.allPackages = function(file_arg, profile_arg, callback, error_callback) 
 };
 
 exports.installPackage = function(pkg_attribute, file_arg, profile_arg, callback, error_callback) {
-  var args = createArgsArray(
+  var args = exports.createArgsArray(
     ['-iA', pkg_attribute], file_arg, profile_arg, []);
   exports.nixEnv(args, callback, error_callback).attribute = pkg_attribute;
 };
 
 exports.uninstallPackage = function(pkg_attribute, pkg_name, file_arg, profile_arg, callback, error_callback) {
-  var args = createArgsArray(
+  var args = exports.createArgsArray(
     ['-e', pkg_name], file_arg, profile_arg, []);
   exports.nixEnv(args, callback, error_callback).attribute = pkg_attribute;
 };
@@ -149,9 +151,9 @@ exports.killNixEnvAll = function() {
   }
 };
 
-exports.packageInfo = function (packageAttrStr, callback, error_callback) {
+exports.packageInfo = function (packageAttrStr, file_arg, callback, error_callback) {
   exports.nixInstantiate(
-    ["--eval", "--strict", "--show-trace"],
+    ["--eval", "--strict", "--show-trace", "--arg", "nixpkgs", file_arg],
     'let \
       pkgs = import <nixpkgs> {}; \
       getAttrFromStr = str: set: (pkgs.lib.getAttrFromPath (pkgs.lib.splitString "." str) set); \
@@ -201,13 +203,3 @@ exports.currentSystem = function (callback, error_callback) {
     error_callback
   );
 };
-
-// exports.tree("pkgs.config", 4, function(data) {console.log(data)}, function(data) {console.error(data)});
-// exports.currentSystem(function(data) {console.log(data)}, function(data) {console.error(data)});
-// exports.allPackages(null, function(data) {console.log(data)})
-
-// var neki = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=\<\>\-]+\ [\w\.\-\?]+)/.exec("zlib                                                                zlib-1.2.8                                                                    - ?");
-// console.log(JSON.stringify(neki))
-
-
-// console.log( createArgsArray(['a', 'b'], 'null', 'ovce', ['x', 'y']) );
