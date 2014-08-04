@@ -110,24 +110,21 @@ app.route('/api/search')
   .get(function(request, response, next) {
     var query = request.param('query');
     var limit = 'limit' in request.param ? parseInt(request.param('limit')) : 100;
-    if (packageList == null) {
-      fillPackageList(function(){
-        response.send(searchPackageList(query, limit));
-      }, function(data){
-        response.send({"error": data});
-      });
-    } else {
-      response.send(searchPackageList(query, limit));
-    }
+    searchPackages(query, limit, function(list){
+        response.send(list);
+    });
   })
   .delete(function(request, response, next) {
-    packageList = null;
-    response.send({"state": 200});
+    reloadPackages(function(){
+        response.send({"status": 200});
+    }, function(err){
+        response.send({"error": err});
+    })
   });
 
 app.route('/api/info')
   .get(function(request, response, next) {
-    attribute = request.param('attribute');
+    var attribute = request.param('attribute');
     NixInterface.packageInfo(attribute, argv.file, function(data){
       response.send(JSON.parse(data));
     }, function(data){
@@ -141,38 +138,43 @@ app.route('/api/mark/set')
     var attribute = request.param('attribute');
     var mark = request.param('mark');  // install/uninstall
 
-    var result = setMark(attribute, mark);
-    if (result.error)
-      response.send({"error": result.error}); // NOT_FOUND, NOT_MARKED, ALREADY_MARKED
-    else
-      response.send(result);
+    getPackageByAttribute(attribute, function(pkg) {
+        var result = setMark(pkg, mark);
+        if (result.error)
+          response.send({"error": result.error}); // NOT_FOUND, NOT_MARKED, ALREADY_MARKED
+        else
+          response.send(result);
+    });
+
   });
 app.route('/api/mark/toggle')
   .get(auth, function (request, response, next) {
     var attribute = request.param('attribute');
     var markObj = getMarkObjByAttribute(attribute);
-    var result;
 
-    if (!markObj) {
-      var pkg = getPackageByAttribute(attribute);
-      result = setMark(attribute, (pkg.compare[0]=='=' ? 'uninstall' : 'install'));
+    getPackageByAttribute(attribute, function(pkg) {
+        var result;
 
-    } else if (markObj.mark == "install") {
-      removeMark(attribute);
-      result = setMark(attribute, "uninstall");
+        if (!markObj) {
+          result = setMark(pkg, (pkg.compare[0]=='=' ? 'uninstall' : 'install'));
 
-    } else if (markObj.mark == "uninstall") {
-      removeMark(attribute);
-      result = setMark(attribute, "install");
+        } else if (markObj.mark == "install") {
+          removeMark(pkg.attribute);
+          result = setMark(pkg, "uninstall");
 
-    } else {
-      result = markObj;
-    }
+        } else if (markObj.mark == "uninstall") {
+          removeMark(pkg.attribute);
+          result = setMark(pkg, "install");
 
-    if (result.error)
-      response.send({"error": result.error}); // NOT_FOUND, NOT_MARKED, ALREADY_MARKED
-    else
-      response.send(result);
+        } else {
+          result = markObj;
+        }
+
+        if (result.error)
+          response.send({"error": result.error}); // NOT_FOUND, NOT_MARKED, ALREADY_MARKED
+        else
+          response.send(result);
+    });
   });
 
 app.route('/api/mark/get')
@@ -221,73 +223,200 @@ app.route('/api/mark/applyall')
   });
 
 
+//
+// --- ELASTICSEARCH ---
+//
+
+var elasticsearch = require('elasticsearch');
+
+// Connect to localhost:9200 and use the default settings
+var esclient = new elasticsearch.Client();
+
+esclient.cluster.health(function (err, resp) {
+  if (err) {
+    console.error(err.message);
+  }
+});
+
+
+var reloadPackages = function(finish_callback, error_callback) {
+
+    var es_error = function (err, resp) {
+        if (err) {
+            console.warn("es_error: "+err);
+        }
+    };
+
+    var callback = function(attribute, name, compare) {
+        var shasum = crypto.createHash('sha1');
+        shasum.update(attribute);
+        esclient.index({
+            index: 'packages',
+            type: 'package',
+            id: shasum.digest('hex'),
+            body: {
+                attribute: attribute,
+                name: name,
+                compare: compare
+            }
+        }, es_error);
+    }
+
+    NixInterface.iteratePackages(
+        argv.file,
+        argv.nixprofile,
+        callback,
+        finish_callback,
+        error_callback
+    );
+};
+
+var searchPackages = function(query, limit, callback) {
+    var installed = false;
+    var upgradable = false;
+
+    if (query.length >= 2 && query[0] == "!") {
+        if (query[1] == "i") {
+            installed = true;
+            query = query.substring(3);
+        } else if (query[1] == "u") {
+            upgradable = true;
+            query = query.substring(3);
+        }
+    }
+
+    var handleResponse = function (resp) {
+        var items = [];
+        for (var i in resp.hits.hits) {
+            items.push(resp.hits.hits[i]._source);
+        }
+        callback(items);
+    };
+
+    if (query === "") {
+        query = "*";
+    }
+
+    if (installed || upgradable) {
+        esclient.search({
+            index: 'packages',
+            type: 'package',
+            size: limit,
+            body: {
+                query: {
+                    filtered: {
+                        query: {
+                            query_string: {
+                                query: query,
+                                fields: [ "attribute", "name" ]
+                            }
+                        },
+                        filter: {
+                            regexp: {
+                                compare: installed ? "=@":"[<\\>]@"
+                            }
+                        }
+                    }
+                },
+            }
+        }).then(handleResponse);
+        return;
+    }
+
+    esclient.search({
+        index: 'packages',
+        type: 'package',
+        size: limit,
+        body: {
+            query: {
+                query_string: {
+                    query: query,
+                    fields: [ "attribute", "name" ]
+                }
+            }
+        }
+    }).then(handleResponse);
+};
+
+
+var loadPackages = function() {
+    esclient.indices.create({
+      index: 'packages',
+      body: {
+        mappings: {
+            "package": {"properties": {
+                "attribute" : {"type" : "string"},
+                "name" : {"type" : "string"},
+                "compare" : {"type" : "string", "index" : "not_analyzed"}
+            }}
+        }
+      }
+    }, function (error, response) {
+        if (error) {
+            console.log(error);
+        }
+
+        reloadPackages(function() {
+            server
+              .listen(argv.port, argv.hostname, function() {
+                console.log('NixUI at: http://' + argv.hostname + ':' + argv.port + '/index.html');
+              });
+
+        },function(err) {
+            console.log(err);
+        });
+    });
+};
+
+var deletePackages = function(callback) {
+    var onMappingDeleted = function(err) {
+        if (err) {
+            console.warn("onMappingDeleted: "+err);
+        }
+        callback();
+    };
+    var onDeleted = function(err) {
+        if (err) {
+            console.warn("onDeleted: "+err);
+        }
+        esclient.indices.deleteMapping({index: 'packages', type: 'packages'}, onMappingDeleted);
+    };
+    esclient.indices.delete({index: 'packages'}, onDeleted);
+}
+
+deletePackages(loadPackages);
 
 //
 // --- SERVER ---
 //
 
 var server = require('http').createServer(app);
-server
-  .listen(argv.port, argv.hostname, function() {
-    console.log('NixUI at: http://' + argv.hostname + ':' + argv.port + '/index.html');
-  });
+
+
 
 
 //
 // --- LOGIC ---
 //
 
-var packageList = null;
-
-var fillPackageList = function(callback, error_callback) {
-  var catchResult = function(result) {
-    packageList = result;
-    callback(result);
-  };
-  var catchError = function(data) {
-    error_callback(data);
-  };
-  NixInterface.allPackages(argv.file, argv.nixprofile, catchResult, catchError);
-};
-
-var searchPackageList = function(query, limit) {
-  var installed = false;
-  var upgradeable = false;
-
-  if (query.length >= 2 && query[0] == "!") {
-    if (query[1] == "i") {
-      installed = true;
-      query = query.substring(3);
-    } else if (query[1] == "u") {
-      upgradeable = true;
-      query = query.substring(3);
-    }
-  }
-
-  var items = [];
-  for (var i in packageList) {
-    if ( ((new RegExp(query, 'i')).test(packageList[i].attribute) || (new RegExp(query, 'i')).test(packageList[i].name)) &&
-      ((installed && packageList[i].compare[0] == "=") ||
-       (upgradeable && ((packageList[i].compare[0] == ">") || packageList[i].compare[0] == "<")) ||
-       !installed && !upgradeable) ) {
-      items.push(packageList[i]);
-    }
-  }
-  return items.slice(0, limit);
-};
-
-
 var markList = [];
 
-var getPackageByAttribute = function(attribute) {
-  var pkg;
-  for (var i in packageList) {
-    if (packageList[i].attribute == attribute) {
-      pkg = packageList[i];
-      break;
-    }
-  }
-  return pkg;
+var getPackageByAttribute = function(attribute, callback) {
+    var handleResponse = function (resp) {
+        callback(resp.hits.hits[0]._source);
+    };
+    esclient.search({
+        index: 'packages',
+        type: 'package',
+        size: 1,
+        body: {
+            query: {
+                match: {
+                    attribute: attribute,
+                }
+            }
+        }
+    }).then(handleResponse);
 };
 var getMarkObjByAttribute = function(attribute) {
   for (var i in markList) {
@@ -319,17 +448,16 @@ var _canMarkAs = function(pkg, mark) {
   }
   return canMark;
 };
-var setMark = function(attribute, mark) {
-  var pkg = getPackageByAttribute(attribute);
+var setMark = function(pkg, mark) {
   if (!pkg) {
     return {error: "NOT_FOUND"};
   }
-  var markObj = getMarkObjByAttribute(attribute);
+  var markObj = getMarkObjByAttribute(pkg.attribute);
   if (!_canMarkAs(pkg, mark)) {
     return {error: "CAN_NOT_MARK"};
   }
   if (markObj) {
-    setMarkObjValueByAttribute(attribute, "mark", mark);
+    setMarkObjValueByAttribute(pkg.attribute, "mark", mark);
     // markObj.mark = mark;
   } else {
     markObj = {

@@ -94,6 +94,36 @@ exports.createArgsArray = function(prefix_args, file_arg, profile_arg, postfix_a
   return args;
 };
 
+exports.iteratePackages = function(file_arg, profile_arg, callback, finish_callback, error_callback) {
+
+    var onProcessed = function (data) {
+        var lines = (''+data).split('\n');
+        for (var n=0; n<lines.length; n++) {
+            var arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=<\>\-]+\ {0,1}[\w\.\-\?]*)/.exec(lines[n]);
+            if (arr === null || arr === undefined) {
+                console.warn("line skipped: " + lines[n]);
+                continue;
+            }
+
+            var attr = arr[1];
+            if ((new RegExp(/^nixos\./)).test(attr)) { attr = attr.substring(6); }
+            if (!(new RegExp(/^pkgs\./)).test(attr)) { attr = "pkgs." + attr; }
+
+            callback(attr, arr[2], arr[3]);
+        }
+        finish_callback();
+    };
+
+    var onCurrentSystem = function (currentSystem) {
+        var args = exports.createArgsArray(
+            ['-qacP'], file_arg, profile_arg, ['--system-filter', currentSystem]
+        );
+        exports.nixEnv(args, onProcessed, error_callback);
+    };
+
+    exports.currentSystem(onCurrentSystem, error_callback);
+
+};
 exports.allPackages = function(file_arg, profile_arg, callback, error_callback) {
   exports.currentSystem(function (currentSystem) {
     var process = function(data) {
