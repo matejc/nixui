@@ -11,7 +11,7 @@
 (function() {
   Polymer('ajax-wrapper', {
     ready: function() {
-      window.onerror = function(message, url, lineNumber) {  
+      window.onerror = function(message, url, lineNumber) {
         this.fire('core-signal', {name: "message", data: {type: "error", text: message}});
         // returning true will prevent the firing of the default handler, and returning false will let the default handler run
         return false;

@@ -21,18 +21,18 @@ exports.nixEnv = function(args, callback, error_callback) {
     outerr += data;
   });
 
-  nixProcess.on("exit", function(code) {
+  nixProcess.on("close", function(code) {
     for (var i in nixEnvProcesses) {
       if (nixProcess === nixEnvProcesses[i].process) {
         nixEnvProcesses.splice(i, 1);
         break;
       }
     }
-    if(code === 0)
+    if(code === 0) {
       callback(output.substring(0, output.length - 1));
-    else
+    } else {
       error_callback(outerr+"\nnix-env exited with status: " + code);
-    console.error("\nnix-env exited with status: " + code);
+    }
   }.bind(nixProcess));
 
   return nixEnvProcessesItem;
@@ -59,15 +59,15 @@ exports.nixInstantiate = function (prefix_args, expression, removeQuotations, ca
     outerr += data;
   });
 
-  nixProcess.on("exit", function(code) {
-    if(code === 0)
+  nixProcess.on("close", function(code) {
+    if(code === 0) {
       if (removeQuotations) {
         callback(output.substring(1, output.length - 2));
       } else {
         // callback(output.substring(0, output.length - 1));  // why?
         callback(output);
       }
-    else
+    } else
       error_callback(outerr+"\nnix-instantiate exited with status: " + code);
   });
 };
@@ -189,8 +189,8 @@ exports.packageInfo = function (packageAttrStr, file_arg, callback, error_callba
       getAttrFromStr = str: set: (pkgs.lib.getAttrFromPath (pkgs.lib.splitString "." str) set); \
       isDerivation = value: (value ? "type" && value.type == "derivation"); \
       package = (getAttrFromStr "' + packageAttrStr + '" pkgs); \
-      getDependencies = list: builtins.map (v: if isDerivation v then {meta = v.meta;} // {name = v.name;} // {path = v.outPath;} else {}) list; \
-      data = {meta = package.meta;} // {name = package.name;} // {path = package.outPath;} // {propagatedNativeBuildInputs = getDependencies package.propagatedNativeBuildInputs;} // {nativeBuildInputs = getDependencies package.nativeBuildInputs;}; \
+      getDependencies = list: builtins.map (v: if isDerivation v then {meta = v.meta; name = v.name; path = v.outPath;} else {}) list; \
+      data = {meta = package.meta; name = package.name; path = package.outPath; propagatedNativeBuildInputs = getDependencies package.propagatedNativeBuildInputs; nativeBuildInputs = getDependencies package.nativeBuildInputs;}; \
     in builtins.toJSON data',
     false,
     callback,
@@ -198,7 +198,106 @@ exports.packageInfo = function (packageAttrStr, file_arg, callback, error_callba
   );
 };
 
-exports.tree = function (startAttr, level, callback, error_callback) {
+// for future - (editable) web overview of configuration.nix options
+// example output of my configuration with level 2:
+// [{
+//     attr = "boot.blacklistedKernelModules";
+//     type = "list";
+// } {
+//     attr = "boot.initrd";
+//     type = "aattrs";
+// } {
+//     attr = "boot.loader";
+//     type = "aattrs";
+// } {
+//     attr = "environment.interactiveShellInit";
+//     type = "string";
+// } {
+//     attr = "environment.systemPackages";
+//     type = "list";
+// } {
+//     attr = "fileSystems";
+//     type = "list";
+// } {
+//     attr = "hardware.enableAllFirmware";
+//     type = "bool";
+// } {
+//     attr = "hardware.pulseaudio";
+//     type = "aattrs";
+// } {
+//     attr = "i18n.consoleFont";
+//     type = "string";
+// } {
+//     attr = "i18n.consoleKeyMap";
+//     type = "string";
+// } {
+//     attr = "i18n.defaultLocale";
+//     type = "string";
+// } {
+//     attr = "networking.connman";
+//     type = "aattrs";
+// } {
+//     attr = "networking.firewall";
+//     type = "aattrs";
+// } {
+//     attr = "networking.hostName";
+//     type = "string";
+// } {
+//     attr = "nixpkgs.config";
+//     type = "aattrs";
+// } {
+//     attr = "programs.ssh";
+//     type = "aattrs";
+// } {
+//     attr = "require";
+//     type = "list";
+// } {
+//     attr = "security.pam";
+//     type = "aattrs";
+// } {
+//     attr = "security.sudo";
+//     type = "aattrs";
+// } {
+//     attr = "services.cron";
+//     type = "aattrs";
+// } {
+//     attr = "services.locate";
+//     type = "aattrs";
+// } {
+//     attr = "services.nixosManual";
+//     type = "aattrs";
+// } {
+//     attr = "services.openssh";
+//     type = "aattrs";
+// } {
+//     attr = "services.openvpn";
+//     type = "aattrs";
+// } {
+//     attr = "services.printing";
+//     type = "aattrs";
+// } {
+//     attr = "services.syncthing";
+//     type = "aattrs";
+// } {
+//     attr = "services.xserver";
+//     type = "aattrs";
+// } {
+//     attr = "sound.enable";
+//     type = "bool";
+// } {
+//     attr = "swapDevices";
+//     type = "list";
+// } {
+//     attr = "system.activationScripts";
+//     type = "aattrs";
+// } {
+//     attr = "time.timeZone";
+//     type = "string";
+// } {
+//     attr = "users.extraUsers";
+//     type = "aattrs";
+// }]
+exports.tree = function (level, callback, error_callback) {
   exports.nixInstantiate(
     ["--eval", "--strict", "--show-trace"],
     'let \
@@ -212,17 +311,24 @@ exports.tree = function (startAttr, level, callback, error_callback) {
                   name: value: \
                   if builtins.isAttrs value && cond path value \
                     then recurse (path ++ [name]) value \
-                    else f (path ++ [name]) {attr = (pkgs.lib.concatStringsSep "." (path ++ [name])); type = (if value ? "type" then value.type else "+");}; \
+                    else f (path ++ [name]) {attr = (pkgs.lib.concatStringsSep "." (path ++ [name])); type = (pkgs.lib.nixType value);}; \
               in mapValues g set; \
           in recurse [] set; \
-        valuesOnLevel = level: set: if level == 0 then [set] else pkgs.lib.flatten (recursiveCond (path: value: (pkgs.lib.length path) < level - 1) (path: value: value) set); \
-      data = valuesOnLevel ' + level + ' ' + startAttr + '; \
+        attrsTillLevel = level: set: if level == 0 then [set] else pkgs.lib.flatten (recursiveCond (path: value: (pkgs.lib.length path) < level - 1) (path: value: value) set); \
+      configuration = import /etc/nixos/configuration.nix { inherit pkgs; config = pkgs.config; }; \
+      data = attrsTillLevel ' + level + ' configuration; \
     in data',
     false,
     callback,
     error_callback
   );
 };
+
+// exports.tree(
+//     2,
+//     function(data) { console.log(data); },
+//     function() { console.log("error"); }
+// );
 
 exports.currentSystem = function (callback, error_callback) {
   exports.nixInstantiate(

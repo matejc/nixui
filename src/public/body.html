@@ -102,6 +102,7 @@ paper-item {
       this.fire('core-signal', {name: "openmarked"});
     },
     resetCache: function() {
+      this.fire('core-signal', {name: "progress", data: "start"});
       this.$.ajax.go("/api/search", null, "DELETE", function(data) {
         this.$.queryfield.setPackages();
       }.bind(this));
@@ -198,13 +199,13 @@ paper-item {
       font-family: 'RobotoDraft', sans-serif;
       text-transform: uppercase;
       font-weight: bold;
-      font-size: 60%;
+      font-size: 70%;
       margin-left: 2em;
     }
     .package {
       position: relative;
-      height: 32px;
-      line-height: 32px;
+      height: 40px;
+      line-height: 40px;
       color: #646464;
       padding-right: 0.5em;
       padding-left: 0.5em;

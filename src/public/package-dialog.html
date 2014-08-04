@@ -31,8 +31,11 @@
     <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
     <labeled-panel label="propagated Native Build Inputs" content="{{pkginfo.propagatedNativeBuildInputs}}"></labeled-panel>
 
+    <labeled-panel label="Home Page" content="{{pkginfo.meta.homepage}}"></labeled-panel>
     <labeled-panel label="Description" content="{{pkginfo.meta.description}}"></labeled-panel>
     <labeled-panel label="Long Description" content="{{pkginfo.meta.longDescription}}"></labeled-panel>
+    <labeled-panel label="License" content="{{pkginfo.meta.license}}"></labeled-panel>
+    <labeled-panel label="Position" content="{{pkginfo.meta.position}}"></labeled-panel>
 
     <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
 
@@ -49,9 +52,17 @@
       e.preventDefault();
       e.stopPropagation();
     },
-    toggle: function() {
-      this.$.pkgdialog.controlDim = this.signalobj.controlDim;
-      this.$.pkgdialog.toggle();
+    open: function() {
+      if (!this.$.pkgdialog.opened) {
+        this.$.pkgdialog.controlDim = this.signalobj.controlDim;
+        this.$.pkgdialog.toggle();
+      }
+    },
+    close: function() {
+      if (this.$.pkgdialog.opened) {
+        this.$.pkgdialog.controlDim = this.signalobj.controlDim;
+        this.$.pkgdialog.toggle();
+      }
     },
     pkginfoSignal: function(e, detail, sender) {
       this.signalobj = detail;
@@ -69,7 +80,7 @@
           return;
         }
         this.pkginfo = data;
-        this.toggle();
+        this.open();
       }.bind(this));
     },
     toggleMarked: function(e, detail, sender) {
@@ -81,7 +92,7 @@
     },
     closeBtnDown: function(e, detail, sender) {
       if (e.keyCode == 13) {
-        this.toggle();
+        this.close();
       }
     },
     getMarkItem: function(markObj) {
@@ -99,10 +110,10 @@
 
       switch (this.signalobj.pkgcomp[0]) {
       case "-":
-        return _get("available");
-      case "=":
       case ">":
       case "<":
+        return _get("available");
+      case "=":
         return _get("installed");
       }
     },
@@ -172,13 +183,15 @@
       if (entry instanceof Array) {
         var array = [];
         for (var key in entry) {
-          if (entry[key].hasOwnProperty["name"] && typeof entry[key].name == "string") {
+          if (entry[key].hasOwnProperty("name") && typeof entry[key].name == "string") {
             array.push(entry[key].name);
           } else {
             array.push(entry[key]);
           }
         }
         result = array.join(", ");
+      } else if (entry instanceof Object && entry.hasOwnProperty("fullName")) {
+        result = entry.fullName;
       } else {
         result = entry;
       }
