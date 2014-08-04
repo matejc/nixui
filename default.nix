@@ -132,17 +132,58 @@ let
     ln -sv ${build_bower}/bower_components $out/bower_components
   '';
 
+  nixrehash_src = pkgs.fetchgit {
+    url = "https://github.com/kiberpipa/nix-rehash";
+    rev = "0fe67d3691a61ed64cfa8f20d03a088880595a9f";
+    sha256 = "1q469mplwyvzm3r8nzz5s9afjfq8q9jh72mmwlzcd14hh5h65cpx";
+  };
+
+  nixui_services = (import nixrehash_src).reService rec {
+    name = "services-nixui";
+    configuration = let servicePrefix = "/tmp/${name}/services"; in [
+    ({ config, pkgs, ...}: {
+      services.elasticsearch.enable = true;
+    })
+    ];
+  };
+
+  nixui = pkgs.nodePackages.buildNodePackage rec {
+    name = "nixui";
+    src = [ { name = "nixui-src"; outPath = current_path; } ];
+    deps = (pkgs.lib.attrVals generated_node_packages node_generated);
+    buildInputs = [ pkgs.nix ];
+    postInstall = ''
+      mkdir -p $out/bin
+      cat > $out/bin/nixui-server <<EOF
+      PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.nodejs}/bin/node $out/lib/node_modules/nixui/src/server.js "\$@"
+      EOF
+      chmod +x $out/bin/nixui-server
+      ln -sv ${build_bower}/bower_components $out/lib/node_modules/nixui/bower_components
+    '';
+    passthru.names = [ "nixui" ];
+  };
+
+  current_path = ./.;
+
   dispatcher = action:
     if action == "generate" then
       generate
     else if action == "build" then
       build
-    else
-      pkgs.stdenv.mkDerivation {
+    else if action == "env" then
+      pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = with pkgs; [
-          nodejs
-        ];
+        buildInputs = with pkgs; [ nodejs ];
+      }
+    else
+      pkgs.stdenv.mkDerivation rec {
+        name = "nixui";
+        src = nixui;
+        buildInputs = with pkgs; [ nixui_services ];
+        shellHook = ''
+          echo "Development credentials - U: bob, P: secret"
+          ${nixui}/bin/nixui-server -f ${pkgs.path} --login bob --sha256 2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b
+        '';
       };
 
 in dispatcher action
