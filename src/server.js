@@ -247,7 +247,7 @@ var reloadPackages = function(finish_callback, error_callback) {
         }
     };
 
-    var callback = function(attribute, name, compare) {
+    var callback = function(attribute, name, compare, out, description) {
         var shasum = crypto.createHash('sha1');
         shasum.update(attribute);
         esclient.index({
@@ -257,7 +257,9 @@ var reloadPackages = function(finish_callback, error_callback) {
             body: {
                 attribute: attribute,
                 name: name,
-                compare: compare
+                compare: compare,
+                out: out,
+                description: description
             }
         }, es_error);
     }
@@ -308,7 +310,7 @@ var searchPackages = function(query, limit, callback) {
                         query: {
                             query_string: {
                                 query: query,
-                                fields: [ "attribute", "name" ]
+                                fields: [ "attribute", "name", "description" ]
                             }
                         },
                         filter: {
@@ -331,7 +333,7 @@ var searchPackages = function(query, limit, callback) {
             query: {
                 query_string: {
                     query: query,
-                    fields: [ "attribute", "name" ]
+                    fields: [ "attribute", "name", "description" ]
                 }
             }
         }
@@ -347,7 +349,9 @@ var loadPackages = function() {
             "package": {"properties": {
                 "attribute" : {"type" : "string"},
                 "name" : {"type" : "string"},
-                "compare" : {"type" : "string", "index" : "not_analyzed"}
+                "compare" : {"type" : "string", "index" : "not_analyzed"},
+                "out" : {"type" : "string", "index" : "not_analyzed"},
+                "description" : {"type" : "string"}
             }}
         }
       }

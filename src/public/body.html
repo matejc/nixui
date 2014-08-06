@@ -12,6 +12,7 @@
 <link rel="import" href="/bower_components/paper-menu-button/paper-menu-button.html">
 <link rel="import" href="/bower_components/paper-item/paper-item.html">
 <link rel="import" href="/bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="/bower_components/core-tooltip/core-tooltip.html">
 
 
 <polymer-element name="nixui-body">
@@ -224,12 +225,16 @@ paper-item {
       display: block;
       color: #a05a5a;
     }
+    core-tooltip {
+      margin-bottom: 5px;
+    }
   </style>
-  <div id="listcontainer">
+  <div id="listcontainer" on-mouseleave="{{closeToolTips}}">
   <template repeat="{{package in packages}}" bind="{{classNameFromCompare as classNameFromCompare}}">
-    <div on-click="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package">
+    <div on-mouseenter="{{showToolTip}}" on-click="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package">
       <div class="pkgname">{{package.name}}</div>
       <div class="pkgstate {{package.compare | classNameFromCompare}}" class="pkgstate">{{package.compare}}</div>
+      <core-tooltip data-pkgattr="{{package.attribute}}" label='{{package.description}}' position="right"></core-tooltip>
       <div class="pkgattr">{{package.attribute}}</div>
       <paper-ripple fit></paper-ripple>
     </div>
@@ -259,8 +264,30 @@ paper-item {
     },
     ready: function() {
       this.packages = [];
+      this.currentToolTipAttr = "";
+    },
+    closeToolTips: function() {
+      var toolTips = this.shadowRoot.querySelectorAll("core-tooltip");
+      for (var i in toolTips) {
+        toolTips[i].show = false;
+      }
+    },
+    closeToolTip: function(attr) {
+      var tooltip = this.shadowRoot.querySelector("core-tooltip[data-pkgattr='"+attr+"']");
+      if (tooltip)
+        tooltip.show = false;
+    },
+    showToolTip: function(e, detail, sender) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.closeToolTip(this.currentToolTipAttr);
+      var attr = sender.getAttribute('data-pkgattr');
+      this.currentToolTipAttr = attr;
+      this.shadowRoot.querySelector("core-tooltip[data-pkgattr='"+attr+"']").show = true;
+      return false;
     },
     openPackageDialog: function(e, detail, sender) {
+      this.closeToolTips();
       var attribute = sender.getAttribute('data-pkgattr');
       var name = sender.getAttribute('data-pkgname');
       var compare = sender.getAttribute('data-pkgcomp');

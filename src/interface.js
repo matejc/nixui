@@ -99,7 +99,7 @@ exports.iteratePackages = function(file_arg, profile_arg, callback, finish_callb
     var onProcessed = function (data) {
         var lines = (''+data).split('\n');
         for (var n=0; n<lines.length; n++) {
-            var arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=<\>\-]+\ {0,1}[\w\.\-\?]*)/.exec(lines[n]);
+            var arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=<\>\-]+\ {0,1}[\w\.\-\?]*)\s+([.\S]+)\s+(.+)/.exec(lines[n]);
             if (arr === null || arr === undefined) {
                 console.warn("line skipped: " + lines[n]);
                 continue;
@@ -109,14 +109,15 @@ exports.iteratePackages = function(file_arg, profile_arg, callback, finish_callb
             if ((new RegExp(/^nixos\./)).test(attr)) { attr = attr.substring(6); }
             if (!(new RegExp(/^pkgs\./)).test(attr)) { attr = "pkgs." + attr; }
 
-            callback(attr, arr[2], arr[3]);
+            callback(attr, arr[2], arr[3], arr[4], arr[5]);
         }
         finish_callback();
     };
 
     var onCurrentSystem = function (currentSystem) {
         var args = exports.createArgsArray(
-            ['-qacP'], file_arg, profile_arg, ['--system-filter', currentSystem]
+            ['-qacP'], file_arg, profile_arg,
+            ['--out-path', '--description', '--system-filter', currentSystem]
         );
         exports.nixEnv(args, onProcessed, error_callback);
     };
