@@ -14,4 +14,5 @@ let
       in recurse [] set;
   attrsTillLevel = level: set: if level == 0 then [set] else pkgs.lib.flatten (recursiveCond (path: value: (pkgs.lib.length path) < level - 1) set);
   configuration = import /etc/nixos/configuration.nix { inherit pkgs; config = pkgs.config; };
-in attrsTillLevel 3 configuration
+  confignix = import /home/matej/.nixpkgs/config.nix ;
+in attrsTillLevel 2 configuration

@@ -3,3 +3,6 @@ node_modules
 node_packages_generated.nix
 result
 .zedstate
+data/
+var/
+bin

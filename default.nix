@@ -127,9 +127,10 @@ let
   };
 
   build = pkgs.runCommand "nixui-build" {} ''
-    mkdir -p $out
+    mkdir -p $out/bin
     ln -sv ${node_env}/lib/node_modules $out/node_modules
     ln -sv ${build_bower}/bower_components $out/bower_components
+    ln -sv ${nixui_services}/bin/services-nixui-* $out/bin
   '';
 
   nixrehash_src = pkgs.fetchgit {
@@ -143,6 +144,7 @@ let
     configuration = let servicePrefix = "/tmp/${name}/services"; in [
     ({ config, pkgs, ...}: {
       services.elasticsearch.enable = true;
+      services.elasticsearch.dataDir = "/tmp/${name}/dataDir";
     })
     ];
   };

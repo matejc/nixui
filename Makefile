@@ -1,7 +1,7 @@
 
 clean:
 	rm node_packages_generated.nix \
-		bower_components node_modules result
+		bower_components node_modules result bin
 
 generate:
 	@output_path=`nix-build --argstr action generate`; test -d "$$output_path" && ln -sfv "$$output_path"/* .
