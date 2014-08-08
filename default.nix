@@ -1,4 +1,4 @@
-{ action ? "env" }:
+{ action ? "run" }:
 
 let
 
@@ -173,12 +173,27 @@ let
         name = "nixui-env";
         buildInputs = with pkgs; [ nodejs nodePackages.bower ];
       }
-    else
+    else  # run
       pkgs.stdenv.mkDerivation rec {
         name = "nixui";
         src = nixui;
-        buildInputs = with pkgs; [ nixui_services ];
+        buildInputs = with pkgs; [ nixui_services psmisc nettools ];
         shellHook = ''
+          cleanup() {
+            echo "Shutdown NixUI services ..."
+            services-nixui-stop-services
+
+            echo "Killing server ..."
+            fuser -k 8000/tcp;
+          }
+          trap cleanup INT TERM EXIT
+
+          echo "Starting ElasticSearch ..."
+          services-nixui-start-services
+
+          echo "Waiting for ElasticSearch ..."
+          while netstat -lnt | awk '$4 ~ /:9200$/ {exit 1}'; do sleep 1; done
+
           echo "Development credentials - U: bob, P: secret"
           ${nixui}/bin/nixui-server -f ${pkgs.path} --login bob --sha256 2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b
         '';

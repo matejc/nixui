@@ -19,4 +19,7 @@ test: build
 bower: build
 	nix-shell --argstr action env --command "bower install"
 
-.PHONY: test develop build generate clean
+just-run-it:
+	nix-shell --argstr action run
+
+.PHONY: test develop build generate clean just-run-it

@@ -9,6 +9,20 @@ Requirement
 - Nix package manager
 
 
+Just Run It
+-----------
+
+To try it out, run the following command:
+
+```
+$ make just-run-it
+```
+
+and wait for the line `NixUI at: http://localhost:8000/index.html` in the console.
+
+When you are done press `Ctrl+C` to kill it.
+
+
 Development
 -----------
 
