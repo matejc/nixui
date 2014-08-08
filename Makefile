@@ -1,7 +1,7 @@
 
 clean:
-	rm node_packages_generated.nix \
-		bower_components node_modules result bin
+	@rm node_packages_generated.nix node_modules result bin
+	@find ./bower_components/* -type d -print0 | xargs -0 -I {} rm -rf {}
 
 generate:
 	@output_path=`nix-build --argstr action generate`; test -d "$$output_path" && ln -sfv "$$output_path"/* .
@@ -15,5 +15,8 @@ develop: build
 
 test: build
 	@nix-shell --argstr action env --command "cd ./src && ../node_modules/.bin/mocha --reporter list"
+
+bower: build
+	nix-shell --argstr action env --command "bower install"
 
 .PHONY: test develop build generate clean

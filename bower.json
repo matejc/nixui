@@ -22,10 +22,10 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "https://github.com/Polymer/polymer.git#master",
-    "core-elements": "https://github.com/Polymer/core-elements.git#master",
-    "core-signals": "https://github.com/Polymer/core-signals.git#master",
-    "paper-elements": "https://github.com/Polymer/paper-elements.git#master",
-    "paper-menu-button": "https://github.com/Polymer/paper-menu-button.git#master"
+    "polymer": "https://github.com/Polymer/polymer.git#0.3.5",
+    "core-elements": "https://github.com/Polymer/core-elements.git#0.3.5",
+    "core-signals": "https://github.com/Polymer/core-signals.git#0.3.5",
+    "paper-elements": "https://github.com/Polymer/paper-elements.git#0.3.5",
+    "paper-menu-button": "https://github.com/Polymer/paper-menu-button.git#0.3.5"
   }
 }

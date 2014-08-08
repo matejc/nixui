@@ -53,18 +53,16 @@ let
     buildCommand = ''
       export OPENSSL_X509_CERT_FILE=${pkgs.cacert}/etc/ca-bundle.crt
       export GIT_SSL_CAINFO=${pkgs.cacert}/etc/ca-bundle.crt
-      mkdir -p $out
-      export HOME="/tmp/bower_home"
+      export HOME="$out/bower_home"
+      mkdir -p $HOME
       echo "running ${pkgs.nodePackages.bower2nix}/bin/bower2nix ${bowerjson} $out/bower_packages_generated.nix"
       ${pkgs.nodePackages.bower2nix}/bin/bower2nix ${bowerjson} $out/bower_packages_generated.nix
-      rm -rf /tmp/bower_home
     '';
   };
 
   generate = pkgs.runCommand "nixui-build" {} ''
     mkdir -p $out
     ln -sv ${generate_node}/node_packages_generated.nix $out/node_packages_generated.nix
-    #ln -sv ${generate_bower}/bower_packages_generated.nix $out/bower_packages_generated.nix
   '';
 
   node_packages_generated_nix = (pkgs.writeText "node_packages_generated.nix" (builtins.readFile ./node_packages_generated.nix));
@@ -129,7 +127,6 @@ let
   build = pkgs.runCommand "nixui-build" {} ''
     mkdir -p $out/bin
     ln -sv ${node_env}/lib/node_modules $out/node_modules
-    ln -sv ${build_bower}/bower_components $out/bower_components
     ln -sv ${nixui_services}/bin/services-nixui-* $out/bin
   '';
 
@@ -160,7 +157,6 @@ let
       PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.nodejs}/bin/node $out/lib/node_modules/nixui/src/server.js "\$@"
       EOF
       chmod +x $out/bin/nixui-server
-      ln -sv ${build_bower}/bower_components $out/lib/node_modules/nixui/bower_components
     '';
     passthru.names = [ "nixui" ];
   };
@@ -175,7 +171,7 @@ let
     else if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = with pkgs; [ nodejs ];
+        buildInputs = with pkgs; [ nodejs nodePackages.bower ];
       }
     else
       pkgs.stdenv.mkDerivation rec {
