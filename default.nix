@@ -194,8 +194,8 @@ let
           echo "Waiting for ElasticSearch ..."
           while netstat -lnt | awk '$4 ~ /:9200$/ {exit 1}'; do sleep 1; done
 
-          echo "Development credentials - U: bob, P: secret"
-          ${nixui}/bin/nixui-server -f ${pkgs.path} --login bob --sha256 2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b
+          echo "Development credentials - ProfileName: bob, Password: secret"
+          ${nixui}/bin/nixui-server -f ${pkgs.path} --profilename bob --sha256 2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b
         '';
       };
 

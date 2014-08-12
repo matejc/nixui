@@ -10,8 +10,8 @@ build: generate
 	@output_path=`nix-build --argstr action build`; test -d "$$output_path" && ln -sfv "$$output_path"/* .
 
 develop: build
-	@echo "Development credentials - U: bob, P: secret"
-	@if [ "$$NIX_MY_PKGS" ]; then ARG="-f $$NIX_MY_PKGS"; else ARG=""; fi; nix-shell --argstr action env --command "node src/server.js $$ARG --login bob --sha256 2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b"
+	@echo "Development credentials - ProfileName: bob, Password: secret"
+	@if [ "$$NIX_MY_PKGS" ]; then ARG="-f $$NIX_MY_PKGS"; else ARG=""; fi; nix-shell --argstr action env --command "node src/server.js $$ARG --profilename bob --sha256 2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b"
 
 test: build
 	@nix-shell --argstr action env --command "cd ./src && ../node_modules/.bin/mocha --reporter list"

@@ -1,0 +1,34 @@
+<link rel="import" href="/bower_components/core-signals/core-signals.html">
+<link rel="import" href="/bower_components/paper-dialog/paper-dialog-transition.html">
+<link rel="import" href="/bower_components/paper-button/paper-button.html">
+
+<polymer-element name="profiles" attributes="controlDim">
+<template>
+  <style>
+  </style>
+  
+  <form action="/profiles" method="post">
+      <div>
+          <label>Username:</label>
+          <input type="text" name="profilename"/>
+      </div>
+      <div>
+          <label>Password:</label>
+          <input type="password" name="password"/>
+      </div>
+      <div>
+          <input type="submit" value="Log In"/>
+      </div>
+  </form>
+  
+</template>
+<script>
+(function() {
+  Polymer('profiles', {
+    ready: function() {
+      
+    }
+  });
+})();
+</script>
+</polymer-element>

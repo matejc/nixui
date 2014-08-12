@@ -33,7 +33,9 @@
     "sinon": "~1.10.3",
     "expect.js": "~0.3.1",
     "passport": "~0.2.0",
-    "passport-http": "~0.2.2",
-    "elasticsearch": "~2.4.0"
+    "passport-local": "~1.0.0",
+    "ejs": "~1.0.0",
+    "elasticsearch": "~2.4.0",
+    "cookie-session": "~1.0.2"
   }
 }

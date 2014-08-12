@@ -1,0 +1,124 @@
+<% include head.html %>
+
+<polymer-element name="nixui-profiles">
+<template>
+    <style>
+    #profilelist {
+        width: 200px;
+        height: auto;
+        padding-right: 4em;
+    }
+    .profileitem {
+        position: relative;
+        height: 40px;
+        line-height: 40px;
+        color: #949494;
+        padding-right: 0.5em;
+        padding-left: 0.5em;
+    }
+    .profileitem:hover {
+        background-color: #eeeeee;
+    }
+    .profileitem_selected {
+        color: #005aa0;
+    }
+    #container {
+        width: 100%;
+    }
+    #wrapper {
+        height: 100%;
+    }
+    .label {
+        font-family: 'RobotoDraft', sans-serif;
+        font-weight: bold;
+        font-size: 70%;
+        color: #005aa0;
+    }
+    </style>
+    <div id="wrapper" layout horizontal center>
+        <div id="container" horizontal center-justified layout>
+            <div id="profilelist">
+                <div class="label">Select profile:</div>
+                <% for (var i in profiles) { %>
+                    <div class="profileitem" on-click="{{selectProfile}}" data-profilename="<%= profiles[i].profilename %>" data-profileid="<%= profiles[i].id %>">
+                        <span><%= profiles[i].profilename %></span>
+                        <paper-ripple fit/>
+                    </div>
+                <% } %>
+            </div>
+            <form method="POST" action="/profiles" id="profileform" layout horizontal center>
+                <item name="profilename" value="{{currentProfile.profilename}}" type="hidden"></item>
+                <paper-input name="password" id="passwordfield" on-keypress="{{validatePassword}}" type="password" floatingLabel/>
+            </form>
+        </div>
+    </div>
+    
+    <core-animation id="fadeIn" duration="300" on-core-animation-finish="{{fadeInPasswordField}}">
+      <core-animation-keyframe>
+        <core-animation-prop name="opacity" value="0"></core-animation-prop>
+      </core-animation-keyframe>
+      <core-animation-keyframe>
+        <core-animation-prop name="opacity" value="1"></core-animation-prop>
+      </core-animation-keyframe>
+    </core-animation>
+
+    <ajax-wrapper id="ajax"></ajax-wrapper>
+</template>
+<script>
+(function() {
+    Polymer('nixui-profiles', {
+        ready: function() {
+            this.$.passwordfield.style.opacity = 0;
+            this.passwordFieldShowing = false;
+        },
+        selectProfile: function(e) {
+            profileitem = e.target.parentNode;
+            if (profileitem) {
+                profileitems = this.shadowRoot.querySelectorAll(".profileitem");
+                for (var i in profileitems) {
+                    profileitems[i].className = profileitem.className.replace( /(?:^|\s)profileitem_selected(?!\S)/g , '' )
+                }
+                profileitem.className += " profileitem_selected";
+                this.currentProfile = {
+                    id: profileitem.getAttribute("data-profileid"),
+                    profilename: profileitem.getAttribute("data-profilename")
+                };
+                console.log(this.currentProfile.id);
+                this.togglePasswordField()
+            }
+        },
+        togglePasswordField: function() {
+            this.$.fadeIn.target = this.$.passwordfield;
+            if (this.passwordFieldShowing) {
+                this.passwordFieldShowing = false;
+                this.$.fadeIn.target.value = "";
+                this.$.fadeIn.direction = "reverse";
+                this.$.fadeIn.fill = "forwards";
+                this.$.fadeIn.play();
+            } else {
+                this.fadeInPasswordField();
+            }
+        },
+        fadeInPasswordField: function() {
+            this.$.fadeIn.target = this.$.passwordfield;
+            if (!this.passwordFieldShowing) {
+                this.passwordFieldShowing = true;
+                this.$.fadeIn.target.label = "Enter password for "+this.currentProfile.profilename+" profile";
+                this.$.fadeIn.direction = "normal";
+                this.$.fadeIn.fill = "forwards";
+                this.$.fadeIn.play();
+            }
+        },
+        validatePassword: function(e) {
+            if (e.keyCode == 13) {
+                this.$.profileform.submit();
+            }
+        }
+    });
+})();
+</script>
+</polymer-element>
+
+<nixui-profiles></nixui-profiles>
+
+<% include foot.html %>

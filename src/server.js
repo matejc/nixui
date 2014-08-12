@@ -5,13 +5,13 @@
 var yargs = require('yargs')
   .wrap(process.stdout.columns)
   .usage('$0 [options]')
-  .options('login', {
-    describe: 'Login name.'
+  .options('profilename', {
+    describe: 'Profile name.'
   })
   .options('sha256', {
-    describe: 'Password sha256 hash for login credentials.\nExample: "$ echo -n "secret" | sha256sum -"'
+    describe: 'Password sha256 hash for profile credentials.\nExample: "$ echo -n "secret" | sha256sum -"'
   })
-  .demand(['login', 'sha256'])
+  .demand(['profilename', 'sha256'])
   .options('title', {
     describe: 'Name of server instance.',
     default: 'NixUI'
@@ -52,69 +52,139 @@ if (argv.help) {
 // --- MIDDLEWARE (EXPRESS) ---
 //
 var express = require('express'),
-    url = require('url'),
     NixInterface = require('./interface'),
     app = express(),
+    ejs = require('ejs'),
     passport = require('passport'),
-    BasicStrategy = require('passport-http').BasicStrategy,
-    crypto = require('crypto');
+    LocalStrategy = require('passport-local').Strategy,
+    crypto = require('crypto'),
+    cookieSession = require('cookie-session');
 
-var users = [
-    { id: 1, username: argv.login, sha256: argv.sha256, profile: argv.profile, file: argv.file }
+var profiles = [
+    { id: 0, profilename: "default", sha256: null, profile: null, file: null },
+    { id: 1, profilename: argv.profilename, sha256: argv.sha256, profile: argv.profile, file: argv.file },
+    { id: 2, profilename: "development1", sha256: null, profile: null, file: null },
+    { id: 3, profilename: "development2", sha256: null, profile: null, file: null },
+    { id: 4, profilename: "development3", sha256: null, profile: null, file: null },
+    { id: 5, profilename: "development4", sha256: null, profile: null, file: null },
 ];
 
-function findByUsername(username, fn) {
-  for (var i = 0, len = users.length; i < len; i++) {
-    var user = users[i];
-    if (user.username === username) {
-      return fn(null, user);
+function findById(id, fn) {
+    for (var i = 0, len = profiles.length; i < len; i++) {
+        var profile = profiles[i];
+        if (profile.id === id) {
+            return fn(null, profile);
+        }
     }
-  }
-  return fn(null, null);
+    fn(new Error('Profile with id ' + id + ' does not exist'));
 }
 
-// Use the BasicStrategy within Passport.
-//   Strategies in Passport require a `verify` function, which accept
-//   credentials (in this case, a username and password), and invoke a callback
-//   with a user object.
-passport.use(new BasicStrategy({
-  },
-  function(username, password, done) {
-    // asynchronous verification, for effect...
-    process.nextTick(function () {
-
-      // Find the user by username.  If there is no user with the given
-      // username, or the password is not correct, set the user to `false` to
-      // indicate failure.  Otherwise, return the authenticated `user`.
-      findByUsername(username, function(err, user) {
-        if (err) { return done(err); }
-        if (!user) { return done(null, false); }
-        var shasum = crypto.createHash("sha256");
-        shasum.update(password);
-        if (user.sha256 != shasum.digest('hex')) {  // ?
-            return done(null, false);
+function findByProfilename(profilename, fn) {
+    for (var i = 0, len = profiles.length; i < len; i++) {
+        var profile = profiles[i];
+        if (profile.profilename === profilename) {
+            return fn(null, profile);
         }
-        return done(null, user);
-      })
-    });
-  }
+    }
+    return fn(null, null);
+}
+
+// Passport session setup.
+//   To support persistent login sessions, Passport needs to be able to
+//   serialize users into and deserialize users out of the session.  Typically,
+//   this will be as simple as storing the user ID when serializing, and finding
+//   the user by ID when deserializing.
+passport.serializeUser(function(profile, done) {
+  done(null, profile.id);
+});
+passport.deserializeUser(function(id, done) {
+  findById(id, function (err, profile) {
+    done(err, profile);
+  });
+});
+
+// Simple route middleware to ensure user is authenticated.
+//   Use this route middleware on any resource that needs to be protected.  If
+//   the request is authenticated (typically via a persistent login session),
+//   the request will proceed.  Otherwise, the user will be redirected to the
+//   login page.
+function ensureAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) { return next(); }
+    res.redirect('/profiles');
+}
+
+
+passport.use(new LocalStrategy({
+        usernameField: 'profilename',
+        passwordField: 'password'
+    },
+    function(profilename, password, done) {
+        console.log("BEJE "+profilename)
+        findByProfilename(profilename, function(err, profile) {
+            if (err) { return done(err); }
+            if (!profile) {
+                return done(null, false);
+            }
+            var shasum = crypto.createHash("sha256");
+            shasum.update(password);
+            if (profile.sha256 != shasum.digest('hex')) {  // ?
+                return done(null, false);
+            }
+            return done(null, profile);
+        });
+    }
 ));
 
-app.use(passport.initialize());
 
-var auth = passport.authenticate('basic', { session: false });
 app.use('/bower_components', express.static(__dirname + '/../bower_components'));
-app.use(express.static(__dirname + '/public'));
+app.use('/public', express.static(__dirname + '/public'));
+
+app.engine('.html', require('ejs').__express);
+
+app.set('views', __dirname + '/views');
+
+// Without this you would need to
+// supply the extension to res.render()
+// ex: res.render('users.html').
+app.set('view engine', 'html');
+
+app.use(cookieSession({ keys: ['key1', 'key2'] }));
+// Initialize Passport!  Also use passport.session() middleware, to support
+// persistent login sessions (recommended).
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+app.route('/profiles')
+    .get(function(request, response, next) {
+        response.render('profiles', {profiles: profiles});
+    })
+    .post(passport.authenticate('local', { failureRedirect: '/profiles' }),
+        function(req, res) {
+            res.redirect('/');
+        }
+    );
+
+app.route('/')
+    .get(ensureAuthenticated, function(request, response, next) {
+        response.render('index');
+    });
+
+app.get('/logout', function(req, res){
+    req.logout();
+    res.redirect('/');
+});
+
 
 app.route('/api/search')
-  .get(function(request, response, next) {
+  .get(ensureAuthenticated, function(request, response, next) {
     var query = request.param('query');
     var limit = 'limit' in request.param ? parseInt(request.param('limit')) : 100;
     searchPackages(query, limit, function(list){
         response.send(list);
     });
   })
-  .delete(function(request, response, next) {
+  .delete(ensureAuthenticated, function(request, response, next) {
     reloadPackages(function(){
         response.send({"status": 200});
     }, function(err){
@@ -123,7 +193,7 @@ app.route('/api/search')
   });
 
 app.route('/api/info')
-  .get(function(request, response, next) {
+  .get(ensureAuthenticated, function(request, response, next) {
     var attribute = request.param('attribute');
     NixInterface.packageInfo(attribute, argv.file, function(data){
       response.send(JSON.parse(data));
@@ -134,7 +204,7 @@ app.route('/api/info')
 
 
 app.route('/api/mark/set')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     var attribute = request.param('attribute');
     var mark = request.param('mark');  // install/uninstall
 
@@ -148,7 +218,7 @@ app.route('/api/mark/set')
 
   });
 app.route('/api/mark/toggle')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     var attribute = request.param('attribute');
     var markObj = getMarkObjByAttribute(attribute);
 
@@ -178,7 +248,7 @@ app.route('/api/mark/toggle')
   });
 
 app.route('/api/mark/get')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     var attribute = request.param('attribute');
 
     var result;
@@ -192,32 +262,32 @@ app.route('/api/mark/get')
     response.send(result);
   });
 app.route('/api/mark/remove')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     var attribute = request.param('attribute');
     NixInterface.killNixEnvByAttribute(attribute);
     response.send({"removed": removeMark(attribute)});
   });
 app.route('/api/mark/removeall')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     NixInterface.killNixEnvAll();
     markList = [];
     response.send({"removed": true});
   });
 app.route('/api/mark/removefinished')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     removeMarkedByState("finish");
     response.send({"removed": true});
   });
 
 app.route('/api/mark/apply')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     var attribute = request.param('attribute');
     var markObj = getMarkObjByAttribute(attribute);
     applyMark(markObj.attribute, markObj.name, markObj.mark);
     response.send(markObj);
   });
 app.route('/api/mark/applyall')
-  .get(auth, function (request, response, next) {
+  .get(ensureAuthenticated, function (request, response, next) {
     applyAll();
     response.send({});
   });
@@ -233,9 +303,9 @@ var elasticsearch = require('elasticsearch');
 var esclient = new elasticsearch.Client();
 
 esclient.cluster.health(function (err, resp) {
-  if (err) {
-    console.error(err.message);
-  }
+    if (err) {
+        console.error(err.message);
+    }
 });
 
 
@@ -361,10 +431,7 @@ var loadPackages = function() {
         }
 
         reloadPackages(function() {
-            server
-              .listen(argv.port, argv.hostname, function() {
-                console.log('NixUI at: http://' + argv.hostname + ':' + argv.port + '/index.html');
-              });
+            console.log("ElasticSearch ready!")
 
         },function(err) {
             console.log(err);
@@ -395,7 +462,10 @@ deletePackages(loadPackages);
 //
 
 var server = require('http').createServer(app);
-
+server
+    .listen(argv.port, argv.hostname, function() {
+        console.log('NixUI at: http://' + argv.hostname + ':' + argv.port + '/');
+    });
 
 
 
