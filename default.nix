@@ -68,7 +68,7 @@ let
           trap cleanup INT TERM EXIT
 
           echo "Starting ElasticSearch ..."
-          services-nixui-start-services
+          services-nixui-start-services || true
 
           echo "Waiting for ElasticSearch ..."
           while netstat -lnt | awk '$4 ~ /:9200$/ {exit 1}'; do sleep 1; done

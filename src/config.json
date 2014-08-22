@@ -1,4 +1,24 @@
 {
-  "host": "localhost",
-  "port": 8000
+    "host": "localhost",
+    "port": 8000,
+    "elasticsearch": {
+        "host": "localhost:9200"
+    },
+    "users": [{
+        "email": "cotman.matej@gmail.com",
+        "username": "matejc",
+        "password": "secret",
+        "meta": {
+            "profile": "/home/matej/.nix-profile",
+            "file": "/home/matej/workarea/nixpkgs"
+        }
+    }, {
+        "email": "demo@email.xyz",
+        "username": "demo",
+        "password": "demo",
+        "meta": {
+            "profile": null,
+            "file": null
+        }
+    }]
 }

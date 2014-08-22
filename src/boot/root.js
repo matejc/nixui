@@ -5,7 +5,8 @@ module.exports = function(server) {
     var NixPackages = server.loopback.getModel('nix-packages');
     var User = server.loopback.getModel('user');
     router.get('/status', server.loopback.status());
-    router.get('/', function(req, res) {
+    // router.get('/', server.loopback.static(__dirname + '/../public/index.html'));
+    router.get('/dispatcher', function(req, res) {
         AccessToken.findForRequest(
             req, {
                 params: ['access_token'],

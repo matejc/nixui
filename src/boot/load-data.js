@@ -3,7 +3,7 @@ var loopback = require("loopback");
 module.exports = function(app) {
     var User = app.models.user;
 
-    var createAndLogin = function(email, username, password, meta) {
+    var createAndLogin = function(email, username, password, meta, doNotLogin) {
         User.findOrCreate({
                 where: {
                     username: username
@@ -17,6 +17,9 @@ module.exports = function(app) {
             function(err, user) {
                 if (err) {
                     console.log(err);
+                }
+                if (doNotLogin) {
+                    return;
                 }
                 User.login({
                         email: email,
@@ -32,8 +35,9 @@ module.exports = function(app) {
         );
     };
 
-    // createAndLogin("ovca@email.xyz", "ovca", "ovca");
-    createAndLogin("admin@email.xyz", "admin", "admin", {"profile": "/home/matej/.nix-profile", "file": "/home/matej/workarea/nixpkgs", "infoOnly": false});
-    createAndLogin("demo@email.xyz", "demo", "demo", {"profile": "/home/matej/.nix-profile", "file": "/home/matej/workarea/nixpkgs", "infoOnly": true});
-    // if (process.env.TEST_DATA) {}
+    for (var i in app.settings.users) {
+        var user = app.settings.users[i];
+        createAndLogin(user.email, user.username, user.password, user.meta, true);
+    }
+
 };

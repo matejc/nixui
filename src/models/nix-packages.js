@@ -3,7 +3,10 @@ module.exports = function(Packages, Base) {
     var NixInterface = require("../interface");
     var User = loopback.getModel('user');
     var NixES = require('../elasticsearch');
-    NixES({host: "localhost:9200"});
+
+    Packages.getApp(function(err, app){
+        NixES(app.settings.elasticsearch);
+    });
 
     Packages.getNixInterface = function() {
         return NixInterface;

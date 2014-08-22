@@ -1,0 +1,22 @@
+<link rel="import" href="/ajax.html">
+
+<polymer-element name="nixui-dispatcher">
+<template>
+  <ajax-wrapper id="ajax"></ajax-wrapper>
+</template>
+<script>
+(function() {
+  Polymer('nixui-dispatcher', {
+    ready: function() {
+      this.$.ajax.go("/dispatcher", null, "GET",function(data) {
+        console.log("from:"+document.location.pathname);
+        console.log("to:"+data.loc);
+        if (document.location.pathname != data.loc) {
+          document.location.assign(data.loc);
+        }
+      }.bind(this));
+    }
+  });
+})();
+</script>
+</polymer-element>
