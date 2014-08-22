@@ -1,25 +1,27 @@
-
 clean:
-	@rm node_packages_generated.nix node_modules result bin
+	@rm -f result bin/services-nixui-*
+	@rm -rf ./node_modules/.bin
 	@find ./bower_components/* -type d -print0 | xargs -0 -I {} rm -rf {}
+	@find ./node_modules/* -type d -print0 | xargs -0 -I {} rm -rf {}
 
-generate:
-	@output_path=`nix-build --argstr action generate`; test -d "$$output_path" && ln -sfv "$$output_path"/* .
+build: clean bower node services
 
-build: generate
-	@output_path=`nix-build --argstr action build`; test -d "$$output_path" && ln -sfv "$$output_path"/* .
+services:
+	@output_path=`nix-build --argstr action services`; test -d "$$output_path" && ln -sfv "$$output_path"/bin/services-nixui-* ./bin/
 
-develop: build
-	@echo "Development credentials - U: bob, P: secret"
-	@if [ "$$NIX_MY_PKGS" ]; then ARG="-f $$NIX_MY_PKGS"; else ARG=""; fi; nix-shell --argstr action env --command "node src/server.js $$ARG --login bob --sha256 2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b"
+develop: services
+	@nix-shell --argstr action env --command "./develop.sh"
 
-test: build
+test:
 	@nix-shell --argstr action env --command "cd ./src && ../node_modules/.bin/mocha --reporter list"
 
-bower: build
+bower: bower.json
 	nix-shell --argstr action env --command "bower install"
 
-just-run-it:
+node: package.json
+	nix-shell --argstr action env --command "npm install"
+
+just-run-it: clean bower node
 	nix-shell --argstr action run
 
 .PHONY: test develop build generate clean just-run-it

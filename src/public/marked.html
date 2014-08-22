@@ -53,7 +53,7 @@
       this.$.listmarked.applyAll();
     },
     clearAll: function() {
-      this.$.ajax.add('/api/mark/removeall', null, "GET", function(data) {
+      this.$.ajax.add('/api/nix-markeds/delete_all', null, "GET", function(data) {
         this.closeDialog();
       }.bind(this));
     }
@@ -133,36 +133,37 @@
       this.fetchNextProgress();
     },
     setList: function() {
-      this.$.ajax.add('/api/mark/get', null, "GET", function(data) {
+      this.$.ajax.add('/api/nix-markeds/list', null, "GET", function(data) {
         if (data.error) {
           this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: false}});
           return;
         }
-        this.list = data;
+        this.list = data.data;
       }.bind(this));
     },
     fetchNextProgress: function() {
-      this.$.ajax.add("/api/mark/get", null, "GET", function(data) {
+      this.$.ajax.add("/api/nix-markeds/list", null, "GET", function(data) {
         if (data.error) {
           console.log(data.error);
           return;
         }
-        if (!this.list || this.list.length != data.length) {
-          this.list = data;
+        if (!this.list || this.list.length != data.data.length) {
+          this.list = data.data;
         }
 
         var bars = this.shadowRoot.querySelectorAll("progress-bar.pkgprogressbar").array();
         for (var i in bars) {
           var attribute = bars[i].getAttribute("data-pkgattr");
           var progress = bars[i].getProgress();
-          for (var j in data) {
-            if (data[j].attribute == attribute && data[j].state != progress) {
-              bars[i].doProgress(data[j].state);
+          for (var j in data.data) {
+            if (data.data[j].attribute == attribute && data.data[j].state != progress) {
+              console.log("CHANGED TO: "+data.data[j].state);
+              bars[i].doProgress(data.data[j].state);
             }
           }
         }
 
-        if (this.active && data)
+        if (this.active && data.data)
           setTimeout(this.fetchNextProgress.bind(this), 500);
       }.bind(this));
     },
@@ -170,7 +171,7 @@
       var pkgattr = e.target.getAttribute("data-pkgattr");
       if (!pkgattr)
         return;
-      this.$.ajax.add('/api/mark/apply', {
+      this.$.ajax.add('/api/nix-markeds/apply', {
         "attribute": pkgattr
       }, "GET", function(data) {
         if (data.error) {
@@ -180,19 +181,19 @@
     },
     onRemoveClick: function(e) {
       var pkgattr = e.target.getAttribute("data-pkgattr");
-      this.$.ajax.add('/api/mark/remove', {
+      this.$.ajax.add('/api/nix-markeds/delete', {
         "attribute": pkgattr
       }, "GET", function(data) {
       }.bind(this));
     },
     applyAll: function() {
-      this.$.ajax.add('/api/mark/applyall', null, "GET", function(data) {
+      this.$.ajax.add('/api/nix-markeds/apply_all', null, "GET", function(data) {
       }.bind(this));
     },
     closedDialog: function() {
       this.active = false;
       this.fire('core-signal', {name: "resetcache"});
-      this.$.ajax.add('/api/mark/removefinished', null, "GET", function(data) {
+      this.$.ajax.add('/api/nix-markeds/delete_finished', null, "GET", function(data) {
       }.bind(this));
     }
   });

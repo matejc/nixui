@@ -1,14 +1,16 @@
 <link rel="import" href="/bower_components/core-ajax/core-ajax.html">
+<!-- <script src="/bower_components/basil.js/build/basil.min.js"></script> -->
 
 
 <polymer-element name="ajax-wrapper" attributes="url params method oncomplete">
 <template>
   <core-ajax id="coreajax" url="{{url}}" params='{{params}}'
-    method={{method}} on-core-response={{onresponse}} on-core-error="onerror">
+    method="{{method}}" on-core-response="{{onresponse}}" on-core-error="{{onerror}}">
   </core-ajax>
 </template>
 <script>
 (function() {
+  // basil = new window.Basil({});
   Polymer('ajax-wrapper', {
     ready: function() {
       window.onerror = function(message, url, lineNumber) {
@@ -19,11 +21,17 @@
     },
     onresponse: function(e) {
       if (this.oncomplete)
-        this.oncomplete(JSON.parse(e.detail.xhr.response));
+        this.oncomplete(e.detail.xhr.response?JSON.parse(e.detail.xhr.response):{});
     },
     go: function(url, params, method, oncomplete) {
+      params = params ? params : (this.params?JSON.parse(this.params):{});
+      // access_token = basil.cookie.get("access_token");
+      // if (access_token) {
+      //   params.access_token = access_token;
+      // }
+
       this.url = url ? url : this.url;
-      this.params = params ? JSON.stringify(params) : this.params;
+      this.params = JSON.stringify(params);
       this.method = method ? method : this.method;
       this.oncomplete = oncomplete ? oncomplete : this.oncomplete;
 

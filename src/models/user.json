@@ -1,0 +1,17 @@
+{
+  "name": "user",
+  "base": "User",
+  "properties": {},
+  "validations": [],
+  "relations": {},
+  "acls": [
+    {
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "list",
+      "accessType": "*"
+    }
+  ],
+  "methods": []
+}

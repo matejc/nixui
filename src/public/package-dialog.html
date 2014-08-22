@@ -66,28 +66,28 @@
     },
     pkginfoSignal: function(e, detail, sender) {
       this.signalobj = detail;
-      this.$.ajax.add("/api/mark/get", {
+      this.$.ajax.add("/api/nix-markeds/get", {
         'attribute': this.signalobj.pkgattr
       }, "GET", function(data) {
-        this.markItem = this.getMarkItem(data);
+        this.markItem = this.getMarkItem(data.data);
       }.bind(this));
 
-      this.$.ajax.add("/api/info", {
+      this.$.ajax.add("/api/nix-packages/info", {
         'attribute': this.signalobj.pkgattr
       }, "GET", function(data) {
         if (data.error) {
           this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
           return;
         }
-        this.pkginfo = data;
+        this.pkginfo = data.data;
         this.open();
       }.bind(this));
     },
     toggleMarked: function(e, detail, sender) {
-      this.$.ajax.add('/api/mark/toggle', {
+      this.$.ajax.add('/api/nix-markeds/toggle', {
         'attribute': this.signalobj.pkgattr,
       }, "GET", function(data) {
-        this.markItem = this.getMarkItem(data);
+        this.markItem = this.getMarkItem(data.data);
       }.bind(this));
     },
     closeBtnDown: function(e, detail, sender) {

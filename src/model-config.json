@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "sources": [
+      "./models"
+    ]
+  },
+  "user": {
+    "dataSource": "db",
+    "public": true
+  },
+  "AccessToken": {
+    "dataSource": "db",
+    "public": false
+  },
+  "ACL": {
+    "dataSource": "db",
+    "public": false
+  },
+  "nix-packages": {
+    "dataSource": "none"
+  },
+  "nix-marked": {
+    "dataSource": "db"
+  }
+}
