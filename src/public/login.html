@@ -94,7 +94,7 @@
                 this.$.passwordfield.style.opacity = 0;
                 this.passwordFieldShowing = false;
                 this.users = [];
-                this.$.ajax.add("/api/users/list", null, "GET", function(data) {
+                this.$.ajax.add("/users_list", null, "GET", function(data) {
                   this.users = data.users;
                 }.bind(this));
             },

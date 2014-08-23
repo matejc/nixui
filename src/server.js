@@ -44,7 +44,9 @@ var loopback = require('loopback'),
 
 var app = module.exports = loopback();
 
-app.use(loopback.cookieParser("REPLACEME"));
+// config.json is not read to app.settings yet at this point
+app.use(loopback.cookieParser(require(__dirname+"/config.json").secret));
+
 app.use(loopback.json());
 app.use(loopback.urlencoded({extended: true}));
 app.use(loopback.token({
@@ -78,9 +80,6 @@ app.use(loopback.urlNotFound());
 
 // The ultimate error handler.
 app.use(loopback.errorHandler());
-
-
-
 
 app.start = function() {
   // start the web server

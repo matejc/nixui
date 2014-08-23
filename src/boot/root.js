@@ -4,25 +4,23 @@ module.exports = function(server) {
     var AccessToken = server.loopback.getModel('AccessToken');
     var NixPackages = server.loopback.getModel('nix-packages');
     var User = server.loopback.getModel('user');
-    router.get('/status', server.loopback.status());
-    // router.get('/', server.loopback.static(__dirname + '/../public/index.html'));
+    // router.get('/', server.loopback.status());
     router.get('/dispatcher', function(req, res) {
         AccessToken.findForRequest(
             req, {
-                params: ['access_token'],
                 cookies: ['access_token']
             },
             function(err, token) {
-                if (err) {
-                    console.log(err);
-                    res.send({loc: "/login.html"});
-                } else {
+                if (token) {
                     res.send({loc: "/index.html"});
+                } else {
+                    res.send({loc: "/login.html"});
                 }
             }
         );
     });
 
+    // router.get('/foo', server.loopback.static(__dirname + '/../public/login.html'));
     router.post('/login', function(req, res) {
         User.login({
             username: req.param("username"),
@@ -31,13 +29,28 @@ module.exports = function(server) {
             res.cookie('access_token', token.id, {
                 signed: true
             });
-            if (err) {
-                console.log(err);
-                res.send({loc: "/login.html"});
-            } else {
+            if (token) {
                 res.send({loc: "/index.html"});
+            } else {
+                res.send({loc: "/login.html"});
             }
         });
+    });
+
+    router.get('/', function(req, res) {
+        res.redirect('/login.html');
+    });
+
+    router.get('/users_list', function(req, res) {
+        User.find({},
+            function(err, arrayOfinstances) {
+                users = [];
+                for (var i in arrayOfinstances) {
+                    users.push({username: arrayOfinstances[i].username, id: arrayOfinstances[i].id});
+                }
+                res.send({"users": users});
+            }
+        );
     });
     server.use(router);
 };

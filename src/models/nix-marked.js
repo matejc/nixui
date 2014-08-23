@@ -3,6 +3,14 @@ module.exports = function(Marked, Base) {
     var NixPackages = loopback.getModel('nix-packages');
     var User = loopback.getModel('user');
 
+    Marked.beforeRemote('**', function(ctx, user, next) {
+      if(ctx.req.accessToken) {
+        next();
+      } else {
+        next(new Error('must be logged in'))
+      }
+    });
+
     Marked.set = function(attribute, mark, req, cb) {
         getPackageByAttribute(attribute, req, function(err, pkg) {
             var result = createMark(pkg, mark);

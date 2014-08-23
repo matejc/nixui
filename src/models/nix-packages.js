@@ -12,6 +12,14 @@ module.exports = function(Packages, Base) {
         return NixInterface;
     }
 
+    Packages.beforeRemote('**', function(ctx, user, next) {
+      if(ctx.req.accessToken) {
+        next();
+      } else {
+        next(new Error('must be logged in'))
+      }
+    });
+
     Packages.info = function(attribute, req, cb) {
         if ((new RegExp(/^[\-\.\w]+$/)).test(attribute)) {
             User.findById(req.accessToken.userId, function(err, user) {

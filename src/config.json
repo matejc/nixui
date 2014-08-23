@@ -1,6 +1,8 @@
 {
     "host": "localhost",
     "port": 8000,
+    "launchExplorer": true,
+    "secret": "CHANGE_ME",
     "elasticsearch": {
         "host": "localhost:9200"
     },
@@ -13,9 +15,9 @@
             "file": "/home/matej/workarea/nixpkgs"
         }
     }, {
-        "email": "demo@email.xyz",
-        "username": "demo",
-        "password": "demo",
+        "email": "default@email.xyz",
+        "username": "default",
+        "password": "default",
         "meta": {
             "profile": null,
             "file": null
