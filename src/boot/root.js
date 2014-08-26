@@ -1,10 +1,9 @@
 module.exports = function(server) {
-    // Install a `/` route that returns server status
     var router = server.loopback.Router();
     var AccessToken = server.loopback.getModel('AccessToken');
     var NixPackages = server.loopback.getModel('nix-packages');
     var User = server.loopback.getModel('user');
-    // router.get('/', server.loopback.status());
+
     router.get('/dispatcher', function(req, res) {
         AccessToken.findForRequest(
             req, {
@@ -20,16 +19,15 @@ module.exports = function(server) {
         );
     });
 
-    // router.get('/foo', server.loopback.static(__dirname + '/../public/login.html'));
     router.post('/login', function(req, res) {
         User.login({
             username: req.param("username"),
             password: req.param("password")
         }, function(err, token) {
-            res.cookie('access_token', token.id, {
-                signed: true
-            });
             if (token) {
+                res.cookie('access_token', token.id, {
+                    signed: true
+                });
                 res.send({loc: "/index.html"});
             } else {
                 res.send({loc: "/login.html"});

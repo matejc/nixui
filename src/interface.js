@@ -184,7 +184,7 @@ exports.killNixEnvAll = function() {
 
 exports.packageInfo = function (packageAttrStr, file_arg, callback, error_callback) {
   exports.nixInstantiate(
-    ["--eval", "--strict", "--show-trace", "--arg", "nixpkgs", file_arg],
+    ["--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
     'let \
       pkgs = import <nixpkgs> {}; \
       getAttrFromStr = str: set: (pkgs.lib.getAttrFromPath (pkgs.lib.splitString "." str) set); \

@@ -13,7 +13,7 @@
     "tag": "0.3.5",
     "commit": "a09a0e689fdeab11b53b41eaed033781733bf1eb"
   },
-  "_source": "https://github.com/Polymer/polymer.git",
-  "_target": "0.3.5",
-  "_originalSource": "https://github.com/Polymer/polymer.git"
+  "_source": "git://github.com/Polymer/polymer.git",
+  "_target": ">=0.3.0 <1.0.0",
+  "_originalSource": "Polymer/polymer"
 }

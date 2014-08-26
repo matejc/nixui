@@ -27,7 +27,7 @@
     "yargs": "~1.2.2",
     "domready": "~1.0.5",
     "loopback": "git://github.com/offlinehacker/loopback.git#master",
-    "loopback-boot": "^2.0.0-beta3",
+    "loopback-boot": "git://github.com/matejc/loopback-boot.git#master",
     "loopback-component-storage": "~1.0.5",
     "elasticsearch": "~2.4.0",
     "errorhandler": "^1.1.1",

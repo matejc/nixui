@@ -7,14 +7,6 @@
         "host": "localhost:9200"
     },
     "users": [{
-        "email": "cotman.matej@gmail.com",
-        "username": "matejc",
-        "password": "secret",
-        "meta": {
-            "profile": "/home/matej/.nix-profile",
-            "file": "/home/matej/workarea/nixpkgs"
-        }
-    }, {
         "email": "default@email.xyz",
         "username": "default",
         "password": "default",

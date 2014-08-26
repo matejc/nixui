@@ -44,8 +44,14 @@ var loopback = require('loopback'),
 
 var app = module.exports = loopback();
 
-// config.json is not read to app.settings yet at this point
-app.use(loopback.cookieParser(require(__dirname+"/config.json").secret));
+// config.json is not read (into app.settings) at this point
+app.use(loopback.cookieParser(
+  (
+    process.env.NIXUI_CONFIG ?
+    require(process.env.NIXUI_CONFIG) :
+    require(__dirname+"/config.json")
+  ).secret
+));
 
 app.use(loopback.json());
 app.use(loopback.urlencoded({extended: true}));
