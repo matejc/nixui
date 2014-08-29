@@ -136,7 +136,7 @@ module.exports = function(Packages, Base) {
                     done_cb,
                     function (err) {
                         if (err) {
-                            cb(error);
+                            cb(err);
                         }
                     }
                 );

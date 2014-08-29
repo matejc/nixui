@@ -1,3 +1,4 @@
+{ createEntry }:
 let
   pkgs = import <nixpkgs> {};
   mapValues = f: set: (map (attr: f attr (builtins.getAttr attr set)) (builtins.attrNames set));
@@ -11,9 +12,11 @@ let
               builtins.trace ("skipping deprecated: "+(pkgs.lib.concatStringsSep "." (path++[name]))) null else
               if (isInternal value) then
               builtins.trace ("skipping internal: "+(pkgs.lib.concatStringsSep "." (path++[name]))) null else
+              if (name == "_definedNames" || name == "_type") then
+              builtins.trace ("skipping _: "+(pkgs.lib.concatStringsSep "." (path++[name]))) null else
               (if builtins.isAttrs value && cond path value
                 then recurse (path ++ [name]) value
-                else {attr = (pkgs.lib.concatStringsSep "." (path ++ [name])); type = (pkgs.lib.nixType value);});
+                else createEntry path name value);
           in mapValues g set;
       in recurse [] set;
   attrsTillLevel = level: set: if level == 0 then [set] else pkgs.lib.flatten (recursiveCond (path: value: ((pkgs.lib.length path) < level - 1)) set);
@@ -30,4 +33,6 @@ let
     modules = [ versionModule ] ++ baseModules;
     args = extraArgs;
   };
-in attrsTillLevel 3 eval.options
+in (level: attrsTillLevel level eval.options)
+#in attrsTillLevel 3 eval.options
+#in pkgs.lib.optionAttrSetToDocList eval.options

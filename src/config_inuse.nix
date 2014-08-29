@@ -24,9 +24,9 @@ let
     if t == "bool" then toString v else
     if t == "int" then toString v else
     if t == "aattrs" then a else
-    if t == "derivation" then v.outPath else
+    if t == "derivation" then v.name else
     null;
 
   configuration = import /etc/nixos/configuration.nix { inherit pkgs; config = pkgs.config; };
   confignix = import /home/matej/.nixpkgs/config.nix ;
-in attrsTillLevel 3 configuration
+in builtins.toJSON (attrsTillLevel 3 configuration)

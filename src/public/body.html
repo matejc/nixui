@@ -151,7 +151,7 @@ paper-item {
       setPackages: function () {
         this.fire('core-signal', {name: "progress", data: "start"});
         this.$.ajax.add("/api/nix-packages/filter", {
-          'query': this.value
+          'query': this.valuehi
         }, "GET", function(data) {
           if (data.error) {
             this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});

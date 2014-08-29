@@ -38,17 +38,19 @@ exports.nixEnv = function(args, callback, error_callback) {
   return nixEnvProcessesItem;
 };
 
-exports.nixInstantiate = function (prefix_args, expression, removeQuotations, callback, error_callback) {
+exports.nixInstantiate = function (prefix_args, expression, removeQuotations, useStdin, callback, error_callback) {
   var output = "";
   var outerr = "";
 
-  var args = exports.createArgsArray(prefix_args, null, null, ["-"]);
+  var args = exports.createArgsArray(prefix_args, null, null, useStdin?["-"]:[]);
 
   var nixProcess = spawn("nix-instantiate", args);
   console.log("nix-instantiate: " + args);
 
-  nixProcess.stdin.write(expression);
-  nixProcess.stdin.end();
+  if (useStdin) {
+    nixProcess.stdin.write(expression);
+    nixProcess.stdin.end();
+  }
 
   nixProcess.stdout.on("data", function(data) {
     output += data;
@@ -193,7 +195,8 @@ exports.packageInfo = function (packageAttrStr, file_arg, callback, error_callba
       getDependencies = list: builtins.map (v: if isDerivation v then {meta = v.meta; name = v.name; path = v.outPath;} else {}) list; \
       data = {meta = package.meta; name = package.name; path = package.outPath; propagatedNativeBuildInputs = getDependencies package.propagatedNativeBuildInputs; nativeBuildInputs = getDependencies package.nativeBuildInputs;}; \
     in builtins.toJSON data',
-    false,
+    false,  // remove quotations
+    true,  // use stdin
     callback,
     error_callback
   );
@@ -204,6 +207,40 @@ exports.currentSystem = function (callback, error_callback) {
     ["--eval", "--strict", "--show-trace"],
     'builtins.currentSystem',
     true,
+    true,
+    callback,
+    error_callback
+  );
+};
+
+exports.configurationNix = function (file_arg, callback, error_callback) {
+  exports.nixInstantiate(
+    ["./src/config_inuse.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
+    null,
+    false,
+    false,
+    callback,
+    error_callback
+  );
+};
+
+exports.configurationNixTree = function (file_arg, callback, error_callback) {
+  exports.nixInstantiate(
+    ["./src/configoptions.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
+    null,
+    false,
+    false,
+    callback,
+    error_callback
+  );
+};
+
+exports.listNixOptions = function (file_arg, callback, error_callback) {
+  exports.nixInstantiate(
+    ["./src/config_all.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
+    null,
+    false,
+    false,
     callback,
     error_callback
   );

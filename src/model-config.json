@@ -21,5 +21,8 @@
   },
   "nix-marked": {
     "dataSource": "db"
+  },
+  "nix-config": {
+    "dataSource": "none"
   }
 }

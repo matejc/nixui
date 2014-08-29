@@ -27,6 +27,7 @@
     "core-signals": "https://github.com/Polymer/core-signals.git#0.3.5",
     "paper-elements": "https://github.com/Polymer/paper-elements.git#0.3.5",
     "paper-menu-button": "https://github.com/Polymer/paper-menu-button.git#0.3.5",
-    "core-animation": "https://github.com/Polymer/core-animation.git#0.3.5"
+    "core-animation": "https://github.com/Polymer/core-animation.git#0.3.5",
+    "jQuery": "~2.1.1"
   }
 }
