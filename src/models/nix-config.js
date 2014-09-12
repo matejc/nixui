@@ -50,12 +50,12 @@ module.exports = function(Config, Base) {
         }
     );
 
-    Config.configurationnixtree = function(req, cb) {
+    Config.configurationnixtree = function(attrs, req, cb) {
         User.findById(req.accessToken.userId, function(err, user) {
             if (err) {
                 console.log(err);
             }
-            NixInterface.configurationNixTree(user.meta.file, function(data) {
+            NixInterface.configTree(attrs, user.meta.file, function(data) {
                 var result = JSON.parse(JSON.parse(data));
                 cb(null, result);
             }, function(err) {
@@ -66,6 +66,9 @@ module.exports = function(Config, Base) {
     Config.remoteMethod(
         'configurationnixtree', {
             accepts: [{
+                arg: 'attrs',
+                type: 'string'
+            },{
                 arg: 'req',
                 type: 'object',
                 'http': {

@@ -224,9 +224,9 @@ exports.configurationNix = function (file_arg, callback, error_callback) {
   );
 };
 
-exports.configurationNixTree = function (file_arg, callback, error_callback) {
+exports.configTree = function (attrs, file_arg, callback, error_callback) {
   exports.nixInstantiate(
-    ["./src/configoptions.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
+    ["./src/configoptions.nix", "--eval", "--strict", "--show-trace", "-A", "dispatch", "--argstr", "attrs", attrs?attrs:"configuration"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
     null,
     false,
     false,

@@ -1,3 +1,4 @@
+{ attrs ? "configuration" }:
 let
   pkgs = import <nixpkgs> {};
 
@@ -16,7 +17,7 @@ let
           // pkgs.lib.optionalAttrs (opt ? example) { example = scrubOptionValue opt.example; }
           // pkgs.lib.optionalAttrs (opt ? default) { default = scrubOptionValue opt.default; }
           // pkgs.lib.optionalAttrs (opt ? defaultText) { default = opt.defaultText; }
-          // (createEntry opt.loc configuration));
+          // (createEntry opt.loc configuration false));
 
         subOptions =
           let ss = opt.type.getSubOptions opt.loc;
@@ -26,41 +27,43 @@ let
         [ docOption ] ++ subOptions ++ rest) [] (pkgs.lib.collect pkgs.lib.isOption options);
 
   configuration = import <nixos-config> { inherit pkgs; config = pkgs.config; };
+
   scrubOptionValue = x:
     if pkgs.lib.isDerivation x then
       { type = "derivation"; drvPath = x.name; outPath = x.name; name = x.name; }
     else if pkgs.lib.isList x then map scrubOptionValue x
     else if pkgs.lib.isAttrs x then pkgs.lib.mapAttrs (n: v: scrubOptionValue v) (builtins.removeAttrs x ["_args"])
-    else if pkgs.lib.isFunction x then { type = "function"; }
+    else if builtins.typeOf x == "lambda" then { type = "function"; }
     else toString x;
-  createEntry = path: object:
+
+  createEntry = path: start: expand:
     let
-      #value = pkgs.lib.attrByPath path null object;
-      #valueIsList = pkgs.lib.isList value;
+      value = pkgs.lib.attrByPath path null start;
       #expandablePath = if (builtins.length path > 2) && ((builtins.elemAt path ((builtins.length path) - 2)) == "*") then pkgs.lib.take (builtins.length path - 2) path else null;
     in (
       #if expandablePath != null then ( (map (n: createEntry (expandablePath ++ [n.name]) object) (pkgs.lib.getAttrFromPath expandablePath object))) else
-      #if valueIsList then (map (i: getStringVal path i) value) else
       if pkgs.lib.any (x: x=="*") path then {} else
       if pkgs.lib.any (x: x=="<name>") path then {} else
       if pkgs.lib.any (x: x=="<name?>") path then {} else
-      (getStringVal path object)
+      (getStringVal path value expand)
     );
 
-  getStringVal = path: object:
+  getStringVal = p: v: expand:
     let
-      v = pkgs.lib.attrByPath path null object;
       t = pkgs.lib.nixType v;
     in
-    {attr = (pkgs.lib.concatStringsSep "." path); type = t;} // (
-    if t == "string" then {val = (if builtins.typeOf == "lambda" then "<lambda>" else toString v);} else
+    {attr = pkgs.lib.concatStringsSep "." p; type = t;} // (
+    if t == "string" then {val = (if builtins.typeOf v == "lambda" then "<lambda>" else toString v);} else
     if t == "bool" then {val = (if v == true then "true" else "false");} else
     if t == "int" then {val = toString v;} else
-    if t == "aattrs" then {val = "{..}";} else
-    if t == "list" then {val = "[..]";} else
+    if t == "aattrs" then {val = (if expand then expandAattrs p v else "{..}");} else
+    if t == "list" then {val = (if expand then expandList p v else "[..]");} else
     if t == "derivation" then {val = v.outPath;} else
     if t == "function" then {val = "type:"+t;} else
     {val = "type:"+t;});
+
+  expandList = p: v: (pkgs.lib.imap (i: j: (getStringVal (p) j false)) v);
+  expandAattrs = p: v: pkgs.lib.mapAttrs (n: v: getStringVal (p++[n]) v false) (builtins.removeAttrs v ["_args"]);
 
   extraArgs = { modules = []; inherit pkgs baseModules; inherit (pkgs) modulesPath; pkgs_i686 = import <nixpkgs/nixos/lib/nixpkgs.nix> { system = "i686-linux"; config.allowUnfree = true; }; utils = import <nixpkgs/nixos/lib/utils.nix> pkgs; };
   baseModules = import <nixpkgs/nixos/modules/module-list.nix>;
@@ -78,4 +81,10 @@ let
 
   listOptionVals = pkgs.lib.remove null (optionAttrSetToDocListMod [] eval.options);
 
-in builtins.toJSON (zipSets (listOptionVals))
+in {
+  dispatch = builtins.toJSON (
+    if attrs == "configuration" then (zipSets (listOptionVals)) else
+    if attrs == "" then (getStringVal [] eval.options true) else
+    (createEntry (pkgs.lib.splitString "." attrs) eval.options true)
+  );
+}

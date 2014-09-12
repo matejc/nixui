@@ -150,7 +150,7 @@
       Polymer('query-input', {
         setOptions: function () {
           this.$.ajax.add("/api/nix-configs/configurationnixtree", {
-            'query': this.value
+            'attrs': "configuration"
           }, "GET", function(data) {
             if (data.error) {
               this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
