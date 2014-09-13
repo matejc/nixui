@@ -6,8 +6,8 @@ let
 
   nixrehash_src = pkgs.fetchgit {
     url = "https://github.com/kiberpipa/nix-rehash";
-    rev = "0fe67d3691a61ed64cfa8f20d03a088880595a9f";
-    sha256 = "1q469mplwyvzm3r8nzz5s9afjfq8q9jh72mmwlzcd14hh5h65cpx";
+    rev = "aed7783f1ce67caea74e0550a127a206eb321f95";
+    sha256 = "06l32id2mp4gaqbzm06jzbqrswp31ndbqxwpca4z2cf5dasb4a6m";
   };
 
   nixui_services = (import nixrehash_src).reService rec {
@@ -47,7 +47,7 @@ let
     else if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = with pkgs; [ nodejs nodePackages.bower psmisc nettools ];
+        buildInputs = with pkgs; [ nodejs psmisc nettools ];
         shellHook = ''
           export NODE_PATH="`pwd`/packages:`pwd`/node_modules:$NODE_PATH"
         '';

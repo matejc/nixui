@@ -86,6 +86,10 @@ NixES.filter = function(query, userId, callback) {
     var upgradable = false;
     var limit = 100;
 
+    if (query === "" || query === undefined) {
+        query = "*";
+    }
+
     if (query.length >= 2 && query[0] == "!") {
         if (query[1] == "i") {
             installed = true;
@@ -103,10 +107,6 @@ NixES.filter = function(query, userId, callback) {
         }
         callback(null, items);
     };
-
-    if (query === "") {
-        query = "*";
-    }
 
     if (installed || upgradable) {
         esclient.search({
