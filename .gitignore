@@ -2,4 +2,4 @@ result
 .zedstate
 data/
 var/
-bin/services-nixui-*
+node_modules/

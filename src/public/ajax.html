@@ -20,8 +20,15 @@
       }.bind(this);
     },
     onresponse: function(e) {
-      if (this.oncomplete)
-        this.oncomplete(e.detail.xhr.response?JSON.parse(e.detail.xhr.response):{});
+      if (this.oncomplete) {
+        var o;
+        try {
+          o = JSON.parse(e.detail.xhr.response);
+        } catch (ex) {
+          o = e.detail.xhr.response;
+        }
+        this.oncomplete(o);
+      }
     },
     go: function(url, params, method, oncomplete) {
       params = params ? params : (this.params?JSON.parse(this.params):{});

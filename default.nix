@@ -4,22 +4,6 @@ let
 
   pkgs = import <nixpkgs> {};
 
-  nixrehash_src = pkgs.fetchgit {
-    url = "https://github.com/kiberpipa/nix-rehash";
-    rev = "aed7783f1ce67caea74e0550a127a206eb321f95";
-    sha256 = "06l32id2mp4gaqbzm06jzbqrswp31ndbqxwpca4z2cf5dasb4a6m";
-  };
-
-  nixui_services = (import nixrehash_src).reService rec {
-    name = "services-nixui";
-    configuration = let servicePrefix = "/tmp/${name}/services"; in [
-    ({ config, pkgs, ...}: {
-      services.elasticsearch.enable = true;
-      services.elasticsearch.dataDir = "/tmp/${name}/dataDir";
-    })
-    ];
-  };
-
   nixui = pkgs.stdenv.mkDerivation rec {
     name = "nixui";
     src = [ { name = "nixui-src"; outPath = ./.; } ];
@@ -42,9 +26,7 @@ let
   current_path = ./.;
 
   dispatcher = action:
-    if action == "services" then
-      nixui_services
-    else if action == "env" then
+    if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
         buildInputs = with pkgs; [ nodejs psmisc nettools ];
@@ -56,24 +38,14 @@ let
       pkgs.stdenv.mkDerivation rec {
         name = "nixui";
         src = nixui;
-        buildInputs = with pkgs; [ nixui_services psmisc nettools ];
+        buildInputs = with pkgs; [ psmisc nettools ];
         shellHook = ''
           cleanup() {
-            echo "Shutdown NixUI services ..."
-            services-nixui-stop-services
-
             echo "Killing server ..."
             fuser -k 8000/tcp;
           }
           trap cleanup INT TERM EXIT
 
-          echo "Starting ElasticSearch ..."
-          services-nixui-start-services || true
-
-          echo "Waiting for ElasticSearch ..."
-          while netstat -lnt | awk '$4 ~ /:9200$/ {exit 1}'; do sleep 1; done
-
-          echo "Development credentials - U: admin, P: admin"
           ${nixui}/bin/nixui-server
         '';
       };
