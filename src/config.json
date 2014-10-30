@@ -11,8 +11,16 @@
         "username": "default",
         "password": "default",
         "meta": {
-            "profile": null,
+            "profile": "current",
             "file": null
         }
+    }, {
+       "email": "matej@example.xyz",
+       "username": "matej",
+       "password": "matej",
+       "meta": {
+           "profile": "/home/matej/.nix-profile",
+           "file": "/home/matej/workarea/nixpkgs/default.nix"
+       }
     }]
 }
