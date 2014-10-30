@@ -18,7 +18,7 @@ To try it out, run the following command:
 $ make just-run-it
 ```
 
-and wait for the line `NixUI at: http://localhost:8000/index.html` in the console.
+and wait for the line `Web server listening at: http://localhost:8000/` in the console - open in browser: `http://localhost:8000/`.
 
 When you are done press `Ctrl+C` to kill it.
 
@@ -38,4 +38,4 @@ Run server
 $ make develop
 ```
 
-Open in browser: `http://localhost:8000/index.html`
+Open in browser: `http://localhost:8000/`

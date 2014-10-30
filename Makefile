@@ -17,7 +17,7 @@ bower: bower.json
 node: package.json
 	nix-shell --argstr action env --command "npm install"
 
-just-run-it: clean bower node
+just-run-it: clean node bower
 	nix-shell --argstr action run
 
 .PHONY: test develop build clean just-run-it
