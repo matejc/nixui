@@ -163,8 +163,9 @@
           }
         }
 
-        if (this.active && data.data)
-          setTimeout(this.fetchNextProgress.bind(this), 500);
+        if (this.active && data.data) {
+          setTimeout(this.fetchNextProgress.bind(this), 800);
+        }
       }.bind(this));
     },
     onApplyClick: function(e) {
