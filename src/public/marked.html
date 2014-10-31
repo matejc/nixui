@@ -3,6 +3,7 @@
 <link rel="import" href="/bower_components/core-signals/core-signals.html">
 <link rel="import" href="/bower_components/paper-button/paper-button.html">
 <link rel="import" href="/bower_components/paper-dialog/paper-dialog-transition.html">
+<link rel="import" href="/bower_components/core-icon-button/core-icon-button.html">
 
 
 <polymer-element name="marked-dialog" attributes="controlDim">
@@ -24,7 +25,7 @@
     color: #646464;
   }
   </style>
-  <my-dialog id="dialog" heading="Manage Marked" autoCloseDisabled="true" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom" closeSelector="">
+  <my-dialog id="dialog" heading="Manage Marked" autoCloseDisabled="true" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom" closeSelector="" contentSelect="list-marked">
     <list-marked id="listmarked"></list-marked>
     <paper-button on-keydown="{{closeBtnDown}}" on-click="{{closeDialog}}" label="Close" dismissive></paper-button>
     <paper-button on-click="{{clearAll}}" label="Clear All" affirmative></paper-button>
@@ -103,6 +104,7 @@
         <td>Name</td>
         <td>Attribute</td>
         <td>Marked for</td>
+        <td>State</td>
         <td class="right">Options</td>
       </tr>
     </thead>
@@ -113,7 +115,9 @@
           <td class="pkgattr">{{entry.attribute}}</td>
           <td>{{entry.mark}}</td>
           <td>
-            <progress-bar class="pkgprogressbar" data-pkgattr="{{entry.attribute}}" progressFromSignal="false"></progress-bar>
+            <progress-bar class="pkgprogressbar" data-pkgattr="{{entry.attribute}}"></progress-bar>
+          </td>
+          <td>
             <div style="float: right;">
               <core-icon-button on-click="{{onApplyClick}}" data-pkgattr="{{entry.attribute}}" icon="check"></core-icon-button>
               <core-icon-button on-click="{{onRemoveClick}}" data-pkgattr="{{entry.attribute}}" icon="clear"></core-icon-button>
@@ -157,7 +161,7 @@
           var progress = bars[i].getProgress();
           for (var j in data.data) {
             if (data.data[j].attribute == attribute && data.data[j].state != progress) {
-              console.log("CHANGED TO: "+data.data[j].state);
+              console.log("CHANGED FROM: "+progress+" TO: "+data.data[j].state);
               bars[i].doProgress(data.data[j].state);
             }
           }
@@ -193,7 +197,7 @@
     },
     closedDialog: function() {
       this.active = false;
-      this.fire('core-signal', {name: "resetcache"});
+      this.fire('core-signal', {name: "resetcacheforced"});
       this.$.ajax.add('/api/nix-markeds/delete_finished', null, "GET", function(data) {
       }.bind(this));
     }

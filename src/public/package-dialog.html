@@ -16,6 +16,8 @@
     border-color: #4a9ae0;
     left: 3em;
     right: 3em;
+    top: 3em;
+    bottom: 3em;
   }
   #markedbtn {
     color: {{markItem.color}};
@@ -24,20 +26,20 @@
     color: #646464;
   }
   </style>
-  <my-dialog id="pkgdialog" heading="{{pkginfo.name}}" transition="paper-dialog-transition-bottom" controlDim="{{controlDim}}" closeSelector="[dismissive]">
-    <labeled-panel label="Attribute" content="{{signalobj.pkgattr}}"></labeled-panel>
-    <labeled-panel label="Path" content="{{pkginfo.path}}"></labeled-panel>
+  <my-dialog id="pkgdialog" heading="{{pkginfo.name}}" transition="paper-dialog-transition-bottom" controlDim="{{controlDim}}" closeSelector="[dismissive]" contentSelect="labeled-panel">
+      <labeled-panel label="Attribute" content="{{signalobj.pkgattr}}"></labeled-panel>
+      <labeled-panel label="Path" content="{{pkginfo.path}}"></labeled-panel>
 
-    <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
-    <labeled-panel label="propagated Native Build Inputs" content="{{pkginfo.propagatedNativeBuildInputs}}"></labeled-panel>
+      <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
+      <labeled-panel label="propagated Native Build Inputs" content="{{pkginfo.propagatedNativeBuildInputs}}"></labeled-panel>
 
-    <labeled-panel label="Home Page" content="{{pkginfo.meta.homepage}}"></labeled-panel>
-    <labeled-panel label="Description" content="{{pkginfo.meta.description}}"></labeled-panel>
-    <labeled-panel label="Long Description" content="{{pkginfo.meta.longDescription}}"></labeled-panel>
-    <labeled-panel label="License" content="{{pkginfo.meta.license}}"></labeled-panel>
-    <labeled-panel label="Position" content="{{pkginfo.meta.position}}"></labeled-panel>
+      <labeled-panel label="Home Page" content="{{pkginfo.meta.homepage}}"></labeled-panel>
+      <labeled-panel label="Description" content="{{pkginfo.meta.description}}"></labeled-panel>
+      <labeled-panel label="Long Description" content="{{pkginfo.meta.longDescription}}"></labeled-panel>
+      <labeled-panel label="License" content="{{pkginfo.meta.license}}"></labeled-panel>
+      <labeled-panel label="Position" content="{{pkginfo.meta.position}}"></labeled-panel>
 
-    <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
+      <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
 
     <paper-button id="closebtn" on-keydown="{{closeBtnDown}}" label="Close" dismissive></paper-button>
 

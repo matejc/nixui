@@ -34,8 +34,7 @@ core-toolbar {
   color: #005aa0;
   text-decoration: none;
 }
-#dimmer
-{
+#dimmer {
     background:#000;
     opacity:0.2;
     position:fixed; /* important to use fixed, not absolute */
@@ -56,7 +55,9 @@ paper-item {
 </style>
 <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
 <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
+<core-signals on-core-signal-resetcacheforce="{{resetCacheForce}}"></core-signals>
 <core-signals on-core-signal-message="{{message}}"></core-signals>
+<core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
 <core-header-panel id="contentpanel" mode="seamed">
   <div id="dimmer"></div>
   <div class="core-header">
@@ -73,7 +74,7 @@ paper-item {
         <paper-item on-click="{{resetCacheForce}}" label="Reset Search Cache"></paper-item>
       </paper-menu-button>
     </core-toolbar>
-    <progress-bar><progress-bar>
+    <progress-bar id="progressbar"><progress-bar>
   </div>
 
   <list-packages></list-packages>
@@ -90,6 +91,9 @@ paper-item {
 (function() {
 
   Polymer('nixui-body', {
+    progressSignal: function(e, detail, sender) {
+      this.$.progressbar.doProgress(detail);
+    },
     dimSignal: function(e, detail, sender) {
       this.$.dimmer.style.display=(detail)?"block":"none";
     },

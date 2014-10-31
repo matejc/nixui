@@ -2,9 +2,8 @@
 <link rel="import" href="/bower_components/core-signals/core-signals.html">
 
 
-<polymer-element name="progress-bar" attributes="progress progressFromSignal">
+<polymer-element name="progress-bar" attributes="progress">
 <template>
-  <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
   <style>
   paper-progress::shadow #activeProgress {
     background-color: {{progressColor}};
@@ -22,11 +21,6 @@
 <script>
 (function() {
   Polymer('progress-bar', {
-    progressSignal: function(e, detail, sender) {
-      if (!this.progressFromSignal)
-        return;
-      this.doProgress(detail)
-    },
     nextProgress: function() {
       if (this.position < 1000) {
         this.position += (this.step || 1);
@@ -50,14 +44,13 @@
           this.progress = command;
           this.finishProgress();
           break;
-        case "wait":
-          this.progress = command;
-          this.waitProgress();
-          break;
         case "error":
           this.progress = command;
           this.errorProgress();
           break;
+        default:
+          this.progress = "wait";
+          this.waitProgress();
       }
     },
     waitProgress: function() {
@@ -74,10 +67,9 @@
       }
     },
     ready: function() {
-      this.progressFromSignal = true,
-      this.progressColor = "#00a05a",
-      this.progress = "wait",
-      this.doProgress(this.progress);
+      this.progressColor = "#00a05a";
+      this.progress = null;
+      this.doProgress("wait");
     },
     finishProgress: function() {
       this.step = 50;
