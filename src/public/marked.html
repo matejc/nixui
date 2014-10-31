@@ -197,7 +197,7 @@
     },
     closedDialog: function() {
       this.active = false;
-      this.fire('core-signal', {name: "resetcacheforced"});
+      this.fire('core-signal', {name: "resetcacheforce"});
       this.$.ajax.add('/api/nix-markeds/delete_finished', null, "GET", function(data) {
       }.bind(this));
     }
