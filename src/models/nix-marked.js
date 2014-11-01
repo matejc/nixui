@@ -4,11 +4,11 @@ module.exports = function(Marked, Base) {
     var User = loopback.getModel('user');
 
     Marked.beforeRemote('**', function(ctx, user, next) {
-      if(ctx.req.accessToken) {
-        next();
-      } else {
-        next(new Error('must be logged in'))
-      }
+        if(ctx.req.accessToken) {
+            next();
+        } else {
+            next(new Error('must be logged in'));
+        }
     });
 
     Marked.set = function(attribute, mark, req, cb) {
@@ -464,11 +464,15 @@ module.exports = function(Marked, Base) {
             if (err) {
                 console.log(err);
             }
+            if (!instance) {
+                cb("Not an instance for attribute: "+attribute);
+                return;
+            }
             instance.updateAttribute("state", state, function(err) {
                 if (err) {
                     console.log(err);
                 }
-                cb();
+                cb(err);
             });
         });
     };

@@ -70,6 +70,7 @@ paper-item {
       <div flex></div>
       <paper-menu-button icon="more-vert" halign="right">
         <paper-item on-click="{{searchFor}}" data-query="!i" label="Search installed"></paper-item>
+        <paper-item on-click="{{upgradeInstalled}}" label="Upgrade installed ..."></paper-item>
         <paper-item on-click="{{openMarkedDialog}}" label="Manage marked ..."></paper-item>
         <paper-item on-click="{{resetCacheForce}}" label="Reset cache"></paper-item>
       </paper-menu-button>
@@ -84,7 +85,7 @@ paper-item {
 <error-dialog controlDim="true"></error-dialog>
 <marked-dialog controlDim="true"></marked-dialog>
 
-<ajax-wrapper id="ajax"></ajax-wrapper>
+<ajax-queue id="ajax"></ajax-queue>
 <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
 </template>
 <script>
@@ -124,6 +125,23 @@ paper-item {
       }
       this.$.message.style.color = color;
       this.$.message.show();
+    },
+    upgradeInstalled: function(e, detail, sender) {
+      this.$.ajax.add("/api/nix-packages/filter", {
+        'query': '!i'
+      }, "GET", function(data) {
+        if (data.error) {
+          this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+        } else {
+          for (item in data.data) {
+            this.$.ajax.add("/api/nix-markeds/set", {
+              attribute: data.data[item].attribute,
+              mark: 'install'
+            }, "GET", function(data) {}.bind(this));
+          }
+          this.fire('core-signal', {name: "openmarked"});
+        }
+      }.bind(this));
     }
   });
 
