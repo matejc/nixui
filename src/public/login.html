@@ -74,7 +74,7 @@
                 </div>
             </div>
         </div>
-        
+
         <core-animation id="fadeIn" duration="300" on-core-animation-finish="{{fadeInPasswordField}}">
           <core-animation-keyframe>
             <core-animation-prop name="opacity" value="0"></core-animation-prop>
@@ -133,6 +133,7 @@
                     this.$.fadeIn.direction = "normal";
                     this.$.fadeIn.fill = "forwards";
                     this.$.fadeIn.play();
+                    this.$.fadeIn.target.focus();
                 }
             },
             validatePassword: function(e) {
