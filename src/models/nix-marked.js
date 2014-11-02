@@ -59,6 +59,10 @@ module.exports = function(Marked, Base) {
                 if (err) {
                     console.log(err);
                 }
+                if (!instance) {
+                    next();
+                    return;
+                }
                 instance.updateAttributes(data, function(err) {
                     if (err) {
                         console.log(err);
@@ -135,6 +139,10 @@ module.exports = function(Marked, Base) {
                 if (err) {
                     console.log(err);
                 }
+                if (!instance) {
+                    next();
+                    return;
+                }
                 instance.updateAttribute("mark", data.mark, function(err) {
                     if (err) {
                         console.log(err);
@@ -186,6 +194,10 @@ module.exports = function(Marked, Base) {
                 }
             },
             function(err, instance) {
+                if (!instance) {
+                    cb("Marked.delete: Not an instance for attribute: "+attribute);
+                    return;
+                }
                 Marked.deleteById(instance.id, function(err){
                     NixPackages.getNixInterface().killNixEnvByAttribute(instance.attribute);
                     cb(err);
@@ -465,7 +477,7 @@ module.exports = function(Marked, Base) {
                 console.log(err);
             }
             if (!instance) {
-                cb("Not an instance for attribute: "+attribute);
+                cb("setMarkObjStateByAttribute: Not an instance for attribute: "+attribute);
                 return;
             }
             instance.updateAttribute("state", state, function(err) {
