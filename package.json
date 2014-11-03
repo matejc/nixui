@@ -26,10 +26,8 @@
   "dependencies": {
     "yargs": "~1.2.2",
     "domready": "~1.0.5",
-    "loopback": "git://github.com/offlinehacker/loopback.git#master",
-    "loopback-boot": "git://github.com/matejc/loopback-boot.git#master",
-    "loopback-component-storage": "~1.0.5",
-    "elasticsearch": "~2.4.0",
+    "loopback": "~2.7.0",
+    "loopback-boot": "~2.3.0",
     "errorhandler": "^1.1.1",
     "compression": "^1.0.8",
     "underscore": "^1.6.0",
