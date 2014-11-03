@@ -4,7 +4,6 @@
   },
   "db": {
     "name": "db",
-    "connector": "memory",
-    "file": "./data/memory.json"
+    "connector": "memory"
   }
 }
