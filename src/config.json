@@ -3,9 +3,6 @@
     "port": 8000,
     "launchExplorer": true,
     "secret": "CHANGE_ME",
-    "elasticsearch": {
-        "host": "localhost:9200"
-    },
     "users": [{
         "email": "default@email.xyz",
         "username": "default",

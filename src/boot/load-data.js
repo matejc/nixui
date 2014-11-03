@@ -39,5 +39,4 @@ module.exports = function(app) {
         var user = app.settings.users[i];
         createAndLogin(user.email, user.username, user.password, user.meta, true);
     }
-
 };
