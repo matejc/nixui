@@ -28,6 +28,7 @@
     "paper-elements": "https://github.com/Polymer/paper-elements.git#0.4.2",
     "paper-menu-button": "https://github.com/Polymer/paper-menu-button.git#0.4.2",
     "core-animation": "https://github.com/Polymer/core-animation.git#0.4.2",
-    "jQuery": "~2.1.1"
+    "jQuery": "~2.1.1",
+    "d3": "~3.4.13"
   }
 }

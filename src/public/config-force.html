@@ -1,0 +1,571 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>NixUI</title>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <script src="/bower_components/platform/platform.js"></script>
+
+
+  <link rel="import" href="/ajax.html">
+  <link rel="import" href="/marked.html">
+  <link rel="import" href="/error-dialog.html">
+  <link rel="import" href="/package-dialog.html">
+  <link rel="import" href="/bower_components/core-header-panel/core-header-panel.html">
+  <link rel="import" href="/bower_components/core-toolbar/core-toolbar.html">
+  <link rel="import" href="/bower_components/core-input/core-input.html">
+  <link rel="import" href="/bower_components/paper-input/paper-input.html">
+  <link rel="import" href="/bower_components/paper-ripple/paper-ripple.html">
+  <link rel="import" href="/bower_components/core-icon-button/core-icon-button.html">
+  <link rel="import" href="/bower_components/core-signals/core-signals.html">
+  <link rel="import" href="/bower_components/paper-menu-button/paper-menu-button.html">
+  <link rel="import" href="/bower_components/paper-item/paper-item.html">
+  <link rel="import" href="/bower_components/paper-toast/paper-toast.html">
+  <link rel="import" href="/bower_components/core-dropdown/core-dropdown.html">
+  <link rel="import" href="/bower_components/core-item/core-item.html">
+  <link rel="import" href="/bower_components/core-menu/core-menu.html">
+
+  <script src="/bower_components/jQuery/dist/jquery.min.js"></script>
+
+  <script src="/bower_components/d3/d3.min.js"></script>
+
+  <polymer-element name="nixui-configuration">
+  <template>
+  <style>
+  core-header-panel {
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  core-toolbar {
+    background: white;
+    /*fill: #005aa0;*/
+    border-bottom-style: solid;
+    border-bottom-width: 3px;
+    border-color: #005aa0;
+  }
+  .nixuicenter {
+    color: #005aa0;
+    position: relative;
+    text-align: center;
+  }
+  .nixuilink {
+    color: #005aa0;
+    text-decoration: none;
+  }
+  #dimmer
+  {
+      background:#000;
+      opacity:0.2;
+      position:fixed; /* important to use fixed, not absolute */
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      display:none;
+      z-index:1;
+  }
+  paper-menu-button {
+    color: #005aa0;
+  }
+  paper-item {
+    margin: 0.5em;
+    font-size: 80%;
+  }
+  </style>
+  <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
+  <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
+  <core-signals on-core-signal-message="{{message}}"></core-signals>
+  <core-header-panel id="contentpanel" mode="seamed">
+    <div id="dimmer"></div>
+    <div class="core-header">
+      <core-toolbar>
+        <div class="nixuicenter">
+          <a href="/config-force.html" class="nixuilink">NixUI<paper-ripple fit></paper-ripple></a>
+        </div>
+        <div flex></div>
+        <path-input id="pathfield" path="{{path}}"></path-input>
+        <div flex></div>
+        <query-input id="queryfield" query="{{query}}"></query-input>
+      </core-toolbar>
+    </div>
+
+    <graph-options></graph-options>
+  </core-header-panel>
+
+  <!--<package-dialog controlDim="true"></package-dialog>-->
+  <error-dialog controlDim="true"></error-dialog>
+  <!--<marked-dialog controlDim="true"></marked-dialog>-->
+
+  <ajax-wrapper id="ajax"></ajax-wrapper>
+  <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
+  </template>
+  <script>
+  (function() {
+
+
+    Polymer('nixui-configuration', {
+      dimSignal: function(e, detail, sender) {
+        this.$.dimmer.style.display=(detail)?"block":"none";
+      },
+      searchFor: function(e, detail, sender) {
+        this.query = sender.getAttribute("data-query");
+      },
+      message: function(e, detail, sender) {
+        this.$.message.text = detail.text;
+        var color = "#005aa0";
+        switch (detail.type) {
+        case "error":
+            color = "#a05a5a";
+            break;
+        }
+        this.$.message.style.color = color;
+        this.$.message.show();
+      }
+    });
+
+  })();
+  </script>
+  </polymer-element>
+
+  <polymer-element name="graph-options">
+  <template>
+    <core-signals on-core-signal-options="{{optionsSignal}}"></core-signals>
+    <core-signals on-core-signal-query="{{querySignal}}"></core-signals>
+    <core-signals on-core-signal-path="{{pathSignal}}"></core-signals>
+    <style>
+        .node {
+          /*stroke: #fff;*/
+          /*stroke-width: 1.5px;*/
+        }
+        .node circle {
+          fill: #1f77b4;
+        }
+        .node circle.enterable {
+          fill: #aec7e8;
+        }
+        .node circle.option {
+          fill: #ffbb78;
+        }
+        .link {
+          stroke: #999;
+          stroke-opacity: .6;
+        }
+        .node text.type {
+          stroke: #bbb;
+        }
+        .node text {
+          pointer-events: none;
+          /*font: 10px sans-serif;*/
+          font-family: 'RobotoDraft', sans-serif;
+          font-variant: small-caps;
+          stroke: #005aa0;
+          /*text-shadow: 0 0 20px #0ae;*/
+
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          -khtml-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+        }
+    </style>
+    <div id="graphcontainer">
+        <div id="graphoptions"></div>
+    </div>
+    <ajax-queue id="ajax"></ajax-queue>
+  </template>
+  <script>
+  (function() {
+    Polymer('graph-options', {
+      ready: function() {
+        this.query = "";
+        this.options = {};
+        this.position = [];
+        this.startPoint = { x: 0, y: 0 };
+
+        this.$.ajax.add("/api/nix-configs/configurationnixtree", {
+          'attrs': "configuration"
+        }, "GET", function(data) {
+          if (data.error) {
+            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+          } else {
+            this.options = data.data;
+            this.optionsRedraw();
+          }
+        }.bind(this));
+      },
+      pathSignal: function(e, detail, sender) {
+        this.position = detail;
+        this.optionsRedraw();
+      },
+      querySignal: function(e, detail, sender) {
+        this.query = detail;
+        this.optionsRedraw();
+      },
+      optionsSignal: function(e, detail, sender) {
+        if (detail) {
+            console.log(detail);
+        //   this.options = detail;
+        //   this.position = [];
+        //   this.optionsRedraw();
+        }
+      },
+      optionsRedraw: function() {
+        var json = {
+          "nodes":[],
+          "links":[]
+        };
+
+        var root_name, root_option = this.options;
+        if (this.position.length > 0) {
+            root_name = this.position[this.position.length-1];
+            for (var i in this.position) {
+                if (this.position[i] === "") {
+                    continue;
+                }
+                try {
+                    root_option = root_option[this.position[i]];
+                } catch (ex) {
+                    console.log("Not found option: " + name);
+                }
+            }
+        } else {
+            root_name = "";
+        }
+
+        // groups:
+        // 1: up
+        // 2: enterable
+        // 3: end point (option)
+        json.nodes.push({"name": root_name, "group":1});
+        var i = 1;
+        var options = [];
+        for (var key in root_option) {
+            if (!this.query || (new RegExp(this.query, "i")).test("" + key)) {
+                options.push({"name": key});
+                json.nodes.push({"name": key, "group": (root_option[key].optType?3:2), "type": root_option[key].optType, "val": root_option[key].val});
+                json.links.push({"source": i++, "target": 0, "value": 1});
+            }
+        }
+        this.fire('core-signal', {name: "setpath", data: this.position});
+        this.fire('core-signal', {name: "setpathoptions", data: options});
+
+
+        json.nodes.forEach(function(d, i) {
+          if (i == 0) {
+            d.x = this.startPoint.x;
+            d.y = this.startPoint.y;
+          }
+        }.bind(this));
+
+        var color = d3.scale.category20();
+
+        var width = $(this.$.graphoptions).width(),
+            height = 500;
+
+        // remove previous graph
+        d3.select(this.$.graphoptions).select("svg").remove();
+
+        var svg = d3.select(this.$.graphoptions).append("svg");
+        svg.attr("width", width)
+            .attr("height", height);
+
+        var force = d3.layout.force()
+            .gravity(.05)
+            .distance(100)
+            .charge(-1200)
+            .size([width, height]);
+
+        force
+              .nodes(json.nodes)
+              .links(json.links)
+              .start();
+
+        var link = svg.selectAll(".link")
+              .data(json.links)
+            .enter().append("line")
+              .attr("class", "link");
+
+        var dragging = false;
+        var force_drag = force.drag()
+            .on("drag", function() {
+                dragging = true;
+             });
+
+        var node = svg.selectAll(".node")
+              .data(json.nodes)
+            .enter()
+            .append("g")
+              .attr("class", "node")
+              .call(force_drag);
+
+        node.append("circle")
+             .attr("class", "node")
+             .attr("r", 15)
+             .attr("class", function(d) {
+                 if (d.group === 3) {
+                     return "option";
+                 } else if (d.group === 2) {
+                     return "enterable";
+                 } else {
+                     return "";
+                 }
+             })
+             .call(force_drag);
+
+        node.append("text")
+              .attr("dx", 16)
+              .attr("dy", 0)
+              .text(function(d) { return d.name });
+
+        node.append("title")
+              .text(function(d) { return d.val });
+
+        node.append("text")
+              .attr("class", "type")
+              .attr("dx", 16)
+              .attr("dy", ".66em")
+              .text(function(d) { return d.type });
+
+        force.on("tick", function() {
+          link.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+          node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+        });
+
+        d3.select(this.$.graphoptions).on('click',function (d,i) {
+            if (dragging) {
+                dragging = false;
+                return;
+            }
+            // d3.event.preventDefault();
+            d3_target = d3.select(d3.event.target);
+            datum = d3_target.datum();
+            if (datum) {
+                if (datum.group === 1) {
+                    this.position.pop();
+                } else if (datum.group === 2) {
+                    this.position.push(datum.name);
+                } else {
+                    // 3: end point
+                }
+                this.startPoint.x = datum.x;
+                this.startPoint.y = datum.y;
+                this.query = null;
+                this.optionsRedraw();
+            }
+        }.bind(this));
+
+        d3.select(this.$.graphoptions).on('contextmenu',function () {
+            d3.event.preventDefault();
+            if (dragging) {
+                dragging = false;
+                return;
+            }
+            d3_target = d3.select(d3.event.target);
+            datum = d3_target.datum();
+            console.log("contextmenu: "+datum.name);
+        });
+
+      }
+    });
+  })();
+  </script>
+  </polymer-element>
+
+  <polymer-element name="query-input" attributes="query" on-keypress="{{keypressHandler}}">
+    <template>
+      <style type="text/css">
+      </style>
+      <span>
+        <paper-input id="searchfield" on-keyup="{{keyHandler}}" value="{{value}}" label="Option search ..."></paper-input>
+      </span>
+    </template>
+    <script>
+    (function() {
+      Polymer('query-input', {
+        ready: function() {
+          this.value = "";
+        },
+        searchOptions: function() {
+          this.fire('core-signal', {name: "query", data: this.value});
+        },
+        keyHandler: function(event, detail, sender) {
+          if (event.keyCode == 13) {
+            this.searchOptions();
+          }
+        }
+      });
+    })();
+    </script>
+  </polymer-element>
+
+  <polymer-element name="path-input" attributes="path" on-keypress="{{keypressHandler}}">
+    <template>
+      <core-signals on-core-signal-setpath="{{setpathSignal}}"></core-signals>
+      <core-signals on-core-signal-setpathoptions="{{setpathoptionsSignal}}"></core-signals>
+      <style type="text/css">
+        .dropdown {
+            position: absolute;
+            top: 30px;
+            z-index: 999;
+        }
+        #dropdown {
+            overflow: hidden;
+            z-index: 999;
+        }
+        core-input {
+            border-bottom: 1px solid #50a0ff;
+            font-family: 'RobotoDraft', sans-serif;
+            font-variant: small-caps;
+            font-size: 75%;
+            width: 30em;
+            padding: 0.25em;
+            color: #005aa0;
+        }
+        core-menu {
+            margin: 0;
+            border: 1px solid #50a0ff;
+            padding: 0.25em;
+            width: 30em;
+            font-family: 'RobotoDraft', sans-serif;
+            font-variant: small-caps;
+            font-size: 75%;
+        }
+        core-item {
+            padding: 0;
+            min-height: inherit;
+        }
+        core-item[active] {
+            color: #005aa0;
+        }
+        #container {
+            z-index: 999;
+        }
+      </style>
+      <span>
+
+        <div id="container" relative>
+          <core-input id="pathfield" on-keyup="{{keyUpHandler}}" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="path (ex: services.nginx)"></core-input>
+            <div class="dropdown">
+              <core-dropdown id="dropdown" relatedTarget="{{$.pathfield}}" on-keydown="{{dropdownKeyDownHandler}}" on-keyup="{{dropdownKeyUpHandler}}">
+
+                <core-menu id="dropdownmenu" selected="0">
+                  <template repeat="{{option in dropDownOptions}}">
+                    <core-item label="{{option.name}}"></core-item>
+                  </template>
+                </core-menu>
+
+              </core-dropdown>
+            </div>
+        </div>
+
+      </span>
+    </template>
+    <script>
+    (function() {
+      Polymer('path-input', {
+        ready: function() {
+          this.value = "";
+          this.position = [];
+          this.options = this.dropDownOptions = [];
+        },
+        absolutePosition: function(name) {
+            var joined = this.position.join(".");
+            return joined ? joined+"."+name : name;
+        },
+        dropdownKeyUpHandler: function(event, detail, sender) {
+            // event.preventDefault();
+            // event.stopPropagation();
+            if (this.$.dropdown.opened) {
+                $(this.$.dropdownmenu.selectedItem).get(0).scrollIntoView();
+                // this.keyUpHandler(event, detail, sender);
+            }
+        },
+        dropdownKeyDownHandler: function(event, detail, sender) {
+          event.preventDefault();
+        //   event.stopPropagation();
+          if (event.keyCode == 40 || (event.keyCode == 9 && !event.shiftKey)) {
+            this.$.dropdownmenu.selectNext(false);
+          } else if (event.keyCode == 38 || (event.keyCode == 9 && event.shiftKey)) {
+            this.$.dropdownmenu.selectPrevious(false);
+          } else if (event.keyCode == 13) {
+            this.value = this.absolutePosition(this.$.dropdownmenu.selectedItem.label);
+            this.$.dropdown.opened = false;
+            this.$.pathfield.focus();
+          } else if (event.keyCode == 27) {
+            this.$.pathfield.focus();
+          }
+        },
+        keyDownHandler: function(event, detail, sender) {
+          if ($.inArray(event.keyCode, [40, 9]) != -1) {
+            event.preventDefault();
+          }
+        },
+        keyUpHandler: function(event, detail, sender) {
+          if (event.keyCode == 13) {
+            if (this.value.indexOf(".") === -1) {
+                this.position = [this.value];
+            } else {
+                this.position = this.value.split(".");
+            }
+            this.fire('core-signal', {
+                name: "path",
+                data: this.position
+            });
+          } else if (event.keyCode == 40 || event.keyCode == 9) {  // down arrow || tab
+            this.setOptions();
+            this.$.dropdownmenu.selected = 0;
+            this.$.dropdown.opened = true;
+            // this.$.container.style.zIndex="99999";
+          }
+        },
+        setpathoptionsSignal: function(e, detail, sender) {
+          this.setOptions(detail);
+        },
+        setpathSignal: function(e, detail, sender) {
+          this.position = detail;
+          this.value = detail.join(".");
+        },
+        setOptions: function(options) {
+          if (options) {
+            this.options = options;
+          }
+          // this.value is not set here, yet
+          var query = this.$.pathfield.shadowRoot.getElementById("input").value;
+          if (!query) {
+            this.dropDownOptions = this.options;
+            return;
+          }
+          this.dropDownOptions = $.grep(this.options, function(value, index) {
+            // console.log(query + " ~ " + this.absolutePosition(value.name))
+            // console.log((new RegExp(query, "i")).test(this.absolutePosition(value.name)))
+            return (new RegExp(query, "i")).test(this.absolutePosition(value.name));
+          }.bind(this));
+        }
+      });
+    })();
+    </script>
+  </polymer-element>
+
+  <style>
+  html,body {
+    height: 100%;
+    margin: 0;
+    background-color: white;
+    font-family: 'RobotoDraft', sans-serif;
+  }
+  </style>
+</head>
+
+    <body unresolved touch-action="auto">
+
+      <nixui-configuration></nixui-configuration>
+
+    </body>
+
+</html>

@@ -76,7 +76,7 @@
     <div class="core-header">
       <core-toolbar>
         <div class="nixuicenter">
-          <a href="https://github.com/matejc/nixui" class="nixuilink">NixUI<paper-ripple fit></paper-ripple></a>
+          <a href="/configuration.html" class="nixuilink">NixUI<paper-ripple fit></paper-ripple></a>
         </div>
         <div flex></div>
         <query-input id="queryfield" query="{{query}}"></query-input>
@@ -125,17 +125,13 @@
   <polymer-element name="query-input" attributes="query" on-keypress="{{keypressHandler}}">
     <template>
       <style type="text/css">
-        #searchfield {
-          top: 0.4em;
-          vertical-align: middle;
-        }
         core-icon-button {
           color: #005aa0;
         }
       </style>
       <span>
         <paper-input id="searchfield" on-keyup="{{keyHandler}}" value="{{value}}" label="Options ..."></paper-input>
-        <core-icon-button on-click="{{setOptions}}" icon="search"></core-icon-button>
+        <!--<core-icon-button on-click="{{setOptions}}" icon="search"></core-icon-button>-->
       </span>
       <ajax-queue id="ajax"></ajax-queue>
     </template>
@@ -220,9 +216,14 @@
     <table id="listcontainer">
       <template repeat="{{option in options}}" bind="{{classNameFromCompare as classNameFromCompare}}" class="option">
         <tr class="option" on-mousedown="{{onFocus}}">
-          <td class="optionAttr">{{option.attr}}</td>
-          <td class="optionType">{{option.type}}</td>
-          <td><core-input class="optionVal" placeholder="{{option.val}}" value="{{option.val}}"></core-input></td>
+          <td>
+          <div class="optionAttr">{{option.attr}}</div>
+          <div class="optionType">{{option.type}}</div>
+
+          </td>
+          <!--<td class="optionAttr">{{option.attr}}</td>-->
+          <!--<td class="optionType">{{option.type}}</td>-->
+          <!--<td><core-input class="optionVal" placeholder="{{option.val}}" value="{{option.val}}"></core-input></td>-->
         </tr>
       </template>
     </table>

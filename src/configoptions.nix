@@ -5,7 +5,7 @@ let
   optionAttrSetToDocListMod = prefix: options:
     pkgs.lib.fold (opt: rest:
       let
-        docOption = 
+        docOption =
           if (opt?internal && opt.internal) || (opt?visible && !opt.visible) then null else
           pkgs.lib.setAttrByPath opt.loc (rec {
             name = pkgs.lib.showOption opt.loc;
@@ -17,6 +17,7 @@ let
           // pkgs.lib.optionalAttrs (opt ? example) { example = scrubOptionValue opt.example; }
           // pkgs.lib.optionalAttrs (opt ? default) { default = scrubOptionValue opt.default; }
           // pkgs.lib.optionalAttrs (opt ? defaultText) { default = opt.defaultText; }
+          // pkgs.lib.optionalAttrs (opt ? type) { optType = opt.type.name; }
           // (createEntry opt.loc configuration false));
 
         subOptions =
