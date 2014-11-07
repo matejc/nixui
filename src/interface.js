@@ -2,11 +2,13 @@ var spawn = require('child_process').spawn;
 
 var nixEnvProcesses = [];
 
-exports.nixEnv = function(args, callback, error_callback) {
+exports.nixEnv = function(args, env, callback, error_callback) {
   var output = "";
   var outerr = "";
 
-  var nixProcess = spawn('nix-env', args);
+  var options = { env: (env?env:process.env) };
+
+  var nixProcess = spawn('nix-env', args, options);
   var nixEnvProcessesItem = {process: nixProcess};
   nixEnvProcesses.push(nixEnvProcessesItem);
 
@@ -38,18 +40,22 @@ exports.nixEnv = function(args, callback, error_callback) {
   return nixEnvProcessesItem;
 };
 
-exports.nixInstantiate = function (prefix_args, expression, removeQuotations, useStdin, callback, error_callback) {
+exports.nixInstantiate = function (prefix_args, expression, removeQuotations, useStdin, env, callback, error_callback) {
   var output = "";
   var outerr = "";
 
   var args = exports.createArgsArray(prefix_args, null, null, useStdin?["-"]:[]);
 
-  var nixProcess = spawn("nix-instantiate", args);
-  console.log("nix-instantiate: " + args);
+  var options = { env: (env?env:process.env) };
+
+  var nixProcess = spawn("nix-instantiate", args, options);
 
   if (useStdin) {
     nixProcess.stdin.write(expression);
     nixProcess.stdin.end();
+    console.log("nix-instantiate: " + args + "\n" + expression);
+  } else {
+    console.log("nix-instantiate: " + args);
   }
 
   nixProcess.stdout.on("data", function(data) {
@@ -96,7 +102,7 @@ exports.createArgsArray = function(prefix_args, file_arg, profile_arg, postfix_a
   return args;
 };
 
-exports.iteratePackages = function(file_arg, profile_arg, callback, finish_callback, error_callback) {
+exports.iteratePackages = function(file_arg, profile_arg, env, callback, finish_callback, error_callback) {
 
     var onProcessed = function (data) {
         var lines = (''+data).split('\n');
@@ -121,13 +127,13 @@ exports.iteratePackages = function(file_arg, profile_arg, callback, finish_callb
             ['-qacP'], file_arg, profile_arg,
             ['--out-path', '--description', '--system-filter', currentSystem]
         );
-        exports.nixEnv(args, onProcessed, error_callback);
+        exports.nixEnv(args, env, onProcessed, error_callback);
     };
 
-    exports.currentSystem(onCurrentSystem, error_callback);
+    exports.currentSystem(env, onCurrentSystem, error_callback);
 
 };
-exports.allPackages = function(file_arg, profile_arg, callback, error_callback) {
+exports.allPackages = function(file_arg, profile_arg, env, callback, error_callback) {
   exports.currentSystem(function (currentSystem) {
     var process = function(data) {
       var items = [];
@@ -153,20 +159,20 @@ exports.allPackages = function(file_arg, profile_arg, callback, error_callback) 
       (currentSystem)? ['--system-filter', currentSystem]:[]
     );
 
-    exports.nixEnv(args, process, error_callback);
+    exports.nixEnv(args, env, process, error_callback);
   }, error_callback);
 };
 
-exports.installPackage = function(pkg_attribute, file_arg, profile_arg, callback, error_callback) {
+exports.installPackage = function(pkg_attribute, file_arg, profile_arg, env, callback, error_callback) {
   var args = exports.createArgsArray(
     ['-iA', pkg_attribute], file_arg, profile_arg, []);
-  exports.nixEnv(args, callback, error_callback).attribute = pkg_attribute;
+  exports.nixEnv(args, env, callback, error_callback).attribute = pkg_attribute;
 };
 
-exports.uninstallPackage = function(pkg_attribute, pkg_name, file_arg, profile_arg, callback, error_callback) {
+exports.uninstallPackage = function(pkg_attribute, pkg_name, file_arg, profile_arg, env, callback, error_callback) {
   var args = exports.createArgsArray(
     ['-e', pkg_name], file_arg, profile_arg, []);
-  exports.nixEnv(args, callback, error_callback).attribute = pkg_attribute;
+  exports.nixEnv(args, env, callback, error_callback).attribute = pkg_attribute;
 };
 
 exports.killNixEnvByAttribute = function(pkg_attribute) {
@@ -184,7 +190,7 @@ exports.killNixEnvAll = function() {
   }
 };
 
-exports.packageInfo = function (packageAttrStr, file_arg, callback, error_callback) {
+exports.packageInfo = function (packageAttrStr, file_arg, env, callback, error_callback) {
   exports.nixInstantiate(
     ["--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
     'let \
@@ -197,50 +203,55 @@ exports.packageInfo = function (packageAttrStr, file_arg, callback, error_callba
     in builtins.toJSON data',
     false,  // remove quotations
     true,  // use stdin
+    env,
     callback,
     error_callback
   );
 };
 
-exports.currentSystem = function (callback, error_callback) {
+exports.currentSystem = function (env, callback, error_callback) {
   exports.nixInstantiate(
     ["--eval", "--strict", "--show-trace"],
     'builtins.currentSystem',
     true,
     true,
+    env,
     callback,
     error_callback
   );
 };
 
-exports.configurationNix = function (file_arg, callback, error_callback) {
+exports.configurationNix = function (file_arg, env, callback, error_callback) {
   exports.nixInstantiate(
     ["./src/config_inuse.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
     null,
     false,
     false,
+    env,
     callback,
     error_callback
   );
 };
 
-exports.configTree = function (attrs, file_arg, callback, error_callback) {
+exports.configTree = function (attrs, file_arg, env, callback, error_callback) {
   exports.nixInstantiate(
     ["./src/configoptions.nix", "--eval", "--strict", "--show-trace", "-A", "dispatch", "--argstr", "attrs", attrs?attrs:"configuration"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
     null,
     false,
     false,
+    env,
     callback,
     error_callback
   );
 };
 
-exports.listNixOptions = function (file_arg, callback, error_callback) {
+exports.listNixOptions = function (file_arg, env, callback, error_callback) {
   exports.nixInstantiate(
     ["./src/config_all.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
     null,
     false,
     false,
+    env,
     callback,
     error_callback
   );

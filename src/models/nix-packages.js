@@ -26,7 +26,7 @@ module.exports = function(Packages, Base) {
                 if (err) {
                     console.log(err);
                 }
-                NixInterface.packageInfo(attribute, user.meta.file, function(data) {
+                NixInterface.packageInfo(attribute, user.meta.file, user.meta.env, function(data) {
                     cb(null, JSON.parse(JSON.parse(data)));  // data is double json encoded :)
                 }, function(data) {
                     cb(data);
@@ -122,6 +122,7 @@ module.exports = function(Packages, Base) {
             NixInterface.iteratePackages(
                 user.meta.file,
                 user.meta.profile,
+                user.meta.env,
                 callback,
                 done_cb,
                 function (err) {

@@ -20,7 +20,7 @@ module.exports = function(Config, Base) {
             if (err) {
                 console.log(err);
             }
-            NixInterface.configurationNix(user.meta.file, function(data) {
+            NixInterface.configurationNix(user.meta.file, user.meta.env, function(data) {
                 var result = JSON.parse(JSON.parse(data));  // query
                 cb(null, result);
             }, function(err) {
@@ -55,7 +55,7 @@ module.exports = function(Config, Base) {
             if (err) {
                 console.log(err);
             }
-            NixInterface.configTree(attrs, user.meta.file, function(data) {
+            NixInterface.configTree(attrs, user.meta.file, user.meta.env, function(data) {
                 var result = JSON.parse(JSON.parse(data));
                 cb(null, result);
             }, function(err) {

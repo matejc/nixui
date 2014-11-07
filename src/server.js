@@ -38,7 +38,6 @@ if (argv.help) {
 }
 
 var loopback = require('loopback'),
-    NixInterface = require('./interface'),
     boot = require('loopback-boot'),
     crypto = require('crypto');
 

@@ -507,10 +507,10 @@ module.exports = function(Marked, Base) {
             };
 
             if (mark == "install") {
-                NixPackages.getNixInterface().installPackage(attribute, user.meta.file, user.meta.profile, onFinish, onError);
+                NixPackages.getNixInterface().installPackage(attribute, user.meta.file, user.meta.profile, user.meta.env, onFinish, onError);
 
             } else if (mark == "uninstall") {
-                NixPackages.getNixInterface().uninstallPackage(attribute, name, user.meta.file, user.meta.profile, onFinish, onError);
+                NixPackages.getNixInterface().uninstallPackage(attribute, name, user.meta.file, user.meta.profile, user.meta.env, onFinish, onError);
             }
         });
     };

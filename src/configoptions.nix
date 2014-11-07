@@ -1,4 +1,4 @@
-{ attrs ? "configuration" }:
+{ attrs ? "configuration", useConfiguration ? false }:
 let
   pkgs = import <nixpkgs> {};
 
@@ -18,7 +18,7 @@ let
           // pkgs.lib.optionalAttrs (opt ? default) { default = scrubOptionValue opt.default; }
           // pkgs.lib.optionalAttrs (opt ? defaultText) { default = opt.defaultText; }
           // pkgs.lib.optionalAttrs (opt ? type) { optType = opt.type.name; }
-          // (createEntry opt.loc configuration false));
+          // pkgs.lib.optionalAttrs (useConfiguration) (createEntry opt.loc configuration false));
 
         subOptions =
           let ss = opt.type.getSubOptions opt.loc;
