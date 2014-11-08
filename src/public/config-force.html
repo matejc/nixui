@@ -163,6 +163,13 @@
           -ms-user-select: none;
           user-select: none;
         }
+        #panel {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            position: absolute;
+        }
         #editpanel {
           border: 1px solid #50a0ff;
           background: white;
@@ -173,22 +180,67 @@
           width: 30%;
           position: absolute;
           overflow: auto;
+          padding: 0.5em;
         }
-        #panel {
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            position: absolute;
+        #editpanel #path {
+            font-family: 'RobotoDraft', sans-serif;
+            font-variant: small-caps;
+            font-weight: bold;
+            color: #005aa0;
+        }
+        #editpanel #type {
+            font-family: 'RobotoDraft', sans-serif;
+            font-variant: small-caps;
+            font-weight: bold;
+            color: #888;
+        }
+        #editpanel #description {
+            color: #666;
+            margin: 1em 0 1em 0;
+        }
+        #editpanel pre {
+            background-color: #eee;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 0 0 1em 0;
+
+            white-space: pre-wrap;       /* css-3 */
+            white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+            white-space: -pre-wrap;      /* Opera 4-6 */
+            white-space: -o-pre-wrap;    /* Opera 7 */
+            word-wrap: break-word;       /* Internet Explorer 5.5+ */
+        }
+        .label {
+            font-family: 'RobotoDraft', sans-serif;
+            font-variant: small-caps;
+            width: 100%;
+            text-align: right;
+            color: #005aa0;
+            font-size: 80%;
+        }
+        #editpanel #value {
+            width: 100%;
         }
     </style>
     <div id="panel" layout horizontal>
         <div id="graphoptions" flex></div>
     </div>
     <div id="editpanel">
-        <div>{{optionDetails._path}}</div>
-        <div>{{optionDetails.description}}</div>
-        <div>{{optionDetails.optType}}</div>
+        <div id="path">{{optionDetails._path}}</div>
+        <div id="type">{{optionDetails.optType}}</div>
+        <div id="description">{{optionDetails.description}}</div>
+
+        <template if="{{optionDetails.example}}">
+            <div class="label">example</div>
+            <pre id="example">{{optionDetails.example}}</pre>
+        </template>
+
+        <template if="{{optionDetails.default}}">
+            <div class="label">default</div>
+            <pre id="default">{{optionDetails.default}}</pre>
+        </template>
+
+        <paper-input id="value" multiline maxRows="5" floatingLabel label="value ..."></paper-input>
     </div>
     <ajax-queue id="ajax"></ajax-queue>
   </template>
@@ -230,12 +282,14 @@
         if (detail.name) {
             var optionPath = this.position.concat([detail.name]);
             var option = this.getOptionByPath(optionPath);
-            if (option) {
+            if (option && option.optType) {
                 this.optionDetails = option;
                 this.optionDetails._path = optionPath.join(".");
-                this.editPanelVisible || this.editPanelAnimate(true);
+                if (!this.editPanelVisible) this.editPanelAnimate(true);
+                return;
             }
         }
+        if (this.editPanelVisible) this.editPanelAnimate(false);
       },
       querySignal: function(e, detail, sender) {
         this.query = detail;
@@ -253,8 +307,6 @@
           }
       },
       optionsRedraw: function() {
-        this.editPanelVisible && this.editPanelAnimate(false);
-
         var json = {
           "nodes":[],
           "links":[]
@@ -375,9 +427,6 @@
         });
 
         d3.select(this.$.graphoptions).on('click',function (d,i) {
-            if (this.editPanelVisible) {
-                this.editPanelAnimate(false);
-            }
             if (dragging) {
                 dragging = false;
                 return;
@@ -387,21 +436,33 @@
             datum = d3_target.datum();
             if (datum) {
                 if (datum.group === 1) {
+                    if (this.editPanelVisible) {
+                        this.editPanelAnimate(false);
+                    }
                     this.position.pop();
                 } else if (datum.group === 2) {
+                    if (this.editPanelVisible) {
+                        this.editPanelAnimate(false);
+                    }
                     this.position.push(datum.name);
                 } else {
                     // 3: end point
                     var path = this.position.concat([datum.name]);
                     this.optionDetails = this.getOptionByPath(path);
                     this.optionDetails._path = path.join(".");
-                    this.editPanelVisible || this.editPanelAnimate(true);
+                    if (!this.editPanelVisible) {
+                        this.editPanelAnimate(true);
+                    }
                     return;
                 }
                 this.startPoint.x = datum.x;
                 this.startPoint.y = datum.y;
                 this.query = null;
                 this.optionsRedraw();
+            } else {
+                if (this.editPanelVisible) {
+                    this.editPanelAnimate(false);
+                }
             }
         }.bind(this));
       },
@@ -585,6 +646,7 @@
             var name;
             if (this.value.indexOf(".") === -1) {
                 this.position = [];
+                name = this.value;
             } else {
                 this.position = this.value.split(".");
                 name = this.position[this.position.length-1];
@@ -716,7 +778,8 @@
           if (event.keyCode == 13) {
             var name;
             if (this.value.indexOf(".") === -1) {
-                this.position = [this.value];
+                this.position = [];
+                name = this.value;
             } else {
                 this.position = this.value.split(".");
                 name = this.position[this.position.length-1];

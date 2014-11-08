@@ -27,14 +27,20 @@ let
         # FIXME: expensive, O(n^2)
         [ docOption ] ++ subOptions ++ rest) [] (pkgs.lib.collect pkgs.lib.isOption options);
 
+  attrsToStr = attr: pkgs.lib.mapAttrsToList (n: v: (toString n)+" = "+(scrubOptionValue v) ) attr;
+
   configuration = import <nixos-config> { inherit pkgs; config = pkgs.config; };
 
   scrubOptionValue = x:
-    if pkgs.lib.isDerivation x then
-      { type = "derivation"; drvPath = x.name; outPath = x.name; name = x.name; }
-    else if pkgs.lib.isList x then map scrubOptionValue x
-    else if pkgs.lib.isAttrs x then pkgs.lib.mapAttrs (n: v: scrubOptionValue v) (builtins.removeAttrs x ["_args"])
-    else if builtins.typeOf x == "lambda" then { type = "function"; }
+    if pkgs.lib.isDerivation x then x.name
+    else if (x ? _type && x._type=="literalExample") then x.text
+    else if pkgs.lib.isInt x then toString x
+    else if pkgs.lib.isString x then ''"''+(toString x)+''"''
+    else if pkgs.lib.isBool x then (if x then "true" else "false")
+    else if pkgs.lib.isFunction x then "<function>"
+    else if pkgs.lib.isList x then "[ "+(pkgs.lib.concatStringsSep " " (map scrubOptionValue x))+" ]"
+    else if pkgs.lib.isAttrs x then ''{ ''+(pkgs.lib.concatStringsSep "; " (attrsToStr (builtins.removeAttrs x ["_args"])))+(if x != {} then "; }" else " }")
+    else if builtins.typeOf x == "lambda" then "<function>"
     else toString x;
 
   createEntry = path: start: expand:
