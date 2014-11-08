@@ -39,7 +39,6 @@
   }
   core-toolbar {
     background: white;
-    /*fill: #005aa0;*/
     border-bottom-style: solid;
     border-bottom-width: 3px;
     border-color: #005aa0;
@@ -74,7 +73,6 @@
   }
   </style>
   <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
-  <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
   <core-signals on-core-signal-message="{{message}}"></core-signals>
   <core-header-panel id="contentpanel" mode="seamed">
     <div id="dimmer"></div>
@@ -150,9 +148,6 @@
           stroke: #999;
           stroke-opacity: .6;
         }
-        .node text.type {
-          stroke: #bbb;
-        }
         .node text {
           pointer-events: none;
           /*font: 10px sans-serif;*/
@@ -168,9 +163,32 @@
           -ms-user-select: none;
           user-select: none;
         }
+        #editpanel {
+          border: 1px solid #50a0ff;
+          background: white;
+          opacity: 0;
+          top: 1em;
+          right: 1em;
+          bottom: 1em;
+          width: 30%;
+          position: absolute;
+          overflow: auto;
+        }
+        #panel {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            position: absolute;
+        }
     </style>
-    <div id="graphcontainer">
-        <div id="graphoptions"></div>
+    <div id="panel" layout horizontal>
+        <div id="graphoptions" flex></div>
+    </div>
+    <div id="editpanel">
+        <div>{{optionDetails._path}}</div>
+        <div>{{optionDetails.description}}</div>
+        <div>{{optionDetails.optType}}</div>
     </div>
     <ajax-queue id="ajax"></ajax-queue>
   </template>
@@ -183,6 +201,10 @@
         this.alloptions = [];
         this.position = [];
         this.startPoint = { x: 0, y: 0 };
+        this.editPanelVisible = false;
+        this.force = d3.layout.force();
+        this.graph_height = this.graph_width = 100;
+        this.optionDetails = {};
 
         this.$.ajax.add("/api/nix-configs/configurationnixtree", {
           'attrs': "configuration"
@@ -200,8 +222,20 @@
         }.bind(this));
       },
       pathSignal: function(e, detail, sender) {
-        this.position = detail;
+        this.position = $.grep(detail.position, function(value, index) {
+          return value !== "";
+        });
         this.optionsRedraw();
+
+        if (detail.name) {
+            var optionPath = this.position.concat([detail.name]);
+            var option = this.getOptionByPath(optionPath);
+            if (option) {
+                this.optionDetails = option;
+                this.optionDetails._path = optionPath.join(".");
+                this.editPanelVisible || this.editPanelAnimate(true);
+            }
+        }
       },
       querySignal: function(e, detail, sender) {
         this.query = detail;
@@ -219,6 +253,8 @@
           }
       },
       optionsRedraw: function() {
+        this.editPanelVisible && this.editPanelAnimate(false);
+
         var json = {
           "nodes":[],
           "links":[]
@@ -258,6 +294,12 @@
         this.fire('core-signal', {name: "setpath", data: this.position});
         this.fire('core-signal', {name: "setpathoptions", data: options});
 
+        this.graph_width = $(this.$.graphoptions).width();
+        this.graph_height = $(this.$.panel).height() - 3;
+
+        this.startPoint.x = this.graph_width / 2;
+        this.startPoint.y = this.graph_height / 2;
+
         json.nodes.forEach(function(d, i) {
           if (i == 0) {
             d.x = this.startPoint.x;
@@ -265,23 +307,20 @@
           }
         }.bind(this));
 
-        var width = $(this.$.graphoptions).width(),
-            height = 550;
-
         // remove previous graph
         d3.select(this.$.graphoptions).select("svg").remove();
 
         var svg = d3.select(this.$.graphoptions).append("svg");
-        svg.attr("width", width)
-            .attr("height", height);
+        svg.attr("width", this.graph_width)
+            .attr("height", this.graph_height);
 
-        var force = d3.layout.force()
+        this.force
             .gravity(.05)
             .distance(100)
             .charge(-1200)
-            .size([width, height]);
+            .size([this.graph_width, this.graph_height]);
 
-        force
+        this.force
               .nodes(json.nodes)
               .links(json.links)
               .start();
@@ -292,7 +331,7 @@
               .attr("class", "link");
 
         var dragging = false;
-        var force_drag = force.drag()
+        var force_drag = this.force.drag()
             .on("drag", function() {
                 dragging = true;
              });
@@ -320,19 +359,13 @@
 
         node.append("text")
               .attr("dx", 16)
-              .attr("dy", 0)
+              .attr("dy", "0.33em")
               .text(function(d) { return d.name });
 
         node.append("title")
               .text(function(d) { return d.val });
 
-        node.append("text")
-              .attr("class", "type")
-              .attr("dx", 16)
-              .attr("dy", ".66em")
-              .text(function(d) { return d.type });
-
-        force.on("tick", function() {
+        this.force.on("tick", function() {
           link.attr("x1", function(d) { return d.source.x; })
                 .attr("y1", function(d) { return d.source.y; })
                 .attr("x2", function(d) { return d.target.x; })
@@ -342,6 +375,9 @@
         });
 
         d3.select(this.$.graphoptions).on('click',function (d,i) {
+            if (this.editPanelVisible) {
+                this.editPanelAnimate(false);
+            }
             if (dragging) {
                 dragging = false;
                 return;
@@ -356,6 +392,11 @@
                     this.position.push(datum.name);
                 } else {
                     // 3: end point
+                    var path = this.position.concat([datum.name]);
+                    this.optionDetails = this.getOptionByPath(path);
+                    this.optionDetails._path = path.join(".");
+                    this.editPanelVisible || this.editPanelAnimate(true);
+                    return;
                 }
                 this.startPoint.x = datum.x;
                 this.startPoint.y = datum.y;
@@ -363,18 +404,39 @@
                 this.optionsRedraw();
             }
         }.bind(this));
-
-        d3.select(this.$.graphoptions).on('contextmenu',function () {
-            d3.event.preventDefault();
-            if (dragging) {
-                dragging = false;
-                return;
-            }
-            d3_target = d3.select(d3.event.target);
-            datum = d3_target.datum();
-            console.log("contextmenu: " + datum.name);
-        }.bind(this));
-
+      },
+      editPanelAnimate: function(show) {
+        var elem = this.$.editpanel;
+        var anim;
+        if (show) {
+            anim = new Animation(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 200});
+            this.force.size([this.graph_width * 0.66, this.graph_height]).start();
+            this.editPanelVisible = true;
+        } else {
+            anim = new Animation(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 200});
+            this.force.size([this.graph_width, this.graph_height]).start();
+            this.editPanelVisible = false;
+        }
+        var player = document.timeline.play(anim);
+      },
+      getOptionByPath: function(path) {
+          option = this.options;
+          if (path.length > 0) {
+              for (var i in path) {
+                  if (path[i] === "") {
+                      continue;
+                  }
+                  try {
+                      option = option[path[i]];
+                  } catch (ex) {
+                      console.log("Not found option: " + name + " in path " + path.join("."));
+                      return null;
+                  }
+              }
+          } else {
+              option = this.options;
+          }
+          return option;
       }
     });
   })();
@@ -513,22 +575,24 @@
             }
             this.fire('core-signal', {
                 name: "path",
-                data: this.position
+                data: { position: this.position, name: undefined }
             });
           } else if (event.keyCode == 40 || event.keyCode == 9 || event.keyCode == 190) {  // down arrow || tab || '.'
             this.setOptions();
             this.$.dropdownmenu.selected = 0;
             this.$.dropdown.opened = true;
           } else if (event.keyCode == 8) {
+            var name;
             if (this.value.indexOf(".") === -1) {
                 this.position = [];
             } else {
                 this.position = this.value.split(".");
+                name = this.position[this.position.length-1];
                 this.position.splice(-1, 1);
             }
             this.fire('core-signal', {
                 name: "path",
-                data: this.position
+                data: { position: this.position, name: name }
             });
           }
         },
@@ -550,8 +614,6 @@
             return;
           }
           this.dropDownOptions = $.grep(this.options, function(value, index) {
-            // console.log(query + " ~ " + this.absolutePosition(value.name))
-            // console.log((new RegExp(query, "i")).test(this.absolutePosition(value.name)))
             return (new RegExp(query, "i")).test(this.absolutePosition(value.name));
           }.bind(this));
         }
@@ -646,23 +708,25 @@
           }
         },
         keyDownHandler: function(event, detail, sender) {
-          if ($.inArray(event.keyCode, [40, 9, 190]) != -1) {
+          if ($.inArray(event.keyCode, [40, 9]) != -1) {
             event.preventDefault();
           }
         },
         keyUpHandler: function(event, detail, sender) {
           if (event.keyCode == 13) {
+            var name;
             if (this.value.indexOf(".") === -1) {
                 this.position = [this.value];
             } else {
                 this.position = this.value.split(".");
+                name = this.position[this.position.length-1];
                 this.position.splice(-1,1);
             }
             this.fire('core-signal', {
                 name: "path",
-                data: this.position
+                data: { position: this.position, name: name }
             });
-          } else if (event.keyCode == 40 || event.keyCode == 9 || event.keyCode == 190) {  // down arrow || tab || '.'
+          } else if (event.keyCode == 40 || event.keyCode == 9) {  // down arrow || tab
             this.setOptions();
             if (this.dropDownOptions.length != 0) {
                 this.$.dropdownmenu.selected = 0;
@@ -683,6 +747,7 @@
             this.dropDownOptions = $.grep(this.options, function(value, index) {
               return (new RegExp(query, "i")).test(value);
             });
+            this.dropDownOptions = this.dropDownOptions.splice(0, 10);
           } else {
             this.dropDownOptions = [];
           }
