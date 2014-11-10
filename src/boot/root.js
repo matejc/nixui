@@ -1,7 +1,6 @@
 module.exports = function(server) {
     var router = server.loopback.Router();
     var AccessToken = server.loopback.getModel('AccessToken');
-    var NixPackages = server.loopback.getModel('nix-packages');
     var User = server.loopback.getModel('user');
 
     router.get('/dispatcher', function(req, res) {
@@ -50,5 +49,27 @@ module.exports = function(server) {
             }
         );
     });
+
+    router.get('/user', function(req, res) {
+        AccessToken.findForRequest(
+            req, {
+                cookies: ['access_token']
+            },
+            function(err, token) {
+                if (token) {
+                    User.findById(token.userId, function(err, user) {
+                        if (user) {
+                            res.send({"user": user.username});
+                        } else {
+                            res.send({"user": null});
+                        }
+                    });
+                } else {
+                    res.send({"user": null});
+                }
+            }
+        );
+    });
+
     server.use(router);
 };

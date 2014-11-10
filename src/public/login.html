@@ -56,6 +56,22 @@
             font-size: 70%;
             color: #005aa0;
         }
+        .actionitem {
+            position: relative;
+            height: 40px;
+            line-height: 40px;
+            color: #949494;
+            padding-right: 0.5em;
+            padding-left: 0.5em;
+        }
+        .actionitem:hover {
+            background-color: #eeeeee;
+        }
+        #actionlist {
+            width: 300px;
+            height: auto;
+            padding-left: 4em;
+        }
         </style>
         <core-signals on-core-signal-message="{{message}}"></core-signals>
         <div id="wrapper" layout horizontal center>
@@ -72,10 +88,28 @@
                 <div id="userform" layout horizontal center>
                     <paper-input name="password" id="passwordfield" on-keypress="{{validatePassword}}" type="password" floatingLabel/>
                 </div>
+                <div id="actionlist" center>
+                    <div class="label">Select action (Logged in as {{currentUsername}}):</div>
+                    <template repeat="{{ action in actions }}">
+                        <div class="actionitem" on-click="{{selectaction}}" data-url="{{action.url}}">
+                            <span>{{action.label}}</span>
+                            <paper-ripple fit/>
+                        </div>
+                    </template>
+                </div>
             </div>
         </div>
 
         <core-animation id="fadeIn" duration="300" on-core-animation-finish="{{fadeInPasswordField}}">
+          <core-animation-keyframe>
+            <core-animation-prop name="opacity" value="0"></core-animation-prop>
+          </core-animation-keyframe>
+          <core-animation-keyframe>
+            <core-animation-prop name="opacity" value="1"></core-animation-prop>
+          </core-animation-keyframe>
+        </core-animation>
+
+        <core-animation id="actionsFadeIn" duration="300">
           <core-animation-keyframe>
             <core-animation-prop name="opacity" value="0"></core-animation-prop>
           </core-animation-keyframe>
@@ -92,10 +126,27 @@
         Polymer('nixui-users', {
             ready: function() {
                 this.$.passwordfield.style.opacity = 0;
+                this.$.actionlist.style.opacity = 0;
                 this.passwordFieldShowing = false;
                 this.users = [];
+                this.currentUsername = null;
+                this.actions = [
+                    { label: "Package Manager", url: "/index.html" },
+                    { label: "Configuration", url: "/config-force.html" }
+                ];
+
                 this.$.ajax.add("/users_list", null, "GET", function(data) {
-                  this.users = data.users;
+                    this.users = data.users;
+                }.bind(this));
+
+                this.showActions();
+            },
+            showActions: function() {
+                this.$.ajax.add("/user", null, "GET", function(data) {
+                    if (data && data.user) {
+                        this.currentUsername = data.user;
+                        this.fadeInActions.bind(this)();
+                    }
                 }.bind(this));
             },
             selectuser: function(e) {
@@ -136,6 +187,17 @@
                     this.$.fadeIn.target.focus();
                 }
             },
+            fadeInActions: function() {
+                this.$.actionsFadeIn.target = this.$.actionlist;
+                this.$.actionsFadeIn.fill = "forwards";
+                this.$.actionsFadeIn.play();
+            },
+            selectaction: function(e) {
+                actionnode = e.target.parentNode;
+                if (actionnode) {
+                    window.location.assign(actionnode.getAttribute("data-url"));
+                }
+            },
             validatePassword: function(e) {
                 if (e.keyCode == 13) {
                     this.$.ajax.add("/login", {
@@ -143,7 +205,7 @@
                         password: this.$.passwordfield.inputValue_
                     }, "POST", function(data) {
                         this.$.passwordfield.inputValue_ = "";
-                        window.location.assign(data.loc);
+                        this.showActions.bind(this)();
                     }.bind(this));
                 }
             },
