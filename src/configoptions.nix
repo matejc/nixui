@@ -32,7 +32,7 @@ let
   configuration = import <nixos-config> { inherit pkgs; config = pkgs.config; };
 
   scrubOptionValue = x:
-    if pkgs.lib.isDerivation x then x.name
+    if pkgs.lib.isDerivation x then ("<drv>"+x.name+"</drv>")
     else if (x ? _type && x._type=="literalExample") then x.text
     else if pkgs.lib.isInt x then toString x
     else if pkgs.lib.isString x then ''"''+(toString x)+''"''

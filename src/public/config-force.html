@@ -173,7 +173,7 @@
         #editpanel {
           border: 1px solid #50a0ff;
           background: white;
-          opacity: 0;
+          display: none;
           top: 1em;
           right: 1em;
           bottom: 1em;
@@ -363,13 +363,14 @@
         d3.select(this.$.graphoptions).select("svg").remove();
 
         var svg = d3.select(this.$.graphoptions).append("svg");
+
         svg.attr("width", this.graph_width)
             .attr("height", this.graph_height);
 
         this.force
-            .gravity(.05)
+            .gravity(.1)
             .distance(100)
-            .charge(-1200)
+            .charge(-1400)
             .size([this.graph_width, this.graph_height]);
 
         this.force
@@ -472,10 +473,14 @@
         if (show) {
             anim = new Animation(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 200});
             this.force.size([this.graph_width * 0.66, this.graph_height]).start();
+            elem.style.display = "block";
             this.editPanelVisible = true;
         } else {
             anim = new Animation(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 200});
             this.force.size([this.graph_width, this.graph_height]).start();
+            anim.onfinish = function() {
+                this.$.editpanel.style.display = "none";
+            }.bind(this);
             this.editPanelVisible = false;
         }
         var player = document.timeline.play(anim);
