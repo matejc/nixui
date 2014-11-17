@@ -34,3 +34,31 @@ dbs.profiles.current = function(id) {
     }
     return data.currentProfileId;
 };
+
+dbs.profiles.get = function(profileId) {
+    var id = (profileId===undefined) ? dbs.profiles.current() : profileId;
+    var profile = null;
+    data.profiles.forEach(function(key, val) {
+        if (val.id == id) {
+            profile = val;
+        }
+    });
+    return profile;
+};
+
+var NixInterface = require("../interface");
+
+dbs.configs = function(profileId, attrs, cb) {
+    var profile = dbs.profiles.get(profileId);
+    NixInterface.configTree(attrs, profile.file, profile.env, function(data) {
+        var result = JSON.parse(JSON.parse(data));
+        data.configs = result;
+        cb(null, result);
+    }, function(err) {
+        cb(err);
+    });
+};
+
+dbs.configs.all = function() {
+    return data.configs;
+};

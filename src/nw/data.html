@@ -20,3 +20,23 @@
     })();
     </script>
 </polymer-element>
+
+<polymer-element name="nixui-configs">
+    <template>
+    </template>
+    <script>
+    (function() {
+        Polymer('nixui-configs', {
+            ready: function() {
+                this.configs = require("./data.js").configs;
+            },
+            init: function(cb) {
+                this.configs(undefined, "configuration", cb);
+            },
+            all: function() {
+                this.configs.all();
+            }
+        });
+    })();
+    </script>
+</polymer-element>
