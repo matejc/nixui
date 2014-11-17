@@ -16,10 +16,10 @@ let
       cp -r $src/bower_components $out
       cp -r $src/src $out
 
-      cat > $out/bin/nixui-server <<EOF
-      PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.nodejs}/bin/node $out/src/server.js "\$@"
+      cat > $out/bin/nixui <<EOF
+      PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.node_webkit}/bin/nw $out "\$@"
       EOF
-      chmod +x $out/bin/nixui-server
+      chmod +x $out/bin/nixui
     '';
   };
 
@@ -29,9 +29,9 @@ let
     if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = with pkgs; [ nodejs psmisc nettools ];
+        buildInputs = with pkgs; [ nodejs psmisc nettools node_webkit python27 ];
         shellHook = ''
-          export NODE_PATH="`pwd`/packages:`pwd`/node_modules:$NODE_PATH"
+          export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';
       }
     else  # run
@@ -40,13 +40,9 @@ let
         src = nixui;
         buildInputs = with pkgs; [ psmisc nettools ];
         shellHook = ''
-          cleanup() {
-            echo "Killing server ..."
-            fuser -k 8000/tcp;
-          }
-          trap cleanup INT TERM EXIT
+          trap "exit" INT TERM EXIT
 
-          ${nixui}/bin/nixui-server
+          ${nixui}/bin/nixui
         '';
       };
 

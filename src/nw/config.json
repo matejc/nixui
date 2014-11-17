@@ -1,0 +1,13 @@
+{
+    "profiles": [{
+        "name": "default",
+        "profile": "current",
+        "file": null,
+        "env": null
+    }, {
+        "name": "matej",
+        "profile": "/home/matej/.nix-profile",
+        "file": "/home/matej/workarea/nixpkgs/default.nix",
+        "env": null
+    }]
+}

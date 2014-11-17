@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>NixUI</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <script src="../../bower_components/platform/platform.js"></script>
+    <link rel="import" href="../../bower_components/paper-input/paper-input.html">
+    <link rel="import" href="../../bower_components/paper-ripple/paper-ripple.html">
+    <link rel="import" href="../../bower_components/core-animation/core-animation.html">
+    <link rel="import" href="./data.html">
+
+    <style>
+    html,body {
+        height: 100%;
+        margin: 0;
+        background-color: white;
+        font-family: sans-serif;
+    }
+    </style>
+
+    <polymer-element name="nixui-chooser">
+    <template>
+        <style>
+        #userlist {
+            width: 200px;
+            height: auto;
+            padding-right: 4em;
+        }
+        .item {
+            position: relative;
+            height: 40px;
+            line-height: 40px;
+            color: #949494;
+            padding-right: 0.5em;
+            padding-left: 0.5em;
+        }
+        .item:hover {
+            background-color: #eeeeee;
+        }
+        .item_selected {
+            color: #005aa0;
+        }
+        #container {
+            width: 100%;
+        }
+        #wrapper {
+            height: 100%;
+        }
+        .label {
+            font-weight: bold;
+            font-size: 70%;
+            color: #005aa0;
+        }
+        #actionlist {
+            width: 300px;
+            height: auto;
+            padding-left: 4em;
+        }
+        </style>
+        <div id="wrapper" layout horizontal center>
+            <div id="container" horizontal center-justified layout>
+                <div id="userlist">
+                    <div class="label">Select profile:</div>
+                    <template repeat="{{ p in profiles }}">
+                        <div class="item" on-click="{{selectprofile}}" data-id="{{p.id}}" data-name="{{p.name}}">
+                            <span>{{p.name}}</span>
+                            <paper-ripple fit/>
+                        </div>
+                    </template>
+                </div>
+                <div id="actionlist" center>
+                    <div class="label">Select action ({{currentProfile}}):</div>
+                    <template repeat="{{ a in actions }}">
+                        <div class="item" on-click="{{selectaction}}" data-url="{{a.url}}">
+                            <span>{{a.label}}</span>
+                            <paper-ripple fit/>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <core-animation id="actionsFadeIn" duration="300">
+          <core-animation-keyframe>
+            <core-animation-prop name="opacity" value="0"></core-animation-prop>
+          </core-animation-keyframe>
+          <core-animation-keyframe>
+            <core-animation-prop name="opacity" value="1"></core-animation-prop>
+          </core-animation-keyframe>
+        </core-animation>
+
+        <nixui-profiles id="profiles"></nixui-profiles>
+    </template>
+    <script>
+    (function() {
+        Polymer('nixui-chooser', {
+            ready: function() {
+                this.$.actionlist.style.opacity = 0;
+                this.profiles = [];
+                this.actions = [
+                    { label: "Package Manager", url: "/src/nw/index.html" },
+                    { label: "Configuration", url: "/src/nw/config-force.html" }
+                ];
+
+                this.$.profiles.init();
+                this.profiles = this.$.profiles.all();
+            },
+            selectprofile: function(e) {
+                item = e.target.parentNode;
+                if (item) {
+                    items = this.shadowRoot.querySelectorAll(".item");
+                    for (var i in items) {
+                        items[i].className = item.className.replace( /(?:^|\s)item_selected(?!\S)/g , '' )
+                    }
+                    item.className += " item_selected";
+                    this.currentProfile = item.getAttribute("data-name");
+                    this.currentProfileId = item.getAttribute("data-id");
+                    this.fadeInActions();
+                }
+            },
+            fadeInActions: function() {
+                this.$.actionsFadeIn.target = this.$.actionlist;
+                this.$.actionsFadeIn.fill = "forwards";
+                this.$.actionsFadeIn.play();
+            },
+            selectaction: function(e) {
+                actionnode = e.target.parentNode;
+                if (actionnode) {
+                    this.$.profiles.current(this.currentProfileId);
+                    window.location.assign(actionnode.getAttribute("data-url"));
+                }
+            }
+        });
+    })();
+    </script>
+    </polymer-element>
+
+</head>
+<body>
+
+    <nixui-chooser></nixui-chooser>
+
+</body>
+</html>

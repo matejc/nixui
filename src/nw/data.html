@@ -1,0 +1,22 @@
+<polymer-element name="nixui-profiles">
+    <template>
+    </template>
+    <script>
+    (function() {
+        Polymer('nixui-profiles', {
+            ready: function() {
+                this.profiles = require("./data.js").profiles;
+            },
+            init: function() {
+                this.profiles();
+            },
+            all: function() {
+                return this.profiles.all();
+            },
+            current: function(id) {
+                return this.profiles.current(id);
+            }
+        });
+    })();
+    </script>
+</polymer-element>
