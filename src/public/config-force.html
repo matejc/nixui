@@ -7,6 +7,7 @@
   <script src="/bower_components/platform/platform.js"></script>
 
 
+  <link rel="import" href="/dispatcher.html"><nixui-dispatcher></nixui-dispatcher>
   <link rel="import" href="/ajax.html">
   <link rel="import" href="/marked.html">
   <link rel="import" href="/error-dialog.html">
@@ -28,6 +29,7 @@
   <script src="/bower_components/jQuery/dist/jquery.min.js"></script>
 
   <script src="/bower_components/d3/d3.min.js"></script>
+
 
   <polymer-element name="nixui-configuration">
   <template>
@@ -144,6 +146,10 @@
         .node circle.option {
           fill: #98df8a;
         }
+        .node circle.value {
+            stroke: orange;
+            stroke-width: 2px;
+        }
         .link {
           stroke: #999;
           stroke-opacity: .6;
@@ -221,6 +227,9 @@
         #editpanel #value {
             width: 100%;
         }
+        paper-input {
+            font-family: monospace;
+        }
     </style>
     <div id="panel" layout horizontal>
         <div id="graphoptions" flex></div>
@@ -240,7 +249,7 @@
             <pre id="default">{{optionDetails.default}}</pre>
         </template>
 
-        <paper-input id="value" multiline maxRows="5" floatingLabel label="value ..."></paper-input>
+        <paper-input id="value" multiline maxRows="5" floatingLabel label="value ..." value="{{optionDetails.val}}" on-keydown="{{optionValueKeyDown}}" on-keypress="{{optionValueKeyPress}}"></paper-input>
     </div>
     <ajax-queue id="ajax"></ajax-queue>
   </template>
@@ -339,7 +348,11 @@
         for (var key in root_option) {
             if (!this.query || (new RegExp(this.query, "i")).test("" + key)) {
                 options.push({"name": key});
-                json.nodes.push({"name": key, "group": (root_option[key].optType?3:2), "type": root_option[key].optType, "val": root_option[key].val});
+                if (root_option[key].optType) {
+                    json.nodes.push({"name": key, "group": 3, "type": root_option[key].optType, "val": root_option[key].val});
+                } else {
+                    json.nodes.push({"name": key, "group": 2, "type": undefined, "val": root_option[key].val});
+                }
                 json.links.push({"source": i++, "target": 0, "value": 1});
             }
         }
@@ -348,6 +361,9 @@
 
         this.graph_width = $(this.$.graphoptions).width();
         this.graph_height = $(this.$.panel).height() - 3;
+        if (this.editPanelVisible) {
+            this.graph_width = this.graph_width * 0.66;
+        }
 
         this.startPoint.x = this.graph_width / 2;
         this.startPoint.y = this.graph_height / 2;
@@ -401,7 +417,7 @@
              .attr("r", 15)
              .attr("class", function(d) {
                  if (d.group === 3) {
-                     return "option";
+                     return "option" + (d.val?" value":"");
                  } else if (d.group === 2) {
                      return "enterable";
                  } else {

@@ -1,4 +1,4 @@
-{ attrs ? "configuration", useConfiguration ? false }:
+{ attrs ? "configuration", useConfiguration ? true }:
 let
   pkgs = import <nixpkgs> {};
 
@@ -52,22 +52,11 @@ let
       if pkgs.lib.any (x: x=="*") path then {} else
       if pkgs.lib.any (x: x=="<name>") path then {} else
       if pkgs.lib.any (x: x=="<name?>") path then {} else
-      (getStringVal path value expand)
+      {val = scrubOptionValue value;}
     );
 
   getStringVal = p: v: expand:
-    let
-      t = pkgs.lib.nixType v;
-    in
-    {attr = pkgs.lib.concatStringsSep "." p; type = t;} // (
-    if t == "string" then {val = (if builtins.typeOf v == "lambda" then "<lambda>" else toString v);} else
-    if t == "bool" then {val = (if v == true then "true" else "false");} else
-    if t == "int" then {val = toString v;} else
-    if t == "aattrs" then {val = (if expand then expandAattrs p v else "{..}");} else
-    if t == "list" then {val = (if expand then expandList p v else "[..]");} else
-    if t == "derivation" then {val = v.outPath;} else
-    if t == "function" then {val = "type:"+t;} else
-    {val = "type:"+t;});
+    {val = scrubOptionValue v;};
 
   expandList = p: v: (pkgs.lib.imap (i: j: (getStringVal (p) j false)) v);
   expandAattrs = p: v: pkgs.lib.mapAttrs (n: v: getStringVal (p++[n]) v false) (builtins.removeAttrs v ["_args"]);

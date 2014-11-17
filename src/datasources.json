@@ -2,8 +2,13 @@
   "none": {
     "name": "none"
   },
-  "db": {
-    "name": "db",
-    "connector": "memory"
-  }
+   "filedb": {
+     "name": "filedb",
+     "connector": "memory",
+     "file": "./data/memory.json"
+   },
+   "ramdb": {
+     "name": "ramdb",
+     "connector": "memory"
+   }
 }

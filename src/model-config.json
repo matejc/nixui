@@ -5,22 +5,22 @@
     ]
   },
   "user": {
-    "dataSource": "db",
+    "dataSource": "ramdb",
     "public": true
   },
   "AccessToken": {
-    "dataSource": "db",
+    "dataSource": "ramdb",
     "public": false
   },
   "ACL": {
-    "dataSource": "db",
+    "dataSource": "ramdb",
     "public": false
   },
   "nix-packages": {
     "dataSource": "none"
   },
   "nix-marked": {
-    "dataSource": "db"
+    "dataSource": "filedb"
   },
   "nix-config": {
     "dataSource": "none"

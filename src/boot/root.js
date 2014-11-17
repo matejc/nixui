@@ -10,7 +10,7 @@ module.exports = function(server) {
             },
             function(err, token) {
                 if (token) {
-                    res.send({loc: "/index.html"});
+                    res.send({loc: null});
                 } else {
                     res.send({loc: "/login.html"});
                 }
@@ -27,7 +27,7 @@ module.exports = function(server) {
                 res.cookie('access_token', token.id, {
                     signed: true
                 });
-                res.send({loc: "/index.html"});
+                res.send({loc: null});
             } else {
                 res.send({loc: "/login.html"});
             }

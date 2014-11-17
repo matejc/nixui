@@ -9,7 +9,7 @@
   Polymer('nixui-dispatcher', {
     ready: function() {
       this.$.ajax.go("/dispatcher", null, "GET",function(data) {
-        if (document.location.pathname != data.loc) {
+        if (data.loc && document.location.pathname != data.loc) {
           document.location.assign(data.loc);
         }
       }.bind(this));
