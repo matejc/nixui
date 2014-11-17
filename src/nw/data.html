@@ -40,3 +40,63 @@
     })();
     </script>
 </polymer-element>
+
+<polymer-element name="nixui-packages">
+    <template>
+    </template>
+    <script>
+    (function() {
+        Polymer('nixui-packages', {
+            ready: function() {
+                this.packages = require("./data.js").packages;
+                this.init();
+            },
+            init: function() {
+                this.packages();
+            },
+            delete: function(profileId, cb) {
+                this.packages.delete(profileId, cb);
+            },
+            delete_all: function(profileId, cb) {
+                this.packages.delete_all(profileId, cb);
+            },
+            fill: function(profileId, cb) {
+                this.packages.fill(profileId, cb);
+            },
+            filter: function(profileId, query, cb) {
+                this.packages.filter(profileId, query, cb);
+            },
+            info: function(profileId, attribute, cb) {
+                this.packages.info(profileId, attribute, cb);
+            },
+            get: function(profileId, attribute, cb) {
+                this.packages.get(profileId, attribute, cb);
+            },
+            reset: function(profileId, force, cb) {
+                this.packages.reset(profileId, force, cb);
+            }
+        });
+    })();
+    </script>
+</polymer-element>
+
+<polymer-element name="nixui-markeds">
+    <template>
+    </template>
+    <script>
+    (function() {
+        Polymer('nixui-markeds', {
+            ready: function() {
+                this.markeds = require("./data.js").markeds;
+                this.init();
+            },
+            init: function(cb) {
+                this.markeds();
+            },
+            set: function(profileId, attribute, mark, cb) {
+                this.markeds.set(profileId, attribute, mark, cb);
+            }
+        });
+    })();
+    </script>
+</polymer-element>
