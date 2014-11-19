@@ -9,9 +9,9 @@
 
 <link rel="import" href="./progress-bar.html">
 <link rel="import" href="./data.html">
-<!--<link rel="import" href="./marked.html">-->
+<link rel="import" href="./marked.html">
 <link rel="import" href="./error-dialog.html">
-<!--<link rel="import" href="./package-dialog.html">-->
+<link rel="import" href="./package-dialog.html">
 
 <polymer-element name="nixui-packagemanager">
     <template>
@@ -128,14 +128,14 @@
               this.$.message.show();
             },
             upgradeInstalled: function(e, detail, sender) {
-              this.$.packages.filter(this.$.profiles.current(), "!i", function(data) {
-                if (data.error) {
-                  this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+              this.$.packages.filter(this.$.profiles.current(), "!i", function(err, data) {
+                if (err) {
+                  this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
                 } else {
-                  for (item in data.data) {
+                  for (item in data) {
                     this.$.markeds.set(
                         this.$.profiles.current(),
-                        data.data[item].attribute,
+                        data[item].attribute,
                         'install',
                         function(data) {}.bind(this)
                     );

@@ -69,9 +69,9 @@ dbs.configs.all = function() {
 
 
 var db = require('../db');
+data.packages = db();
 
 dbs.packages = function() {
-    data.packages = db();
 };
 
 dbs.packages.delete = function(profileId, cb) {
@@ -131,7 +131,7 @@ dbs.packages.info = function(profileId, attribute, cb) {
         NixInterface.packageInfo(attribute, profile.file, profile.env, function(data) {
             cb(null, JSON.parse(JSON.parse(data)));  // data is double json encoded :)
         }, function(data) {
-            cb(data);
+            cb(null, data);
         });
     } else {
         cb("NOT_ATTRIBUTE");
@@ -188,7 +188,7 @@ dbs.markeds.get = function(profileId, attribute, cb) {
     });
 };
 
-dbs.markeds.toggle = function(profileId, attribute, mark, cb) {
+dbs.markeds.toggle = function(profileId, attribute, cb) {
     getPackageByAttribute(profileId, attribute, function(err, pkg) {
         if (err) {
             console.log(err);
@@ -216,8 +216,9 @@ dbs.markeds.toggle = function(profileId, attribute, mark, cb) {
 
             if (result.error)
                 cb(result.error, result);
-            else
-                cb(null, result);
+            else {
+                dbs.markeds.set(profileId, attribute, result.mark, cb);
+            }
         });
     });
 };
@@ -271,7 +272,7 @@ dbs.markeds.apply_all = function(profileId, cb) {
 
 dbs.markeds.list = function(profileId, cb) {
     var arrayOfInstances = [];
-    data.profiles.forEach(function(key, val) {
+    data.markeds.forEach(function(key, val) {
         arrayOfInstances.push(val);
     });
     cb(null, arrayOfInstances);
@@ -357,12 +358,8 @@ var setMarkObjStateByAttribute = function(profileId, attribute, state, cb) {
             cb("setMarkObjStateByAttribute: Not an instance for attribute: "+attribute);
             return;
         }
-        instance.updateAttribute("state", state, function(err) {
-            if (err) {
-                console.log(err);
-            }
-            cb(err);
-        });
+        instance.state = state;
+        cb();
     });
 };
 var applyMark = function(profileId, attribute, name, mark, finish_callback, error_callback) {

@@ -7,11 +7,17 @@ function DB() {
     db = {};
 }
 
+var createId = function(id) {
+    return "profile"+id;
+}
+
 DB.isEmpty = function(id) {
+    id = createId(id);
     return _.isEmpty(db[id]);
 };
 
 DB.add = function(id, data) {
+    id = createId(id);
     if (!_.isArray(db[id])) {
         db[id] = [];
     }
@@ -19,6 +25,7 @@ DB.add = function(id, data) {
 };
 
 DB.get = function(id, data, callback) {
+    id = createId(id);
     var i;
     for (i in db[id]) {
         var j;
@@ -40,6 +47,7 @@ DB.get = function(id, data, callback) {
 };
 
 DB.filter = function(id, query, callback) {
+    id = createId(id);
     if (!query) {
         callback(null, db[id]);
         return;
@@ -74,5 +82,6 @@ DB.deleteAll = function() {
 };
 
 DB.delete = function(id) {
+    id = createId(id);
     db[id] = [];
 };

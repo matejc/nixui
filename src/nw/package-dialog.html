@@ -1,7 +1,7 @@
-<link rel="import" href="/ajax.html">
-<link rel="import" href="/dialog.html">
-<link rel="import" href="/bower_components/core-signals/core-signals.html">
-<link rel="import" href="/bower_components/paper-dialog/paper-dialog-transition.html">
+<link rel="import" href="./data.html">
+<link rel="import" href="./dialog.html">
+<link rel="import" href="../../bower_components/core-signals/core-signals.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog-transition.html">
 
 
 <polymer-element name="package-dialog" attributes="controlDim">
@@ -9,7 +9,7 @@
   <core-signals on-core-signal-pkginfo="{{pkginfoSignal}}"></core-signals>
   <style>
   #pkgdialog {
-    font-family: 'RobotoDraft', sans-serif;
+    font-family: sans-serif;
     font-size: 90%;
     border-style: solid;
     border-width: 2px;
@@ -45,7 +45,9 @@
 
     <paper-button id="markedbtn" label="{{markItem.label}}" on-click="{{toggleMarked}}" affirmative></paper-button>
   </my-dialog>
-  <ajax-queue id="ajax"></ajax-queue>
+  <nixui-markeds id="markeds"></nixui-markeds>
+  <nixui-profiles id="profiles"></nixui-profiles>
+  <nixui-packages id="packages"></nixui-packages>
 </template>
 <script>
 (function() {
@@ -68,28 +70,26 @@
     },
     pkginfoSignal: function(e, detail, sender) {
       this.signalobj = detail;
-      this.$.ajax.add("/api/nix-markeds/get", {
-        'attribute': this.signalobj.pkgattr
-      }, "GET", function(data) {
-        this.markItem = this.getMarkItem(data.data);
-      }.bind(this));
-
-      this.$.ajax.add("/api/nix-packages/info", {
-        'attribute': this.signalobj.pkgattr
-      }, "GET", function(data) {
-        if (data.error) {
-          this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
+      this.$.markeds.get(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
+        if (err) {
+          this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
           return;
         }
-        this.pkginfo = data.data;
+        this.markItem = this.getMarkItem(data);
+      }.bind(this));
+
+      this.$.packages.info(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
+        if (err) {
+          this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
+          return;
+        }
+        this.pkginfo = data;
         this.open();
       }.bind(this));
     },
     toggleMarked: function(e, detail, sender) {
-      this.$.ajax.add('/api/nix-markeds/toggle', {
-        'attribute': this.signalobj.pkgattr,
-      }, "GET", function(data) {
-        this.markItem = this.getMarkItem(data.data);
+      this.$.markeds.toggle(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
+        this.markItem = this.getMarkItem(data);
       }.bind(this));
     },
     closeBtnDown: function(e, detail, sender) {
@@ -153,14 +153,14 @@
 <template>
   <style>
   #panellabel {
-    font-family: 'RobotoDraft', sans-serif;
+    font-family: sans-serif;
     text-transform: uppercase;
     font-weight: bold;
     font-size: 60%;
     color: #005aa0;
   }
   #panelcontent {
-    font-family: 'RobotoDraft', sans-serif;
+    font-family: sans-serif;
     color: #646464;
   }
   .hidden {

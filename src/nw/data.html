@@ -49,7 +49,7 @@
         Polymer('nixui-packages', {
             ready: function() {
                 this.packages = require("./data.js").packages;
-                this.init();
+                // this.init();
             },
             init: function() {
                 this.packages();
@@ -90,11 +90,35 @@
                 this.markeds = require("./data.js").markeds;
                 this.init();
             },
-            init: function(cb) {
+            init: function() {
                 this.markeds();
             },
             set: function(profileId, attribute, mark, cb) {
                 this.markeds.set(profileId, attribute, mark, cb);
+            },
+            get: function(profileId, attribute, cb) {
+                this.markeds.get(profileId, attribute, cb);
+            },
+            toggle: function(profileId, attribute, cb) {
+                this.markeds.toggle(profileId, attribute, cb);
+            },
+            delete_all: function(profileId, cb) {
+                this.markeds.delete_all(profileId, cb);
+            },
+            delete_finished: function(profileId, cb) {
+                this.markeds.delete_finished(profileId, cb);
+            },
+            delete: function(profileId, attribute, cb) {
+                this.markeds.delete(profileId, attribute, cb);
+            },
+            list: function(profileId, cb) {
+                this.markeds.list(profileId, cb);
+            },
+            apply: function(profileId, attribute, cb) {
+                this.markeds.apply(profileId, attribute, cb);
+            },
+            apply_all: function(profileId, cb) {
+                this.markeds.apply_all(profileId, cb);
             }
         });
     })();
