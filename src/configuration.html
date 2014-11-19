@@ -4,32 +4,27 @@
 <head>
   <title>NixUI</title>
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-  <script src="/bower_components/platform/platform.js"></script>
+  <script src="../bower_components/platform/platform.js"></script>
 
+  <link rel="import" href="../bower_components/core-header-panel/core-header-panel.html">
+  <link rel="import" href="../bower_components/core-toolbar/core-toolbar.html">
+  <link rel="import" href="../bower_components/core-input/core-input.html">
+  <link rel="import" href="../bower_components/paper-input/paper-input.html">
+  <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
+  <link rel="import" href="../bower_components/core-icon-button/core-icon-button.html">
+  <link rel="import" href="../bower_components/core-signals/core-signals.html">
+  <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
+  <link rel="import" href="../bower_components/paper-item/paper-item.html">
+  <link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+  <link rel="import" href="../bower_components/core-dropdown/core-dropdown.html">
+  <link rel="import" href="../bower_components/core-item/core-item.html">
+  <link rel="import" href="../bower_components/core-menu/core-menu.html">
 
-  <link rel="import" href="/dispatcher.html"><nixui-dispatcher></nixui-dispatcher>
-  <link rel="import" href="/ajax.html">
-  <link rel="import" href="/marked.html">
-  <link rel="import" href="/error-dialog.html">
-  <link rel="import" href="/package-dialog.html">
-  <link rel="import" href="/bower_components/core-header-panel/core-header-panel.html">
-  <link rel="import" href="/bower_components/core-toolbar/core-toolbar.html">
-  <link rel="import" href="/bower_components/core-input/core-input.html">
-  <link rel="import" href="/bower_components/paper-input/paper-input.html">
-  <link rel="import" href="/bower_components/paper-ripple/paper-ripple.html">
-  <link rel="import" href="/bower_components/core-icon-button/core-icon-button.html">
-  <link rel="import" href="/bower_components/core-signals/core-signals.html">
-  <link rel="import" href="/bower_components/paper-menu-button/paper-menu-button.html">
-  <link rel="import" href="/bower_components/paper-item/paper-item.html">
-  <link rel="import" href="/bower_components/paper-toast/paper-toast.html">
-  <link rel="import" href="/bower_components/core-dropdown/core-dropdown.html">
-  <link rel="import" href="/bower_components/core-item/core-item.html">
-  <link rel="import" href="/bower_components/core-menu/core-menu.html">
+  <script src="../bower_components/jQuery/dist/jquery.min.js"></script>
 
-  <script src="/bower_components/jQuery/dist/jquery.min.js"></script>
+  <script src="../bower_components/d3/d3.min.js"></script>
 
-  <script src="/bower_components/d3/d3.min.js"></script>
-
+  <link rel="import" href="./data.html">
 
   <polymer-element name="nixui-configuration">
   <template>
@@ -81,7 +76,7 @@
     <div class="core-header">
       <core-toolbar>
         <div class="nixuicenter">
-          <a href="/" class="nixuilink">NixUI<paper-ripple fit></paper-ripple></a>
+          <a href="chooser.html" class="nixuilink">NixUI<paper-ripple fit></paper-ripple></a>
         </div>
         <div flex></div>
         <path-input id="pathfield" path="{{path}}"></path-input>
@@ -97,7 +92,6 @@
   <error-dialog controlDim="true"></error-dialog>
   <!--<marked-dialog controlDim="true"></marked-dialog>-->
 
-  <ajax-wrapper id="ajax"></ajax-wrapper>
   <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
   </template>
   <script>
@@ -157,7 +151,7 @@
         .node text {
           pointer-events: none;
           /*font: 10px sans-serif;*/
-          font-family: 'RobotoDraft', sans-serif;
+          font-family: sans-serif;
           font-variant: small-caps;
           stroke: #005aa0;
           /*text-shadow: 0 0 20px #0ae;*/
@@ -189,13 +183,13 @@
           padding: 0.5em;
         }
         #editpanel #path {
-            font-family: 'RobotoDraft', sans-serif;
+            font-family: sans-serif;
             font-variant: small-caps;
             font-weight: bold;
             color: #005aa0;
         }
         #editpanel #type {
-            font-family: 'RobotoDraft', sans-serif;
+            font-family: sans-serif;
             font-variant: small-caps;
             font-weight: bold;
             color: #888;
@@ -217,7 +211,7 @@
             word-wrap: break-word;       /* Internet Explorer 5.5+ */
         }
         .label {
-            font-family: 'RobotoDraft', sans-serif;
+            font-family: sans-serif;
             font-variant: small-caps;
             width: 100%;
             text-align: right;
@@ -251,7 +245,7 @@
 
         <paper-input id="value" multiline maxRows="5" floatingLabel label="value ..." value="{{optionDetails.val}}" on-keydown="{{optionValueKeyDown}}" on-keypress="{{optionValueKeyPress}}"></paper-input>
     </div>
-    <ajax-queue id="ajax"></ajax-queue>
+    <nixui-configs id="configs"></nixui-configs>
   </template>
   <script>
   (function() {
@@ -267,20 +261,16 @@
         this.graph_height = this.graph_width = 100;
         this.optionDetails = {};
 
-        this.$.ajax.add("/api/nix-configs/configurationnixtree", {
-          'attrs': "configuration"
-        }, "GET", function(data) {
-          if (data.error) {
-            this.fire('core-signal', {name: "error", data: {text: data.error, controlDim: true}});
-          } else {
-            this.options = data.data;
+        this.$.configs.init(function(err, result) {
+            if (err) throw err;
 
+            this.options = result;
             this.optionsRedraw();
 
             this.recurse([], this.options);
             this.fire('core-signal', {name: "alloptions", data: this.alloptions});
-          }
         }.bind(this));
+
       },
       pathSignal: function(e, detail, sender) {
         this.position = $.grep(detail.position, function(value, index) {
@@ -566,7 +556,7 @@
         }
         core-input {
             border-bottom: 1px solid #50a0ff;
-            font-family: 'RobotoDraft', sans-serif;
+            font-family: sans-serif;
             font-variant: small-caps;
             font-size: 75%;
             width: 25em;
@@ -577,7 +567,7 @@
             margin: 0;
             width: 25em;
             height: 5em;
-            font-family: 'RobotoDraft', sans-serif;
+            font-family: sans-serif;
             font-variant: small-caps;
             font-size: 75%;
         }
@@ -718,7 +708,7 @@
         }
         core-input {
             border-bottom: 1px solid #50a0ff;
-            font-family: 'RobotoDraft', sans-serif;
+            font-family: sans-serif;
             font-variant: small-caps;
             font-size: 75%;
             width: 25em;
@@ -729,7 +719,7 @@
             margin: 0;
             width: 25em;
             height: 5em;
-            font-family: 'RobotoDraft', sans-serif;
+            font-family: sans-serif;
             font-variant: small-caps;
             font-size: 75%;
         }
@@ -848,7 +838,7 @@
     height: 100%;
     margin: 0;
     background-color: white;
-    font-family: 'RobotoDraft', sans-serif;
+    font-family: sans-serif;
   }
   </style>
 </head>

@@ -1,9 +1,0 @@
-{
-  "name": "nix-marked",
-  "base": "PersistedModel",
-  "properties": {},
-  "validations": [],
-  "relations": {},
-  "methods": [],
-  "acls": []
-}

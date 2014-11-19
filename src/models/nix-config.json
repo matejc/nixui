@@ -1,9 +1,0 @@
-{
-  "name": "nix-config",
-  "base": "PersistedModel",
-  "properties": {},
-  "validations": [],
-  "relations": {},
-  "methods": [],
-  "acls": []
-}

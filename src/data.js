@@ -49,7 +49,7 @@ dbs.profiles.get = function(profileId) {
 
 
 
-var NixInterface = require("../interface.js");
+var NixInterface = require("./interface.js");
 
 dbs.configs = function(profileId, attrs, cb) {
     var profile = dbs.profiles.get(profileId);
@@ -68,7 +68,7 @@ dbs.configs.all = function() {
 
 
 
-var db = require('../db');
+var db = require('./db');
 data.packages = db();
 
 dbs.packages = function() {

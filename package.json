@@ -2,7 +2,7 @@
   "name": "nixui",
   "version": "0.0.1",
   "description": "nix-env frontend written with Polymer",
-  "main": "src/nw/chooser.html",
+  "main": "src/chooser.html",
   "keywords": [
     "nixos",
     "nix",
