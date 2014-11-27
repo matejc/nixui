@@ -81,14 +81,14 @@
             </div>
         </div>
 
-        <core-animation id="actionsFadeIn" duration="300">
-          <core-animation-keyframe>
-            <core-animation-prop name="opacity" value="0"></core-animation-prop>
-          </core-animation-keyframe>
-          <core-animation-keyframe>
-            <core-animation-prop name="opacity" value="1"></core-animation-prop>
-          </core-animation-keyframe>
-        </core-animation>
+        <!--<core-animation id="actionsFadeIn" duration="300">-->
+        <!--  <core-animation-keyframe>-->
+        <!--    <core-animation-prop name="opacity" value="0"></core-animation-prop>-->
+        <!--  </core-animation-keyframe>-->
+        <!--  <core-animation-keyframe>-->
+        <!--    <core-animation-prop name="opacity" value="1"></core-animation-prop>-->
+        <!--  </core-animation-keyframe>-->
+        <!--</core-animation>-->
 
         <nixui-profiles id="profiles"></nixui-profiles>
     </template>
@@ -120,9 +120,10 @@
                 }
             },
             fadeInActions: function() {
-                this.$.actionsFadeIn.target = this.$.actionlist;
-                this.$.actionsFadeIn.fill = "forwards";
-                this.$.actionsFadeIn.play();
+                this.$.actionlist.style.opacity = 1;
+                // this.$.actionsFadeIn.target = this.$.actionlist;
+                // this.$.actionsFadeIn.fill = "forwards";
+                // this.$.actionsFadeIn.play();
             },
             selectaction: function(e) {
                 actionnode = e.target.parentNode;
