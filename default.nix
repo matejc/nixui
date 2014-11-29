@@ -15,6 +15,7 @@ let
       cp -r $src/node_modules $out
       cp -r $src/bower_components $out
       cp -r $src/src $out
+      cp -r $src/package.json $out
 
       cat > $out/bin/nixui <<EOF
       PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.node_webkit}/bin/nw $out "\$@"
