@@ -2,7 +2,7 @@
 <link rel="import" href="./dialog.html">
 <link rel="import" href="../bower_components/core-signals/core-signals.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog-transition.html">
-
+<script src="../bower_components/underscore/underscore-min.js"></script>
 
 <polymer-element name="package-dialog" attributes="controlDim">
 <template>
@@ -182,17 +182,17 @@
 
       var result = null;
 
-      if (entry instanceof Array) {
+      if (_.isArray(entry)) {
         var array = [];
         for (var key in entry) {
-          if (entry[key].hasOwnProperty("name") && typeof entry[key].name == "string") {
+          if (entry[key].hasOwnProperty("name") && _.isString(entry[key].name)) {
             array.push(entry[key].name);
           } else {
             array.push(entry[key]);
           }
         }
         result = array.join(", ");
-      } else if (entry instanceof Object && entry.hasOwnProperty("fullName")) {
+      } else if (_.isObject(entry) && entry.hasOwnProperty("fullName")) {
         result = entry.fullName;
       } else {
         result = entry;
