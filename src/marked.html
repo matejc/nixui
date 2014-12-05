@@ -27,9 +27,9 @@
   </style>
   <my-dialog id="dialog" heading="Manage Marked" autoCloseDisabled="true" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom" closeSelector="" contentSelect="list-marked">
     <list-marked id="listmarked"></list-marked>
-    <paper-button on-keydown="{{closeBtnDown}}" on-click="{{closeDialog}}" label="Close" dismissive></paper-button>
-    <paper-button on-click="{{clearAll}}" label="Clear All" affirmative></paper-button>
-    <paper-button on-click="{{applyAll}}" label="Apply All" affirmative></paper-button>
+    <paper-button on-keydown="{{closeBtnDown}}" on-click="{{closeDialog}}" dismissive>Close</paper-button>
+    <paper-button on-click="{{clearAll}}" affirmative>Clear All</paper-button>
+    <paper-button on-click="{{applyAll}}" affirmative>Apply All</paper-button>
   </my-dialog>
   <nixui-markeds id="markeds"></nixui-markeds>
   <nixui-profiles id="profiles"></nixui-profiles>

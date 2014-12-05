@@ -34,7 +34,7 @@
     "bower": "~1.3.9"
   },
   "window": {
-    "toolbar": false,
+    "toolbar": true,
     "width": 1000,
     "height": 700
   }

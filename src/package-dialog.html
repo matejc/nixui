@@ -41,9 +41,9 @@
 
       <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
 
-    <paper-button id="closebtn" on-keydown="{{closeBtnDown}}" label="Close" dismissive></paper-button>
+    <paper-button id="closebtn" on-keydown="{{closeBtnDown}}" dismissive>Close</paper-button>
 
-    <paper-button id="markedbtn" label="{{markItem.label}}" on-click="{{toggleMarked}}" affirmative></paper-button>
+    <paper-button id="markedbtn" on-click="{{toggleMarked}}" affirmative>{{markItem.label}}</paper-button>
   </my-dialog>
   <nixui-markeds id="markeds"></nixui-markeds>
   <nixui-profiles id="profiles"></nixui-profiles>

@@ -22,12 +22,11 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "https://github.com/Polymer/polymer.git#0.4.2",
-    "core-elements": "https://github.com/Polymer/core-elements.git#0.4.2",
-    "core-signals": "https://github.com/Polymer/core-signals.git#0.4.2",
-    "paper-elements": "https://github.com/Polymer/paper-elements.git#0.4.2",
-    "paper-menu-button": "https://github.com/Polymer/paper-menu-button.git#0.4.2",
-    "core-animation": "https://github.com/Polymer/core-animation.git#0.4.2",
+    "polymer": "Polymer/polymer#0.5.1",
+    "core-elements": "Polymer/core-elements#0.5.1",
+    "core-signals": "Polymer/core-signals#0.5.1",
+    "paper-elements": "Polymer/paper-elements#0.5.1",
+    "core-animation": "Polymer/core-animation#0.5.1",
     "jQuery": "~2.1.1",
     "d3": "~3.4.13"
   }

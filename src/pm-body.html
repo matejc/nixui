@@ -6,6 +6,9 @@
 <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-dropdown/paper-dropdown.html">
+<link rel="import" href="../bower_components/core-menu/core-menu.html">
 
 <link rel="import" href="./progress-bar.html">
 <link rel="import" href="./data.html">
@@ -70,12 +73,19 @@
                     <div flex></div>
                     <query-input id="queryfield" query="{{query}}"></query-input>
                     <div flex></div>
-                    <paper-menu-button icon="more-vert" halign="right">
-                        <paper-item on-click="{{searchFor}}" data-query="!i" label="Search installed"></paper-item>
-                        <paper-item on-click="{{upgradeInstalled}}" label="Upgrade installed ..."></paper-item>
-                        <paper-item on-click="{{openMarkedDialog}}" label="Manage marked ..."></paper-item>
-                        <paper-item on-click="{{resetCacheForce}}" label="Reset cache"></paper-item>
+
+                    <paper-menu-button>
+                        <paper-icon-button icon="more-vert"></paper-icon-button>
+                        <paper-dropdown class="dropdown" halign="right">
+                            <core-menu class="menu">
+                                <paper-item on-click="{{searchFor}}" data-query="!i">Search installed</paper-item>
+                                <paper-item on-click="{{upgradeInstalled}}">Upgrade installed ...</paper-item>
+                                <paper-item on-click="{{openMarkedDialog}}">Manage marked ...</paper-item>
+                                <paper-item on-click="{{resetCacheForce}}">Reset cache</paper-item>
+                            </core-menu>
+                        </paper-dropdown>
                     </paper-menu-button>
+
                 </core-toolbar>
                 <progress-bar id="progressbar"></progress-bar>
             </div>
