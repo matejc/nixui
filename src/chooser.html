@@ -9,6 +9,8 @@
     <link rel="import" href="../bower_components/paper-input/paper-input.html">
     <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
     <link rel="import" href="../bower_components/core-animation/core-animation.html">
+    <link rel="import" href="../bower_components/core-signals/core-signals.html">
+
     <link rel="import" href="./data.html">
 
     <style>
@@ -22,11 +24,26 @@
 
     <polymer-element name="nixui-chooser">
     <template>
+        <core-signals on-core-signal-setconfiguration="{{setConfiguration}}"></core-signals>
         <style>
-        #userlist {
+        #actionlist {
             width: 200px;
-            height: auto;
-            padding-right: 4em;
+            height: 100%;
+            margin-left: 8em;
+        }
+        #profilelist {
+            width: auto;
+            height: 100%;
+            margin-left: 100px;
+            display: none;
+            opacity: 0;
+        }
+        #configlist {
+            width: auto;
+            height: 100%;
+            margin-left: 100px;
+            display: none;
+            opacity: 0;
         }
         .item {
             position: relative;
@@ -47,67 +64,73 @@
         }
         #wrapper {
             height: 100%;
+            width: 100%;
         }
         .label {
             font-weight: bold;
             font-size: 70%;
             color: #005aa0;
         }
-        #actionlist {
-            width: 300px;
-            height: auto;
-            padding-left: 4em;
-        }
         </style>
-        <div id="wrapper" layout horizontal center>
-            <div id="container" horizontal center-justified layout>
-                <div id="userlist">
-                    <div class="label">Select profile:</div>
-                    <template repeat="{{ p in profiles }}">
-                        <div class="item" on-click="{{selectprofile}}" data-id="{{p.id}}" data-name="{{p.name}}">
-                            <span>{{p.name}}</span>
-                            <paper-ripple fit/>
-                        </div>
-                    </template>
-                </div>
-                <div id="actionlist" center>
-                    <div class="label">Select action ({{currentProfile}}):</div>
-                    <template repeat="{{ a in actions }}">
-                        <div class="item" on-click="{{selectaction}}" data-url="{{a.url}}">
-                            <span>{{a.label}}</span>
-                            <paper-ripple fit/>
-                        </div>
-                    </template>
-                </div>
+        <div id="wrapper" layout horizontal>
+            <div id="actionlist" center-justified layout vertical>
+                <div class="label">Select action:</div>
+                <template repeat="{{ a in actions }}">
+                    <div class="item" on-click="{{selectaction}}" data-url="{{a.url}}" data-id="{{a.id}}">
+                        <span>{{a.label}}</span>
+                        <paper-ripple fit/>
+                    </div>
+                </template>
+            </div>
+            <div id="profilelist" center-justified layout vertical>
+                <div class="label">Select profile:</div>
+                <template repeat="{{ p in profiles }}">
+                    <div class="item" on-click="{{selectprofile}}" data-id="{{p.id}}">
+                        <span>{{p.name}}</span>
+                        <paper-ripple fit/>
+                    </div>
+                </template>
+            </div>
+            <div id="configlist" center-justified layout vertical>
+                <div class="label">Select configuration:</div>
+                <template repeat="{{ c in configurations }}">
+                    <div class="item" on-click="{{selectconfig}}" data-id="{{c._id}}">
+                        <span>{{c.path}}</span>
+                        <paper-ripple fit/>
+                    </div>
+                </template>
+                <configurations-input></configurations-input>
             </div>
         </div>
 
-        <!--<core-animation id="actionsFadeIn" duration="300">-->
-        <!--  <core-animation-keyframe>-->
-        <!--    <core-animation-prop name="opacity" value="0"></core-animation-prop>-->
-        <!--  </core-animation-keyframe>-->
-        <!--  <core-animation-keyframe>-->
-        <!--    <core-animation-prop name="opacity" value="1"></core-animation-prop>-->
-        <!--  </core-animation-keyframe>-->
-        <!--</core-animation>-->
-
         <nixui-profiles id="profiles"></nixui-profiles>
+        <nixui-configurations id="configurations"></nixui-configurations>
     </template>
     <script>
     (function() {
         Polymer('nixui-chooser', {
             ready: function() {
-                this.$.actionlist.style.opacity = 0;
                 this.profiles = [];
                 this.actions = [
-                    { label: "Package Manager", url: "package-manager.html" },
-                    { label: "Configuration", url: "configuration.html" }
+                    { id: 0, label: "Package Manager", url: "package-manager.html" },
+                    { id: 1, label: "Configuration", url: "configuration.html" }
                 ];
 
                 this.$.profiles.init();
-                this.profiles = this.$.profiles.all();
+                this.$.profiles.all(function (err, profiles) {
+                    this.profiles = profiles;
+                }.bind(this));
+
+                this.$.configurations.init();
+                this.$.configurations.all(function (err, cfgs) {
+                    this.configurations = cfgs;
+                }.bind(this));
             },
-            selectprofile: function(e) {
+            selectaction: function(e) {
+                if (this.animating === true) {
+                    return;
+                }
+
                 item = e.target.parentNode;
                 if (item) {
                     items = this.shadowRoot.querySelectorAll(".item");
@@ -115,28 +138,113 @@
                         items[i].className = item.className.replace( /(?:^|\s)item_selected(?!\S)/g , '' )
                     }
                     item.className += " item_selected";
-                    this.currentProfile = item.getAttribute("data-name");
-                    this.currentProfileId = item.getAttribute("data-id");
-                    this.fadeInActions();
+                    this.currentActionURL = item.getAttribute("data-url");
+                    this.currentActionId = item.getAttribute("data-id");
+
+                    switch (this.currentActionId) {
+                        case '0':
+                            this.listAnimationShow(this.$.profilelist);
+                            break;
+
+                        case '1':
+                            this.listAnimationShow(this.$.configlist);
+                            break;
+                    }
                 }
             },
-            fadeInActions: function() {
-                this.$.actionlist.style.opacity = 1;
-                // this.$.actionsFadeIn.target = this.$.actionlist;
-                // this.$.actionsFadeIn.fill = "forwards";
-                // this.$.actionsFadeIn.play();
-            },
-            selectaction: function(e) {
-                actionnode = e.target.parentNode;
-                if (actionnode) {
-                    this.$.profiles.current(this.currentProfileId);
-                    window.location.assign(actionnode.getAttribute("data-url"));
+            selectconfig: function(e) {
+                item = e.target.parentNode;
+                if (item) {
+                    this.$.configurations.current(item.getAttribute("data-id"));
+                    window.location.assign(this.currentActionURL);
                 }
+            },
+            selectprofile: function(e) {
+                item = e.target.parentNode;
+                if (item) {
+                    this.$.profiles.current(item.getAttribute("data-id"));
+                    window.location.assign(this.currentActionURL);
+                }
+            },
+            generateListAnimation: function(elem, show) {
+                var anim;
+                if (show) {
+                    anim = new Animation(elem, [{opacity: "0", 'margin-left': '400px', display: 'none'}, {opacity: "1", 'margin-left': '100px', display: 'flex'}], {fill: "forwards", duration: 200, easing: "ease"});
+                } else {
+                    anim = new Animation(elem, [{opacity: "1", 'margin-left': '100px', display: 'flex'}, {opacity: "0", 'margin-left': '400px', display: 'none'}], {fill: "forwards", duration: 200, easing: "ease"});
+                }
+                return anim;
+            },
+            listAnimationShow: function(elem) {
+                this.animating = true;
+                var sequence = [], hideElem;
+
+                if (this.$.profilelist.style.opacity == '1') {
+                    hideElem = this.$.profilelist;
+                    sequence.push(this.generateListAnimation(hideElem, false));
+                } else if (this.$.configlist.style.opacity == '1') {
+                    hideElem = this.$.configlist;
+                    sequence.push(this.generateListAnimation(hideElem, false));
+                }
+
+                sequence.push(this.generateListAnimation(elem, true));
+
+                var anim = new AnimationSequence(sequence);
+
+                var player = document.timeline.play(anim);
+                player.onfinish = function() {
+                    this.animating = false;
+                }.bind(this);
+            },
+            setConfiguration: function(event, detail, sender) {
+                this.$.configurations.set(detail, function() {
+                    this.$.configurations.all(function(err, cfgs) {
+                        this.configurations = cfgs;
+                    }.bind(this));
+                }.bind(this));
             }
         });
     })();
     </script>
     </polymer-element>
+
+    <polymer-element name="configurations-input">
+          <template>
+              <style type="text/css">
+                  #configurationsfield {
+                      border-bottom: 1px solid #50a0ff;
+                      font-family: sans-serif;
+                      /*font-variant: small-caps;*/
+                      font-size: 75%;
+                      width: 18em;
+                      margin: 1em 0.25em 0.25em 0.25em;
+                      color: #005aa0;
+                  }
+              </style>
+              <span>
+                  <div id="container" relative>
+                      <input is="core-input" id="configurationsfield" on-keyup="{{keyUpHandler}}" value="{{value}}" placeholder="new configuration"></input>
+                  </div>
+              </span>
+          </template>
+          <script>
+              (function() {
+                Polymer('configurations-input', {
+                  ready: function() {
+                    this.value = "";
+                  },
+                  keyUpHandler: function(event, detail, sender) {
+                    if (event.keyCode == 13) {
+                      this.fire('core-signal', {
+                          name: "setconfiguration",
+                          data: this.value
+                      });
+                    }
+                  }
+                });
+              })();
+          </script>
+      </polymer-element>
 
 </head>
 <body>

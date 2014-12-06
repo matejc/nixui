@@ -41,8 +41,6 @@ let
         src = nixui;
         buildInputs = with pkgs; [ psmisc nettools ];
         shellHook = ''
-          trap "exit" INT TERM EXIT
-
           ${nixui}/bin/nixui
         '';
       };

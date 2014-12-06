@@ -58,7 +58,6 @@
         </style>
         <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
         <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
-        <core-signals on-core-signal-resetcacheforce="{{resetCacheForce}}"></core-signals>
         <core-signals on-core-signal-message="{{message}}"></core-signals>
         <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
         <core-header-panel id="contentpanel" mode="seamed">
@@ -81,7 +80,7 @@
                                 <paper-item on-click="{{searchFor}}" data-query="!i">Search installed</paper-item>
                                 <paper-item on-click="{{upgradeInstalled}}">Upgrade installed ...</paper-item>
                                 <paper-item on-click="{{openMarkedDialog}}">Manage marked ...</paper-item>
-                                <paper-item on-click="{{resetCacheForce}}">Reset cache</paper-item>
+                                <paper-item on-click="{{resetCache}}">Reset cache</paper-item>
                             </core-menu>
                         </paper-dropdown>
                     </paper-menu-button>
@@ -116,11 +115,11 @@
               this.fire('core-signal', {name: "openmarked"});
             },
             ready: function() {
-              setTimeout(this.resetCache.bind(this), 1);
+              setTimeout(this.fillCache.bind(this), 1);
             },
-            resetCacheForce: function() {
+            fillCache: function() {
               this.fire('core-signal', {name: "progress", data: "start"});
-              this.$.queryfield.resetCacheForce();
+              this.$.queryfield.fillCache();
             },
             resetCache: function() {
               this.fire('core-signal', {name: "progress", data: "start"});
@@ -185,11 +184,13 @@
               ready: function() {
                 this.value = "";
               },
-              resetCacheForce: function() {
-                  this.resetCache(true);
+              resetCache: function() {
+                this.$.packages.reset(this.$.profiles.current(), function() {
+                  this.setPackages.bind(this)();
+                }.bind(this));
               },
-              resetCache: function(force) {
-                this.$.packages.reset(this.$.profiles.current(), force, function(data) {
+              fillCache: function() {
+                this.$.packages.fill(this.$.profiles.current(), function() {
                   this.setPackages.bind(this)();
                 }.bind(this));
               },

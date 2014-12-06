@@ -1,4 +1,4 @@
-{ attrs ? "configuration", useConfiguration ? true }:
+{ attrs ? "configuration", useConfiguration ? true, configurationnix ? "/etc/nixos/configuration.nix" }:
 let
   pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; };
 
@@ -18,7 +18,7 @@ let
           // pkgs.lib.optionalAttrs (opt ? default) { default = scrubOptionValue opt.default []; }
           // pkgs.lib.optionalAttrs (opt ? defaultText) { default = opt.defaultText; }
           // pkgs.lib.optionalAttrs (opt ? type) { optType = opt.type.name; }
-          // pkgs.lib.optionalAttrs (useConfiguration) (createEntry opt.loc configuration false []));
+          // pkgs.lib.optionalAttrs (useConfiguration) (createEntry opt.loc configuration []));
 
         subOptions =
           let ss = opt.type.getSubOptions opt.loc;
@@ -28,7 +28,7 @@ let
 
   attrsToStr = attr: visitList: pkgs.lib.mapAttrsToList (n: v: (toString n)+" = "+(scrubOptionValue v visitList) ) attr;
 
-  configuration = import <nixos-config> { inherit pkgs; config = pkgs.config; };
+  configuration = import configurationnix { inherit pkgs; config = pkgs.config; };
 
   scrubOptionValue = x: visitList:
     let
@@ -48,7 +48,7 @@ let
         else if pkgs.lib.isDerivation x then ("<drv>"+x.name+"</drv>")
         else if (x ? _type && x._type=="literalExample") then x.text
         else if pkgs.lib.isInt x then toString x
-        else if pkgs.lib.isString x then ''"''+(toString x)+''"''
+        else if pkgs.lib.isString x then "''"+(toString x)+"''"
         else if pkgs.lib.isBool x then (if x then "true" else "false")
         else if pkgs.lib.isFunction x then "<function>"
         else if pkgs.lib.isList x then "[ "+(pkgs.lib.concatStringsSep " " (map (y: scrubOptionValue y visitList_) x))+" ]"
@@ -56,20 +56,18 @@ let
         else if builtins.typeOf x == "lambda" then "<function>"
         else toString x);
 
-  createEntry = path: start: expand: visitList:
+  createEntry = path: start: visitList:
     let
       value = pkgs.lib.attrByPath path null start;
+      val = scrubOptionValue value visitList;
       #expandablePath = if (builtins.length path > 2) && ((builtins.elemAt path ((builtins.length path) - 2)) == "*") then pkgs.lib.take (builtins.length path - 2) path else null;
     in (
       #if expandablePath != null then ( (map (n: createEntry (expandablePath ++ [n.name]) object) (pkgs.lib.getAttrFromPath expandablePath object))) else
-      if pkgs.lib.any (x: x=="*") path then {} else
-      if pkgs.lib.any (x: x=="<name>") path then {} else
-      if pkgs.lib.any (x: x=="<name?>") path then {} else
-      {val = scrubOptionValue value visitList;}
+      # if pkgs.lib.any (x: x=="*") path then {} else
+      # if pkgs.lib.any (x: x=="<name>") path then {} else
+      # if pkgs.lib.any (x: x=="<name?>") path then {} else
+      {inherit val;}
     );
-
-  getStringVal = p: v: expand:
-    {val = scrubOptionValue v [];};
 
   extraArgs = { modules = []; inherit pkgs baseModules; inherit (pkgs) modulesPath; pkgs_i686 = import <nixpkgs/nixos/lib/nixpkgs.nix> { system = "i686-linux"; config.allowUnfree = true; }; utils = import <nixpkgs/nixos/lib/utils.nix> pkgs; };
   baseModules = import <nixpkgs/nixos/modules/module-list.nix>;
@@ -90,7 +88,6 @@ let
 in {
   dispatch = builtins.toJSON (
     if attrs == "configuration" then (zipSets (listOptionVals)) else
-    if attrs == "" then (getStringVal [] eval.options true) else
-    (createEntry (pkgs.lib.splitString "." attrs) eval.options true [])
+    (createEntry (pkgs.lib.splitString "." attrs) configuration [])
   );
 }

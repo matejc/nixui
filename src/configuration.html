@@ -241,6 +241,7 @@
                     <!--<paper-input id="value" multiline maxRows="5" floatingLabel label="value ..." value="{{optionDetails.val}}" on-keydown="{{optionValueKeyDown}}" on-keypress="{{optionValueKeyPress}}"></paper-input>-->
                 </div>
                 <nixui-configs id="configs"></nixui-configs>
+                <nixui-configurations id="configurations"></nixui-configurations>
             </template>
             <script>
                 (function() {
@@ -256,7 +257,7 @@
                         this.graph_height = this.graph_width = 100;
                         this.optionDetails = {};
 
-                        this.$.configs.init(function(err, result) {
+                        this.$.configs.init(this.$.configurations.current(), function(err, result) {
                             if (err) throw err;
 
                             this.options = result;

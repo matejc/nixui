@@ -1,4 +1,7 @@
 var spawn = require('child_process').spawn;
+var fs = require('fs');
+var path = require('path');
+var _ = require('underscore');
 
 var nixEnvProcesses = [];
 
@@ -123,6 +126,7 @@ exports.iteratePackages = function(file_arg, profile_arg, env, callback, finish_
     };
 
     var onCurrentSystem = function (currentSystem) {
+        file_arg = file_arg?file_arg:exports.nixpkgs()+'/default.nix';
         var args = exports.createArgsArray(
             ['-qacP'], file_arg, profile_arg,
             ['--out-path', '--description', '--system-filter', currentSystem]
@@ -154,6 +158,7 @@ exports.allPackages = function(file_arg, profile_arg, env, callback, error_callb
       callback(items);
     };
 
+    file_arg = file_arg?file_arg:exports.nixpkgs()+'/default.nix';
     var args = exports.createArgsArray(
       ['-qacP'], file_arg, profile_arg,
       (currentSystem)? ['--system-filter', currentSystem]:[]
@@ -164,12 +169,14 @@ exports.allPackages = function(file_arg, profile_arg, env, callback, error_callb
 };
 
 exports.installPackage = function(pkg_attribute, file_arg, profile_arg, env, callback, error_callback) {
+  file_arg = file_arg?file_arg:exports.nixpkgs()+'/default.nix';
   var args = exports.createArgsArray(
     ['-iA', pkg_attribute], file_arg, profile_arg, []);
   exports.nixEnv(args, env, callback, error_callback).attribute = pkg_attribute;
 };
 
 exports.uninstallPackage = function(pkg_attribute, pkg_name, file_arg, profile_arg, env, callback, error_callback) {
+  file_arg = file_arg?file_arg:exports.nixpkgs()+'/default.nix';
   var args = exports.createArgsArray(
     ['-e', pkg_name], file_arg, profile_arg, []);
   exports.nixEnv(args, env, callback, error_callback).attribute = pkg_attribute;
@@ -192,7 +199,7 @@ exports.killNixEnvAll = function() {
 
 exports.packageInfo = function (packageAttrStr, file_arg, env, callback, error_callback) {
   exports.nixInstantiate(
-    ["--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
+    ["--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:["-I", "nixpkgs="+exports.nixpkgs()]),
     'let \
       pkgs = import <nixpkgs> {}; \
       getAttrFromStr = str: set: (pkgs.lib.getAttrFromPath (pkgs.lib.splitString "." str) set); \
@@ -221,9 +228,12 @@ exports.currentSystem = function (env, callback, error_callback) {
   );
 };
 
-exports.configurationNix = function (file_arg, env, callback, error_callback) {
+exports.configTree = function (configurationnix, attrs, file_arg, env, callback, error_callback) {
   exports.nixInstantiate(
-    ["./src/config_inuse.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
+    [
+        "./src/configoptions.nix", "--eval", "--strict", "--show-trace",
+        "-A", "dispatch", "--argstr", "attrs", (attrs?attrs:"configuration")
+    ].concat(file_arg?["-I", "nixpkgs="+file_arg]:["-I", "nixpkgs="+exports.nixpkgs()]).concat(configurationnix?["--argstr", "configurationnix", configurationnix]:[]),
     null,
     false,
     false,
@@ -233,26 +243,82 @@ exports.configurationNix = function (file_arg, env, callback, error_callback) {
   );
 };
 
-exports.configTree = function (attrs, file_arg, env, callback, error_callback) {
-  exports.nixInstantiate(
-    ["./src/configoptions.nix", "--eval", "--strict", "--show-trace", "-A", "dispatch", "--argstr", "attrs", attrs?attrs:"configuration"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
-    null,
-    false,
-    false,
-    env,
-    callback,
-    error_callback
-  );
+
+exports.listProfiles = function (directory, name, depth, result) {
+    var abspath = path.join(directory, name);
+    var isDirectory = fs.existsSync(abspath) && fs.statSync(abspath).isDirectory();
+
+    if (!isDirectory) {
+        return result;
+    }
+
+    if (depth === 0) {
+        if (!/\-\d+\-link$/.test(abspath)) {
+            return result.concat([abspath]);
+        }
+        return result;
+
+    } else {
+        var items = fs.readdirSync(abspath);
+        var list = [];
+        for (var i in items) {
+            list = list.concat(exports.listProfiles(abspath, items[i], depth-1, result));
+        }
+        return list;
+    }
 };
 
-exports.listNixOptions = function (file_arg, env, callback, error_callback) {
-  exports.nixInstantiate(
-    ["./src/config_all.nix", "--eval", "--strict", "--show-trace"].concat(file_arg?["-I", "nixpkgs="+file_arg]:[]),
-    null,
-    false,
-    false,
-    env,
-    callback,
-    error_callback
-  );
+exports.listProfilesAll = function (profilesDir) {
+    var list = exports.listProfiles(profilesDir, 'system', 0, []);
+    list = list.concat(exports.listProfiles(profilesDir, 'per-user', 2, []));
+    list = list.concat(exports.listProfiles(profilesDir, 'per-container', 4, []));
+    return list;
+};
+
+exports.listProfilesPerUser = function (profilesDir, username) {
+    return exports.listProfiles(path.join(profilesDir, 'per-user'), username, 1, []);
+};
+
+exports.getProfiles = function (profiles, username) {
+    var result = [];
+    for (var i in profiles) {
+        var list = exports.scanForProfiles(profiles[i], username);
+        if (list.length > 0) {
+            result = result.concat(list);
+        } else if (fs.existsSync(profiles[i]) && fs.statSync(profiles[i]).isDirectory()) {
+            result.push(profiles[i]);
+        }
+    }
+    return result;
+};
+
+exports.scanForProfiles = function (profilesDir, username) {
+    var list, removePrefix;
+    if (username) {
+        removePrefix = 1;
+        list = exports.listProfilesPerUser(profilesDir, username);
+    } else {
+        removePrefix = 0;
+        list = exports.listProfilesAll(profilesDir);
+    }
+    var profiles = [];
+    for (var i in list) {
+        profiles.push({
+            "id": i,
+            "name": list[i].split(path.sep).splice(profilesDir.split(path.sep).length+removePrefix).join(path.sep),
+            "path": list[i]
+        });
+    }
+    return profiles;
+};
+
+exports.nixpkgs = function () {
+    var result;
+    process.env.NIX_PATH.split(path.delimiter).forEach(function(el) {
+        var a = /^nixpkgs\=(.+)$/.exec(el);
+        if (a !== null) {
+            result = a[1];
+        }
+    });
+    return result;
 };

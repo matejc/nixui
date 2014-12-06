@@ -10,11 +10,40 @@
             init: function() {
                 this.profiles();
             },
-            all: function() {
-                return this.profiles.all();
+            all: function(cb) {
+                this.profiles.all(cb);
             },
             current: function(id) {
                 return this.profiles.current(id);
+            }
+        });
+    })();
+    </script>
+</polymer-element>
+
+<polymer-element name="nixui-configurations">
+    <template>
+    </template>
+    <script>
+    (function() {
+        Polymer('nixui-configurations', {
+            ready: function() {
+                this.configurations = require("./data.js").configurations;
+            },
+            init: function() {
+                this.configurations();
+            },
+            all: function(cb) {
+                this.configurations.all(cb);
+            },
+            current: function(id) {
+                return this.configurations.current(id);
+            },
+            get: function(id, cb) {
+                this.configurations.get(id, cb);
+            },
+            set: function(cfg, cb) {
+                this.configurations.set(cfg, cb);
             }
         });
     })();
@@ -30,8 +59,8 @@
             ready: function() {
                 this.configs = require("./data.js").configs;
             },
-            init: function(cb) {
-                this.configs(undefined, "configuration", cb);
+            init: function(configurationId, cb) {
+                this.configs(configurationId, "configuration", cb);
             },
             all: function() {
                 this.configs.all();
@@ -72,8 +101,8 @@
             get: function(profileId, attribute, cb) {
                 this.packages.get(profileId, attribute, cb);
             },
-            reset: function(profileId, force, cb) {
-                this.packages.reset(profileId, force, cb);
+            reset: function(profileId, cb) {
+                this.packages.reset(profileId, cb);
             }
         });
     })();

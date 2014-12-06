@@ -1,31 +1,34 @@
-var dirty = require('dirty');
+var fs = require('fs');
+var path = require('path');
+var NixInterface = require("./interface.js");
+var nedb = require('nedb');
 
 var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : require("./config.json"),
     dbs = {},
-    data = {};
+    data = {},
+    dbDir = config.dbDir ? config.dbDir : '/tmp';
 
 module.exports = dbs;
 
+// profiles - nix environments/profiles
+
 dbs.profiles = function() {
-    data.profiles = dirty();
-    for (var i in config.profiles) {
-        var obj = {
-            "id": i,
-            "name": config.profiles[i].name,
-            "profile": config.profiles[i].profile,
-            "file": config.profiles[i].file,
-            "env": config.profiles[i].env
-        };
-        data.profiles.set(obj.name, obj);
-    }
+    var profiles = NixInterface.getProfiles(
+        config.profiles ? config.profiles : ['/nix/var/nix/gcroots/profiles'],
+        config.user ? config.user : process.env.USER
+    );
+    data.profiles = new nedb();
+    profiles.forEach(function(el) {
+        data.profiles.insert(el, function(err) {
+            if (err) {
+                console.log(err);
+            }
+        });
+    });
 };
 
-dbs.profiles.all = function() {
-    var result = [];
-    data.profiles.forEach(function(key, val) {
-        result.push(val);
-    });
-    return result;
+dbs.profiles.all = function(cb) {
+    data.profiles.find({}).sort({name: 1}).exec(cb);
 };
 
 dbs.profiles.current = function(id) {
@@ -35,30 +38,65 @@ dbs.profiles.current = function(id) {
     return data.currentProfileId;
 };
 
-dbs.profiles.get = function(profileId) {
+dbs.profiles.get = function(profileId, cb) {
     var id = (profileId===undefined) ? dbs.profiles.current() : profileId;
-    var profile = null;
-    data.profiles.forEach(function(key, val) {
-        if (val.id == id) {
-            profile = val;
-            return false;
-        }
-    });
-    return profile;
+    data.profiles.findOne({id: id}, cb);
 };
 
+// configurations - nix configuration files
 
+dbs.configurations = function() {
+    data.configurations = new nedb({
+        filename: path.join(dbDir, 'configurations.nedb'),
+        autoload: true
+    });
+    var configurations = config.configurations ? config.configurations : ['/etc/nixos/configuration.nix', '/etc/nixos/hardware-configuration.nix'];
+    configurations.forEach(function(cfg) {
+        if (fs.statSync(cfg).isFile()) {
+            dbs.configurations.set(cfg, function(err) {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        }
+    });
+};
 
-var NixInterface = require("./interface.js");
+dbs.configurations.all = function(cb) {
+    data.configurations.find({}, cb);
+};
 
-dbs.configs = function(profileId, attrs, cb) {
-    var profile = dbs.profiles.get(profileId);
-    NixInterface.configTree(attrs, profile.file, profile.env, function(data) {
-        var result = JSON.parse(JSON.parse(data));
-        data.configs = result;
-        cb(null, result);
-    }, function(err) {
-        cb(err);
+dbs.configurations.current = function(id) {
+    if (id) {
+        data.currentConfigurationId = id;
+    }
+    return data.currentConfigurationId;
+};
+
+dbs.configurations.get = function(configurationId, cb) {
+    var id = (configurationId===undefined) ? dbs.configurations.current() : configurationId;
+    data.configurations.findOne({_id: id}, cb);
+};
+
+dbs.configurations.set = function(configuration, cb) {
+    if (fs.existsSync(configuration) && fs.statSync(configuration).isFile()) {
+        data.configurations.update({path: configuration}, {path: configuration}, {upsert: true}, cb);
+    } else {
+        cb("Configuration file does not exist");
+    }
+};
+
+// configs - config options
+
+dbs.configs = function(configurationId, attrs, cb) {
+    dbs.configurations.get(configurationId, function(err, o) {
+        NixInterface.configTree(o.path, attrs, undefined, process.env, function(tree) {
+            var result = JSON.parse(JSON.parse(tree));
+            data.configs = result;
+            cb(null, result);
+        }, function(err) {
+            cb(err);
+        });
     });
 };
 
@@ -66,69 +104,103 @@ dbs.configs.all = function() {
     return data.configs;
 };
 
+// packages
 
-
-var db = require('./db');
-data.packages = db();
+data.packages = {};
 
 dbs.packages = function() {
 };
 
 dbs.packages.delete = function(profileId, cb) {
-    db.delete(profileId);
-    cb(null);
+    if (data.packages[profileId] === undefined) {
+        cb();
+    } else {
+        data.packages[profileId].remove({}, { multi: true }, function(err){
+            data.packages[profileId] = undefined;
+            cb(err);
+        });
+    }
 };
 
 dbs.packages.delete_all = function(profileId, cb) {
-    db.deleteAll();
-    cb(null);
+    var errfun = function(err) {
+        if (err) console.log(err);
+    };
+    for (var i in data.packages) {
+        data.packages[i].remove({}, { multi: true }, errfun);
+    }
+    cb(null); // not very usefull
 };
 
 dbs.packages.fill = function(profileId, cb) {
-    var done_cb = function () {
-        console.log("done for uid "+profileId);
-        cb(null, {});
-    };
+    if (data.packages[profileId] !== undefined) {
+        cb();
+        return;
+    }
+    data.packages[profileId] = new nedb();
+    data.packages[profileId].ensureIndex({fieldName: 'attribute', unique: true}, function(err) {
+        if (err) console.log(err);
 
-    var callback = function(attribute, name, compare, out, description) {
-        db.add(profileId, {
-            attribute: attribute,
-            name: name,
-            compare: compare,
-            out: out,
-            description: description
+
+        dbs.profiles.get(profileId, function(err, profile) {
+            if (err) console.log(err);
+
+            var done_cb = function () {
+                console.log("done for profile id "+profileId);
+                cb(null, {});
+            };
+
+            var callback = function(attribute, name, compare, out, description) {
+                data.packages[profileId].insert({
+                    attribute: attribute,
+                    name: name,
+                    compare: compare,
+                    out: out,
+                    description: description
+                }, function(err) {
+                    if (err) console.log(err);
+                });
+            };
+
+            NixInterface.iteratePackages(
+                undefined,
+                profile.path,
+                process.env,
+                callback,
+                done_cb,
+                function (err) {
+                    if (err) cb(err);
+                }
+            );
         });
-    };
+    });
 
-    var profile = dbs.profiles.get(profileId);
-
-    NixInterface.iteratePackages(
-        profile.file,
-        profile.profile,
-        profile.env,
-        callback,
-        done_cb,
-        function (err) {
-            if (err) cb(err);
-        }
-    );
 };
 
 dbs.packages.filter = function(profileId, query, cb) {
-    db.filter(profileId, query, function(err, data) {
+    var installFilter = false;
+    if (query[0] == "!" && query[1] == "i") {
+        query = query.substring(query[2] == " "?3:2);
+        installFilter = true;
+    }
+    var requery = new RegExp(query, 'i');
+    var refind = {$or: [{attribute: {$regex: requery}}, {description: {$regex: requery}}, {name: {$regex: requery}}]};
+    if (installFilter) {
+        refind.compare = {$regex: /^\=.*/};
+    }
+    data.packages[profileId].find(refind).sort({name: 1}).limit(100).exec(function(err, data) {
         if (err) {
             console.log(err);
             cb(err);
         }
-        cb(null, data.slice(0, 100));
+        cb(null, data);
     });
 };
 
 dbs.packages.info = function(profileId, attribute, cb) {
     if ((new RegExp(/^[\-\.\w]+$/)).test(attribute)) {
-        var profile = dbs.profiles.get(profileId);
 
-        NixInterface.packageInfo(attribute, profile.file, profile.env, function(data) {
+        NixInterface.packageInfo(attribute, undefined, process.env, function(data) {
             cb(null, JSON.parse(JSON.parse(data)));  // data is double json encoded :)
         }, function(data) {
             cb(null, data);
@@ -139,7 +211,7 @@ dbs.packages.info = function(profileId, attribute, cb) {
 };
 
 dbs.packages.get = function(profileId, attribute, cb) {
-    db.get(profileId, {attribute: attribute}, function(err, data) {
+    data.packages[profileId].findOne({attribute: attribute}, function(err, data) {
         if (err) {
             console.log(err);
             cb(err);
@@ -148,31 +220,32 @@ dbs.packages.get = function(profileId, attribute, cb) {
     });
 };
 
-dbs.packages.reset = function(profileId, force, cb) {
-    if (force) {
-        dbs.packages.delete(profileId, function() {
-            dbs.packages.fill(profileId, cb);
-        });
-        return;
-    } else if (db.isEmpty(profileId)) {
+dbs.packages.reset = function(profileId, cb) {
+    dbs.packages.delete(profileId, function(err) {
+        if (err) console.log(err);
         dbs.packages.fill(profileId, cb);
-        return;
-    }
-    cb();
+    });
 };
 
-
+// markeds - marked packages for install/uninstall
 
 dbs.markeds = function() {
-    data.markeds = dirty();
+    data.markeds = {};
 };
 
 dbs.markeds.set = function(profileId, attribute, mark, cb) {
     getPackageByAttribute(profileId, attribute, function(err, pkg) {
         var result = createMark(pkg, mark);
         result.profileId = profileId;
-        data.markeds.set(result.attribute+result.profileId, result);
-        cb(null, result);
+
+        if (!data.markeds[profileId]) {
+            data.markeds[profileId] = new nedb();
+        }
+
+        data.markeds[profileId].ensureIndex({fieldName: 'attribute', unique: true}, function(err) {
+            if (err) console.log(err);
+            data.markeds[profileId].insert(result, cb);
+        });
     });
 };
 
@@ -224,28 +297,26 @@ dbs.markeds.toggle = function(profileId, attribute, cb) {
 };
 
 dbs.markeds.delete = function(profileId, attribute, cb) {
-    data.markeds.rm(attribute+profileId);
-    NixInterface.killNixEnvByAttribute(attribute);
-    cb();
+    data.markeds[profileId].remove({attribute: attribute}, {}, function(err) {
+        if (err) console.log(err);
+        NixInterface.killNixEnvByAttribute(attribute);
+        cb(err);
+    });
 };
 
 dbs.markeds.delete_all = function(profileId, cb) {
-    data.markeds.forEach(function(key, val) {
-        if (val.profileId == profileId) {
-            data.markeds.rm(key);
-        }
+    data.packages[profileId].remove({}, { multi: true }, function(err) {
+        if (err) console.log(err);
+        NixInterface.killNixEnvAll();
+        cb(err);
     });
-    NixInterface.killNixEnvAll();
-    cb();
 };
 
 dbs.markeds.delete_finished = function(profileId, cb) {
-    data.markeds.forEach(function(key, val) {
-        if (val.profileId == profileId && val.state === "finish") {
-            data.markeds.rm(key);
-        }
+    data.packages[profileId].remove({state: 'finish'}, { multi: true }, function(err) {
+        if (err) console.log(err);
+        cb(err);
     });
-    cb();
 };
 
 dbs.markeds.apply = function(profileId, attribute, cb) {
@@ -271,12 +342,14 @@ dbs.markeds.apply_all = function(profileId, cb) {
 };
 
 dbs.markeds.list = function(profileId, cb) {
-    var arrayOfInstances = [];
-    data.markeds.forEach(function(key, val) {
-        arrayOfInstances.push(val);
-    });
-    cb(null, arrayOfInstances);
+    if (data.markeds[profileId]) {
+        data.markeds[profileId].find({}, cb);
+    } else {
+        cb(undefined, []);
+    }
 };
+
+// helper functions
 
 var getPackageByAttribute = function(profileId, attribute, callback) {
     var handleResponse = function(err, resp) {
@@ -288,14 +361,11 @@ var getPackageByAttribute = function(profileId, attribute, callback) {
     dbs.packages.get(profileId, attribute, handleResponse);
 };
 var getMarkObjByAttribute = function(profileId, attribute, callback) {
-    var mark = null;
-    data.markeds.forEach(function(key, val) {
-        if (key === attribute+profileId) {
-            mark = val;
-            return false;
-        }
-    });
-    callback(null, mark);
+    if (data.markeds[profileId]) {
+        data.markeds[profileId].findOne({attribute: attribute}, callback);
+    } else {
+        callback();
+    }
 };
 var createMark = function(pkg, mark) {
     return {
@@ -306,14 +376,7 @@ var createMark = function(pkg, mark) {
     };
 };
 var getNextInLineMarkObj = function(profileId, cb) {
-    var mark = null;
-    data.markeds.forEach(function(key, val) {
-        if (val.profileId == profileId && val.state === "wait") {
-            mark = val;
-            return false;
-        }
-    });
-    cb(null, mark);
+    data.markeds[profileId].findOne({state: 'wait'}, cb);
 };
 var applyAll = function(profileId) {
     var callback = function() {
@@ -363,24 +426,29 @@ var setMarkObjStateByAttribute = function(profileId, attribute, state, cb) {
     });
 };
 var applyMark = function(profileId, attribute, name, mark, finish_callback, error_callback) {
-    var profile = dbs.profiles.get(profileId);
-    setMarkObjStateByAttribute(profileId, attribute, "start", function(){});
+    dbs.profiles.get(profileId, function(err, profile){
+        if (err) {
+            console.log(err);
+        }
 
-    var onFinish = function(data) {
-        setMarkObjStateByAttribute(profileId, attribute, "finish", function(){});
-        if (finish_callback)
-            finish_callback(data);
-    };
-    var onError = function(data) {
-        setMarkObjStateByAttribute(profileId, attribute, "error", function(){});
-        if (error_callback)
-            error_callback(data);
-    };
+        setMarkObjStateByAttribute(profileId, attribute, "start", function(){});
 
-    if (mark == "install") {
-        NixInterface.installPackage(attribute, profile.file, profile.profile, profile.env, onFinish, onError);
+        var onFinish = function(data) {
+            setMarkObjStateByAttribute(profileId, attribute, "finish", function(){});
+            if (finish_callback)
+                finish_callback(data);
+        };
+        var onError = function(data) {
+            setMarkObjStateByAttribute(profileId, attribute, "error", function(){});
+            if (error_callback)
+                error_callback(data);
+        };
 
-    } else if (mark == "uninstall") {
-        NixInterface.uninstallPackage(attribute, name, profile.file, profile.profile, profile.env, onFinish, onError);
-    }
+        if (mark == "install") {
+            NixInterface.installPackage(attribute, undefined, profile.path, process.env, onFinish, onError);
+
+        } else if (mark == "uninstall") {
+            NixInterface.uninstallPackage(attribute, name, undefined, profile.path, process.env, onFinish, onError);
+        }
+    });
 };
