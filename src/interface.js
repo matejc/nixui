@@ -286,11 +286,20 @@ exports.getProfiles = function (profiles, username) {
         if (list.length > 0) {
             result = result.concat(list);
         } else if (fs.existsSync(profiles[i]) && fs.statSync(profiles[i]).isDirectory()) {
-            result.push(profiles[i]);
+            result.push({
+                "id": result.length,
+                "name": profiles[i].split(path.sep).splice(2).join(path.sep),
+                "path": profiles[i],
+                "profile": endsWith(profiles[i], '/profile')
+            });
         }
     }
     return result;
 };
+
+function endsWith(str, suffix) {
+    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+}
 
 exports.scanForProfiles = function (profilesDir, username) {
     var list, removePrefix;
@@ -303,11 +312,13 @@ exports.scanForProfiles = function (profilesDir, username) {
     }
     var profiles = [];
     for (var i in list) {
-        profiles.push({
+        var o = {
             "id": i,
             "name": list[i].split(path.sep).splice(profilesDir.split(path.sep).length+removePrefix).join(path.sep),
-            "path": list[i]
-        });
+            "path": list[i],
+            "profile": endsWith(list[i], '/profile')
+        };
+        profiles.push(o);
     }
     return profiles;
 };

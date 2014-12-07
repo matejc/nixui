@@ -1,4 +1,4 @@
-{ attrs ? "configuration", useConfiguration ? true, configurationnix ? "/etc/nixos/configuration.nix" }:
+{ attrs ? "configuration", configurationnix ? "/etc/nixos/configuration.nix" }:
 let
   pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; };
 
@@ -18,7 +18,7 @@ let
           // pkgs.lib.optionalAttrs (opt ? default) { default = scrubOptionValue opt.default []; }
           // pkgs.lib.optionalAttrs (opt ? defaultText) { default = opt.defaultText; }
           // pkgs.lib.optionalAttrs (opt ? type) { optType = opt.type.name; }
-          // pkgs.lib.optionalAttrs (useConfiguration) (createEntry opt.loc configuration []));
+          // pkgs.lib.optionalAttrs (configurationnix != "") (createEntry opt.loc configuration []));
 
         subOptions =
           let ss = opt.type.getSubOptions opt.loc;
@@ -48,7 +48,7 @@ let
         else if pkgs.lib.isDerivation x then ("<drv>"+x.name+"</drv>")
         else if (x ? _type && x._type=="literalExample") then x.text
         else if pkgs.lib.isInt x then toString x
-        else if pkgs.lib.isString x then "''"+(toString x)+"''"
+        else if pkgs.lib.isString x then ''"''+(toString x)+''"''
         else if pkgs.lib.isBool x then (if x then "true" else "false")
         else if pkgs.lib.isFunction x then "<function>"
         else if pkgs.lib.isList x then "[ "+(pkgs.lib.concatStringsSep " " (map (y: scrubOptionValue y visitList_) x))+" ]"

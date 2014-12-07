@@ -75,7 +75,11 @@ dbs.configurations.current = function(id) {
 
 dbs.configurations.get = function(configurationId, cb) {
     var id = (configurationId===undefined) ? dbs.configurations.current() : configurationId;
-    data.configurations.findOne({_id: id}, cb);
+    if (id == '-1') {
+        cb(null, {path: "", _id: "-1"});
+    } else {
+        data.configurations.findOne({_id: id}, cb);
+    }
 };
 
 dbs.configurations.set = function(configuration, cb) {

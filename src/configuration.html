@@ -524,12 +524,11 @@
                         overflow: hidden;
                     }
                     #pathfield {
-                        border-bottom: 1px solid #50a0ff;
                         font-family: sans-serif;
                         font-variant: small-caps;
-                        font-size: 75%;
+                        font-size: 80%;
                         width: 18em;
-                        margin: 0.25em;
+                        margin: 0.25em 0.25em 0 0.25em;
                         color: #005aa0;
                     }
                     core-menu {
@@ -548,25 +547,33 @@
                     core-item[active] {
                         color: #005aa0;
                     }
-                </style> <span>
+                    #configuration-path {
+                        font-family: sans-serif;
+                        font-size: 70%;
+                        width: 18em;
+                        margin: 0 0.25em 0.25em 0.25em;
+                        color: #888;
+                    }
+                </style>
+                <span>
 
-        <div id="container" relative>
-          <input is="core-input" id="pathfield" on-keyup="{{keyUpHandler}}" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="path (ex: services.nginx)"></input>
-            <div class="dropdown">
-              <core-dropdown id="dropdown" relatedTarget="{{$.pathfield}}" on-keydown="{{dropdownKeyDownHandler}}" on-keyup="{{dropdownKeyUpHandler}}">
+                    <div id="container" relative>
+                        <input is="core-input" id="pathfield" on-keyup="{{keyUpHandler}}" on-keydown="{{keyDownHandler}}" value="{{value}}"></input>
+                        <div class="dropdown">
+                            <core-dropdown id="dropdown" relatedTarget="{{$.pathfield}}" on-keydown="{{dropdownKeyDownHandler}}" on-keyup="{{dropdownKeyUpHandler}}">
 
-                <core-menu id="dropdownmenu" selected="0">
-                  <template repeat="{{option in dropDownOptions}}" bind="{{absolutePosition as absolutePosition}}">
-                    <core-item label="{{option.name | absolutePosition}}"></core-item>
-                  </template>
-                </core-menu>
+                                <core-menu id="dropdownmenu" selected="0">
+                                    <template repeat="{{option in dropDownOptions}}" bind="{{absolutePosition as absolutePosition}}">
+                                        <core-item label="{{option.name | absolutePosition}}"></core-item>
+                                    </template>
+                                </core-menu>
 
-              </core-dropdown>
-            </div>
-        </div>
-
-      </span>
-
+                            </core-dropdown>
+                        </div>
+                    </div>
+                    <div if="{{configurationPath}}" id="configuration-path">{{configurationPath}}</div>
+                </span>
+                <nixui-configurations id="configurations"></nixui-configurations>
             </template>
             <script>
                 (function() {
@@ -575,6 +582,10 @@
                       this.value = "";
                       this.position = [];
                       this.options = this.dropDownOptions = [];
+
+                      this.$.configurations.get(undefined, function(err, o){
+                        this.configurationPath = o.path;
+                      }.bind(this));
                     },
                     absolutePosition: function(name) {
                         var joined = this.position.join(".");
@@ -698,25 +709,25 @@
                     core-item[active] {
                         color: #005aa0;
                     }
-                </style> <span>
+                </style>
+                <span>
 
-        <div id="container" relative>
-          <input is="core-input" id="searchfield" on-keyup="{{keyUpHandler}}" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="search (ex: nginx<TAB>)"></input>
-            <div class="dropdown">
-              <core-dropdown id="dropdown" relatedTarget="{{$.searchfield}}" on-keydown="{{dropdownKeyDownHandler}}" on-keyup="{{dropdownKeyUpHandler}}">
+                    <div id="container" relative>
+                        <input is="core-input" id="searchfield" on-keyup="{{keyUpHandler}}" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="search (ex: nginx<TAB>)"></input>
+                        <div class="dropdown">
+                            <core-dropdown id="dropdown" relatedTarget="{{$.searchfield}}" on-keydown="{{dropdownKeyDownHandler}}" on-keyup="{{dropdownKeyUpHandler}}">
 
-                <core-menu id="dropdownmenu" selected="0">
-                  <template repeat="{{option in dropDownOptions}}">
-                    <core-item label="{{option}}"></core-item>
-                  </template>
-                </core-menu>
+                                <core-menu id="dropdownmenu" selected="0">
+                                    <template repeat="{{option in dropDownOptions}}">
+                                        <core-item label="{{option}}"></core-item>
+                                    </template>
+                                </core-menu>
 
-              </core-dropdown>
-            </div>
-        </div>
+                            </core-dropdown>
+                        </div>
+                    </div>
 
-      </span>
-
+                </span>
             </template>
             <script>
                 (function() {

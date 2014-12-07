@@ -53,6 +53,9 @@
             padding-right: 0.5em;
             padding-left: 0.5em;
         }
+        span.default {
+            color: #70b060;
+        }
         .item:hover {
             background-color: #eeeeee;
         }
@@ -86,13 +89,17 @@
                 <div class="label">Select profile:</div>
                 <template repeat="{{ p in profiles }}">
                     <div class="item" on-click="{{selectprofile}}" data-id="{{p.id}}">
-                        <span>{{p.name}}</span>
+                        <span class="{{ {default: p.profile} | tokenList}}">{{p.name}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
             </div>
             <div id="configlist" center-justified layout vertical>
                 <div class="label">Select configuration:</div>
+                <div class="item" on-click="{{selectconfig}}" data-id="-1">
+                    <span>Empty</span>
+                    <paper-ripple fit/>
+                </div>
                 <template repeat="{{ c in configurations }}">
                     <div class="item" on-click="{{selectconfig}}" data-id="{{c._id}}">
                         <span>{{c.path}}</span>
@@ -113,7 +120,7 @@
                 this.profiles = [];
                 this.actions = [
                     { id: 0, label: "Package Manager", url: "package-manager.html" },
-                    { id: 1, label: "Configuration", url: "configuration.html" }
+                    { id: 1, label: "Configuration Options", url: "configuration.html" }
                 ];
 
                 this.$.profiles.init();
