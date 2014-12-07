@@ -30,7 +30,7 @@ let
     if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = with pkgs; [ nodejs psmisc nettools node_webkit python27 ];
+        buildInputs = with pkgs; [ nodejs psmisc nettools node_webkit nodePackages.npm2nix ];
         shellHook = ''
           export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';
