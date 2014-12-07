@@ -17,6 +17,9 @@ bower: bower.json
 node: package.json
 	nix-shell --argstr action env --command "npm install"
 
+generate-node: package.json
+	nix-shell --argstr action env --command "npm2nix package.json node_modules.nix"
+
 just-run-it: clean node
 	nix-shell --argstr action run
 
