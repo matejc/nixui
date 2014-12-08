@@ -1,5 +1,5 @@
 {
-    "profiles": ["/nix/var/nix/gcroots/profiles"],
-    "dbDir": "/tmp",
+    "profilePaths": ["/nix/var/nix/profiles"],
+    "dataDir": "/tmp",
     "configurations": ["/etc/nixos/configuration.nix"]
 }

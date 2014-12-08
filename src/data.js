@@ -6,16 +6,16 @@ var nedb = require('nedb');
 var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : require("./config.json"),
     dbs = {},
     data = {},
-    dbDir = config.dbDir ? config.dbDir : '/tmp';
+    dataDir = config.dataDir ? config.dataDir : '/tmp';
 
 module.exports = dbs;
 
 // profiles - nix environments/profiles
 
 dbs.profiles = function() {
-    var profiles = NixInterface.getProfiles(
-        config.profiles ? config.profiles : ['/nix/var/nix/gcroots/profiles'],
-        config.user ? config.user : process.env.USER
+    var profiles = NixInterface.getProfiles(config.profilePaths);
+    profiles = profiles.concat(
+        NixInterface.getProfiles([path.join(process.env.HOME, '.nix-profile')])
     );
     data.profiles = new nedb();
     profiles.forEach(function(el) {
@@ -47,7 +47,7 @@ dbs.profiles.get = function(profileId, cb) {
 
 dbs.configurations = function() {
     data.configurations = new nedb({
-        filename: path.join(dbDir, 'configurations.nedb'),
+        filename: path.join(dataDir, 'configurations.nedb'),
         autoload: true
     });
     var configurations = config.configurations ? config.configurations : ['/etc/nixos/configuration.nix'];

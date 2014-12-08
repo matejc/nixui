@@ -242,85 +242,53 @@ exports.configTree = function (configurationnix, attrs, file_arg, env, callback,
   );
 };
 
-
 exports.listProfiles = function (directory, name, depth, result) {
     var abspath = path.join(directory, name);
-    var isDirectory = fs.existsSync(abspath) && fs.statSync(abspath).isDirectory();
 
-    if (!isDirectory) {
+    if (name === 'manifest.nix') {
+        return result.concat([directory]);
+    }
+    if (depth === 0 || /\-\d+\-link$/.test(name)) {
         return result;
     }
-
-    if (depth === 0) {
-        if (!/\-\d+\-link$/.test(abspath)) {
-            return result.concat([abspath]);
-        }
-        return result;
-
-    } else {
+    try {
         var items = fs.readdirSync(abspath);
         var list = [];
         for (var i in items) {
             list = list.concat(exports.listProfiles(abspath, items[i], depth-1, result));
         }
         return list;
+    } catch (err) {
+        return result;
     }
 };
 
-exports.listProfilesAll = function (profilesDir) {
-    var list = exports.listProfiles(profilesDir, 'system', 0, []);
-    list = list.concat(exports.listProfiles(profilesDir, 'per-user', 2, []));
-    list = list.concat(exports.listProfiles(profilesDir, 'per-container', 4, []));
-    return list;
-};
+exports.makeProfile = function(id, profilePath) {
+    return {
+        "id": id+"",
+        "name": profilePath.split(path.sep).splice(-2).join(path.sep),
+        "path": profilePath,
+        "profile": endsWith(profilePath, path.sep+'profile') || endsWith(profilePath, path.sep+'.nix-profile')
+    }
+}
 
-exports.listProfilesPerUser = function (profilesDir, username) {
-    return exports.listProfiles(path.join(profilesDir, 'per-user'), username, 1, []);
-};
-
-exports.getProfiles = function (profiles, username) {
-    var result = [];
-    for (var i in profiles) {
-        var list = exports.scanForProfiles(profiles[i], username);
-        if (list.length > 0) {
-            result = result.concat(list);
-        } else if (fs.existsSync(profiles[i]) && fs.statSync(profiles[i]).isDirectory()) {
-            result.push({
-                "id": result.length,
-                "name": profiles[i].split(path.sep).splice(2).join(path.sep),
-                "path": profiles[i],
-                "profile": endsWith(profiles[i], '/profile')
-            });
+exports.getProfiles = function (profilePaths) {
+    var result = [], id = 0;
+    for (var i in profilePaths) {
+        var list = exports.listProfiles(profilePaths[i], '', 4, []);
+        for (var j in list) {
+            result.push(exports.makeProfile(id++, list[j]));
         }
     }
     return result;
 };
 
+// console.log(exports.getProfiles(['/nix/var/nix/profiles']))
+
+
 function endsWith(str, suffix) {
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
 }
-
-exports.scanForProfiles = function (profilesDir, username) {
-    var list, removePrefix;
-    if (username) {
-        removePrefix = 1;
-        list = exports.listProfilesPerUser(profilesDir, username);
-    } else {
-        removePrefix = 0;
-        list = exports.listProfilesAll(profilesDir);
-    }
-    var profiles = [];
-    for (var i in list) {
-        var o = {
-            "id": i,
-            "name": list[i].split(path.sep).splice(profilesDir.split(path.sep).length+removePrefix).join(path.sep),
-            "path": list[i],
-            "profile": endsWith(list[i], '/profile')
-        };
-        profiles.push(o);
-    }
-    return profiles;
-};
 
 exports.nixpkgs = function () {
     var result;
