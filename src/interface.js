@@ -1,7 +1,6 @@
 var spawn = require('child_process').spawn;
 var fs = require('fs');
 var path = require('path');
-var _ = require('underscore');
 
 var nixEnvProcesses = [];
 
@@ -233,7 +232,7 @@ exports.configTree = function (configurationnix, attrs, file_arg, env, callback,
     [
         "./src/configoptions.nix", "--eval", "--strict", "--show-trace",
         "-A", "dispatch", "--argstr", "attrs", (attrs?attrs:"configuration")
-    ].concat(file_arg?["-I", "nixpkgs="+file_arg]:["-I", "nixpkgs="+exports.nixpkgs()]).concat(configurationnix?["--argstr", "configurationnix", configurationnix]:[]),
+    ].concat(file_arg?["-I", "nixpkgs="+file_arg]:["-I", "nixpkgs="+exports.nixpkgs()]).concat(["--argstr", "configurationnix", configurationnix?configurationnix:""]),
     null,
     false,
     false,

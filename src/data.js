@@ -50,7 +50,7 @@ dbs.configurations = function() {
         filename: path.join(dbDir, 'configurations.nedb'),
         autoload: true
     });
-    var configurations = config.configurations ? config.configurations : ['/etc/nixos/configuration.nix', '/etc/nixos/hardware-configuration.nix'];
+    var configurations = config.configurations ? config.configurations : ['/etc/nixos/configuration.nix'];
     configurations.forEach(function(cfg) {
         if (fs.statSync(cfg).isFile()) {
             dbs.configurations.set(cfg, function(err) {

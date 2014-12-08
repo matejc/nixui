@@ -1,4 +1,4 @@
-{ attrs ? "configuration", configurationnix ? "/etc/nixos/configuration.nix" }:
+{ attrs ? "configuration", configurationnix ? "" }:
 let
   pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; };
 
