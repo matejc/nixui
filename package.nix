@@ -20,15 +20,13 @@ stdenv.mkDerivation rec {
   installPhase = ''
     mkdir -p $out/bin
 
-    ls -lah $src/node_modules
-
     cp -r $src/node_modules $out
     cp -r $src/bower_components $out
     cp -r $src/src $out
     cp -r $src/package.json $out
 
     cat > $out/bin/nixui <<EOF
-    export NODE_PATH="$out/node_modules"
+    cd $out
     PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.node_webkit}/bin/nw $out "\$@"
     EOF
     chmod +x $out/bin/nixui
