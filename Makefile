@@ -23,4 +23,7 @@ generate-node: package.json
 just-run-it: clean node
 	nix-shell --argstr action run
 
+package:
+	nix-shell --argstr action package
+
 .PHONY: test develop build clean just-run-it

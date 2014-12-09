@@ -24,8 +24,6 @@ let
     '';
   };
 
-  current_path = ./.;
-
   dispatcher = action:
     if action == "env" then
       pkgs.stdenv.mkDerivation rec {
@@ -35,6 +33,8 @@ let
           export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';
       }
+    else if action == "package" then
+      pkgs.callPackage ./package.nix {}
     else  # run
       pkgs.stdenv.mkDerivation rec {
         name = "nixui";
