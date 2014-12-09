@@ -1,6 +1,6 @@
 clean:
 	@rm -rf ./node_modules/.bin
-	@find ./node_modules/* -type d -print0 | xargs -0 -I {} rm -rf {}
+	@rm -rf ./node_modules/*
 
 build: clean node
 
