@@ -29,7 +29,7 @@ let
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
         buildInputs = with pkgs; [ nodejs psmisc nettools node_webkit
-          nodePackages.npm2nix nodePackages.bower ];
+          nodePackages.npm2nix ];
         shellHook = ''
           export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';

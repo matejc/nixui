@@ -1,6 +1,7 @@
 clean:
 	@rm -rf ./node_modules/.bin
 	@rm -rf ./node_modules/*
+	@rm -rf ./bower_components/*
 
 build: clean node
 
@@ -11,11 +12,11 @@ test:
 	@nix-shell --argstr action env --command "cd ./src && ../node_modules/.bin/mocha --reporter list"
 
 bower: bower.json
-	@find ./bower_components/* -type d -print0 | xargs -0 -I {} rm -rf {}
 	nix-shell --argstr action env --command "./node_modules/bower/bin/bower install"
 
 node: package.json
 	nix-shell --argstr action env --command "npm install"
+	nix-shell --argstr action env --command "npm install bower"
 
 generate-node: package.json
 	nix-shell --argstr action env --command "npm2nix package.json node_modules.nix"
