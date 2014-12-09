@@ -5,7 +5,7 @@ let
   src = fetchgit {
     url = "git://github.com/matejc/nixui";
     rev = "refs/tags/${version}";
-    sha256 = "0w9ygrzphb9cv61ka1rd3jhqlyv85i6j7nrcp73dz6mfjw2k5l4q";
+    sha256 = "1yyzpq9j6y1sb05n3dv7lw5d8n5hvnxnkh8gl3fvh0zrxjcb0qpg";
   };
 
   nodePackages = import "${pkgs.path}/pkgs/top-level/node-packages.nix" {
