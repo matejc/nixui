@@ -1,8 +1,10 @@
 { stdenv, fetchgit, buildEnv, pkgs }:
 let
+  version = "0.0.1";
+
   src = fetchgit {
     url = "git://github.com/matejc/nixui";
-    rev = "5b4f26153aaffe16843ebad31e76d712a8f3d795";
+    rev = "refs/tags/${version}";
     sha256 = "0w9ygrzphb9cv61ka1rd3jhqlyv85i6j7nrcp73dz6mfjw2k5l4q";
   };
 
@@ -22,9 +24,8 @@ let
 in
 stdenv.mkDerivation rec {
   name = "nixui-${version}";
-  version = "0.0.1";
 
-  inherit src;
+  inherit version src;
 
   buildInputs = [ deps ];
 
