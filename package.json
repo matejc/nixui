@@ -22,7 +22,6 @@
     "url": "git://github.com/matejc/nixui.git"
   },
   "dependencies": {
-    "domready": "~1.0.5",
     "underscore": "^1.6.0",
     "nedb": "~1.0.0"
   },

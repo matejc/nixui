@@ -20,8 +20,7 @@ let
 
   deps = buildEnv {
     name = "nixui-deps";
-    paths = [ nodePackages.domready
-      nodePackages.underscore nodePackages.nedb ];
+    paths = [ nodePackages.underscore nodePackages.nedb ];
   };
 in
 stdenv.mkDerivation rec {
