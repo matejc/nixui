@@ -109,7 +109,7 @@ exports.iteratePackages = function(file_arg, profile_arg, env, callback, finish_
     var onProcessed = function (data) {
         var lines = (''+data).split('\n');
         for (var n=0; n<lines.length; n++) {
-            var arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=<\>\-]+\ {0,1}[\w\.\-\?]*)\s+([.\S]+)\s+(.+)/.exec(lines[n]);
+            var arr = /([\w\.\-]+)\s+([\w\.\-\+]+)\s+([\?\=<\>\-]+\ {0,1}[\w\.\-\?]*)\s+(.+)/.exec(lines[n]);
             if (arr === null || arr === undefined) {
                 console.warn("line skipped: " + lines[n]);
                 continue;
@@ -119,7 +119,7 @@ exports.iteratePackages = function(file_arg, profile_arg, env, callback, finish_
             if ((new RegExp(/^nixos\./)).test(attr)) { attr = attr.substring(6); }
             if (!(new RegExp(/^pkgs\./)).test(attr)) { attr = "pkgs." + attr; }
 
-            callback(attr, arr[2], arr[3], arr[4], arr[5]);
+            callback(attr, arr[2], arr[3], arr[4]);
         }
         finish_callback();
     };
@@ -128,7 +128,7 @@ exports.iteratePackages = function(file_arg, profile_arg, env, callback, finish_
         file_arg = file_arg?file_arg:exports.nixpkgs()+'/default.nix';
         var args = exports.createArgsArray(
             ['-qacP'], file_arg, profile_arg,
-            ['--out-path', '--description', '--system-filter', currentSystem]
+            ['--description', '--system-filter', currentSystem]
         );
         exports.nixEnv(args, env, onProcessed, error_callback);
     };

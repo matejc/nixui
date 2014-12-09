@@ -154,12 +154,11 @@ dbs.packages.fill = function(profileId, cb) {
                 cb(null, {});
             };
 
-            var callback = function(attribute, name, compare, out, description) {
+            var callback = function(attribute, name, compare, description) {
                 data.packages[profileId].insert({
                     attribute: attribute,
                     name: name,
                     compare: compare,
-                    out: out,
                     description: description
                 }, function(err) {
                     if (err) console.log(err);
