@@ -20,7 +20,7 @@ let
 
   deps = buildEnv {
     name = "nixui-deps";
-    paths = [ nodePackages.yargs nodePackages.domready
+    paths = [ nodePackages.domready
       nodePackages.underscore nodePackages.nedb ];
   };
 in

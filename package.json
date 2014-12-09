@@ -22,7 +22,6 @@
     "url": "git://github.com/matejc/nixui.git"
   },
   "dependencies": {
-    "yargs": "~1.2.2",
     "domready": "~1.0.5",
     "underscore": "^1.6.0",
     "nedb": "~1.0.0"
@@ -30,8 +29,7 @@
   "devDependencies": {
     "mocha": "~1.21.0",
     "sinon": "~1.10.3",
-    "expect.js": "~0.3.1",
-    "bower": "~1.3.9"
+    "expect.js": "~0.3.1"
   },
   "window": {
     "toolbar": false,
