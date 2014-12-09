@@ -15,6 +15,9 @@
             },
             current: function(id) {
                 return this.profiles.current(id);
+            },
+            get: function(id, cb) {
+                return this.profiles.get(id, cb);
             }
         });
     })();

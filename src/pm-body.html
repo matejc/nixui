@@ -127,7 +127,7 @@
             },
             message: function(e, detail, sender) {
               this.$.message.text = detail.text;
-              var color = "#005aa0";
+              var color = "#007ac0";
               switch (detail.type) {
               case "error":
                   color = "#a05a5a";
@@ -172,12 +172,16 @@
             Polymer('query-input', {
               setPackages: function () {
                 this.fire('core-signal', {name: "progress", data: "start"});
+
                 this.$.packages.filter(this.$.profiles.current(), this.value, function(err, data) {
                   if (err) {
                     this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
                   } else {
                     this.fire('core-signal', {name: "query", data: data});
                   }
+                  this.$.profiles.get(this.$.profiles.current(), function(err, profile) {
+                    this.fire('core-signal', {name: "message", data: {type: "info", text: "Finished for "+profile.name}});
+                  }.bind(this));
                   this.fire('core-signal', {name: "progress", data: "finish"});
                 }.bind(this));
               },

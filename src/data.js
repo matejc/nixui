@@ -13,10 +13,7 @@ module.exports = dbs;
 // profiles - nix environments/profiles
 
 dbs.profiles = function() {
-    var profiles = NixInterface.getProfiles(config.profilePaths);
-    profiles = profiles.concat(
-        NixInterface.getProfiles([path.join(process.env.HOME, '.nix-profile')])
-    );
+    var profiles = NixInterface.getProfiles(config.profilePaths.concat([path.join(process.env.HOME, '.nix-profile')]));
     data.profiles = new nedb();
     profiles.forEach(function(el) {
         data.profiles.insert(el, function(err) {
@@ -425,7 +422,7 @@ var setMarkObjStateByAttribute = function(profileId, attribute, state, cb) {
             return;
         }
         instance.state = state;
-        cb();
+        data.markeds[profileId].update({_id: instance._id}, instance, {}, cb);
     });
 };
 var applyMark = function(profileId, attribute, name, mark, finish_callback, error_callback) {
