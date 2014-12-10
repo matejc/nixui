@@ -1,4 +1,4 @@
-{ stdenv, fetchgit, buildEnv, pkgs }:
+{ stdenv, fetchgit, buildEnv, pkgs, node_webkit }:
 let
   version = "0.0.1";
 
@@ -27,7 +27,7 @@ stdenv.mkDerivation rec {
 
     cat > $out/bin/nixui <<EOF
     cd $out
-    PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.node_webkit}/bin/nw $out "\$@"
+    PATH="${pkgs.nix}/bin:\$PATH" ${node_webkit}/bin/nw $out "\$@"
     EOF
     chmod +x $out/bin/nixui
   '';

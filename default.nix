@@ -4,6 +4,8 @@ let
 
   pkgs = import <nixpkgs> {};
 
+  nodewebkit = pkgs.callPackage ./node-webkit.nix { gconf = pkgs.gnome.GConf; };
+
   nixui = pkgs.stdenv.mkDerivation rec {
     name = "nixui";
     src = [ { name = "nixui-src"; outPath = ./.; } ];
@@ -18,7 +20,7 @@ let
       cp -r $src/package.json $out
 
       cat > $out/bin/nixui <<EOF
-      PATH="${pkgs.nix}/bin:\$PATH" ${pkgs.node_webkit}/bin/nw $out "\$@"
+      PATH="${pkgs.nix}/bin:\$PATH" ${nodewebkit}/bin/nw $out "\$@"
       EOF
       chmod +x $out/bin/nixui
     '';
@@ -28,14 +30,14 @@ let
     if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = with pkgs; [ nodejs psmisc nettools node_webkit
+        buildInputs = with pkgs; [ nodejs psmisc nettools nodewebkit
           nodePackages.npm2nix ];
         shellHook = ''
           export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';
       }
     else if action == "package" then
-      pkgs.callPackage ./package.nix {}
+      pkgs.callPackage ./package.nix { node_webkit = nodewebkit; }
     else  # run
       pkgs.stdenv.mkDerivation rec {
         name = "nixui";
