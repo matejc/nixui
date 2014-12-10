@@ -298,5 +298,15 @@ exports.nixpkgs = function () {
             result = a[1];
         }
     });
-    return result;
+
+    if (fs.existsSync(result)) {
+        return result;
+    }
+
+    var userNixpkgs = '/nix/var/nix/profiles/per-user/'+process.env.USER+'/channels/nixos/nixpkgs';
+    if (fs.existsSync(userNixpkgs)) {
+        return userNixpkgs;
+    } else {
+        return '/nix/var/nix/profiles/per-user/root/channels/nixos/nixpkgs';
+    }
 };
