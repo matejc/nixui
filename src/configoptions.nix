@@ -1,6 +1,10 @@
-{ attrs ? "configuration", configurationnix ? "" }:
+{ attrs ? "configuration", configurationnix ? "", valuesInJson ? false }:
 let
   pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; };
+  configuration = import configurationnix { inherit pkgs; config = pkgs.config; };
+  values = (import ./configoption.nix {
+    attrs = ""; inherit configurationnix; json = false;
+  }).val;
 
   optionAttrSetToDocListMod = prefix: options:
     pkgs.lib.fold (opt: rest:
@@ -18,7 +22,7 @@ let
           // pkgs.lib.optionalAttrs (opt ? default) { default = scrubOptionValue opt.default []; }
           // pkgs.lib.optionalAttrs (opt ? defaultText) { default = opt.defaultText; }
           // pkgs.lib.optionalAttrs (opt ? type) { optType = opt.type.name; }
-          // pkgs.lib.optionalAttrs (configurationnix != "") (createEntry opt.loc configuration []));
+          // pkgs.lib.optionalAttrs (configurationnix != "") (getValue opt.loc));
 
         subOptions =
           let ss = opt.type.getSubOptions opt.loc;
@@ -28,7 +32,11 @@ let
 
   attrsToStr = attr: visitList: pkgs.lib.mapAttrsToList (n: v: (toString n)+" = "+(scrubOptionValue v visitList) ) attr;
 
-  configuration = import configurationnix { inherit pkgs; config = pkgs.config; };
+  getValue = path:
+    let
+      value = pkgs.lib.attrByPath path null values;
+    in
+      { val = if valuesInJson then (builtins.toJSON value) else scrubOptionValue value []; };
 
   scrubOptionValue = x: visitList:
     let
@@ -56,19 +64,6 @@ let
         else if builtins.typeOf x == "lambda" then "<function>"
         else toString x);
 
-  createEntry = path: start: visitList:
-    let
-      value = pkgs.lib.attrByPath path null start;
-      val = scrubOptionValue value visitList;
-      #expandablePath = if (builtins.length path > 2) && ((builtins.elemAt path ((builtins.length path) - 2)) == "*") then pkgs.lib.take (builtins.length path - 2) path else null;
-    in (
-      #if expandablePath != null then ( (map (n: createEntry (expandablePath ++ [n.name]) object) (pkgs.lib.getAttrFromPath expandablePath object))) else
-      # if pkgs.lib.any (x: x=="*") path then {} else
-      # if pkgs.lib.any (x: x=="<name>") path then {} else
-      # if pkgs.lib.any (x: x=="<name?>") path then {} else
-      {inherit val;}
-    );
-
   extraArgs = { modules = []; inherit pkgs baseModules; inherit (pkgs) modulesPath; pkgs_i686 = import <nixpkgs/nixos/lib/nixpkgs.nix> { system = "i686-linux"; config.allowUnfree = true; }; utils = import <nixpkgs/nixos/lib/utils.nix> pkgs; };
   baseModules = import <nixpkgs/nixos/modules/module-list.nix>;
   shortRev = "gfedcba";
@@ -88,6 +83,6 @@ let
 in {
   dispatch = builtins.toJSON (
     if attrs == "configuration" then (zipSets (listOptionVals)) else
-    (createEntry (pkgs.lib.splitString "." attrs) configuration [])
+    (getValue (pkgs.lib.splitString "." attrs))
   );
 }
