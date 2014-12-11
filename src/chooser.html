@@ -22,6 +22,32 @@
     }
     </style>
 
+    <polymer-element name="nixos-logo">
+        <template>
+            <img id="logo" src="../static/nixos.png"></img>
+            <style>
+            #logo {
+                position: absolute;
+                top: 8em;
+                right: 8em;
+                opacity: 0;
+                width: 10em;
+            }
+            </style>
+        </template>
+        <script>
+          (function() {
+          Polymer({
+              ready: function() {
+                  var elem = this.$.logo;
+                  var anim = new Animation(elem, [{opacity: 0, transform: "rotate(0deg)"}, {opacity: 0.75, transform: "rotate(360deg)"}], {fill: "forwards", duration: 1000, iterations: 1, easing: "ease", delay: 500});
+                  var player = document.timeline.play(anim);
+              }
+          });
+          })();
+        </script>
+    </polymer-element>
+
     <polymer-element name="nixui-chooser">
     <template>
         <core-signals on-core-signal-setconfiguration="{{setConfiguration}}"></core-signals>
@@ -49,15 +75,15 @@
             position: relative;
             height: 30px;
             line-height: 30px;
-            color: #aaa;
+            color: #888;
             padding-right: 0.5em;
             padding-left: 0.5em;
         }
         span.default {
-            color: #70b060;
+            color: #0080d0;
         }
         .item:hover {
-            background-color: #eeeeee;
+            background: rgba(250,250,250, .8);
         }
         .item_selected {
             color: #005aa0;
@@ -255,6 +281,8 @@
 
 </head>
 <body>
+
+    <nixos-logo></nixos-logo>
 
     <nixui-chooser></nixui-chooser>
 
