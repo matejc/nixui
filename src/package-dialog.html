@@ -89,6 +89,11 @@
     },
     toggleMarked: function(e, detail, sender) {
       this.$.markeds.toggle(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
+        if (err) {
+          this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
+          return;
+        }
+        require('console').log(data);
         this.markItem = this.getMarkItem(data);
       }.bind(this));
     },

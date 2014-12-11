@@ -81,7 +81,9 @@ dbs.configurations.get = function(configurationId, cb) {
 
 dbs.configurations.set = function(configuration, cb) {
     if (fs.existsSync(configuration) && fs.statSync(configuration).isFile()) {
-        data.configurations.update({path: configuration}, {path: configuration}, {upsert: true}, cb);
+        data.configurations.update({path: configuration}, {path: configuration}, {upsert: true}, function(err, numReplaced, docs){
+            data.configurations.findOne({path: configuration}, cb);
+        }.bind(data));
     } else {
         cb("Configuration file does not exist");
     }
@@ -240,12 +242,15 @@ dbs.markeds.set = function(profileId, attribute, mark, cb) {
 
         if (!data.markeds[profileId]) {
             data.markeds[profileId] = new nedb();
+            data.markeds[profileId].ensureIndex({fieldName: 'attribute', unique: true}, function(err) {
+                if (err) console.log(err);
+                data.markeds[profileId].insert(result, cb);
+            });
+        } else {
+            data.markeds[profileId].update({attribute: result.attribute}, result, {upsert: true}, function(err, numReplaced, data){
+                cb(err, result);
+            });
         }
-
-        data.markeds[profileId].ensureIndex({fieldName: 'attribute', unique: true}, function(err) {
-            if (err) console.log(err);
-            data.markeds[profileId].insert(result, cb);
-        });
     });
 };
 
@@ -286,7 +291,6 @@ dbs.markeds.toggle = function(profileId, attribute, cb) {
             } else {
                 result = markObj;
             }
-
             if (result.error)
                 cb(result.error, result);
             else {
@@ -297,6 +301,7 @@ dbs.markeds.toggle = function(profileId, attribute, cb) {
 };
 
 dbs.markeds.delete = function(profileId, attribute, cb) {
+    if (!data.markeds[profileId]) { cb(); return; }
     data.markeds[profileId].remove({attribute: attribute}, {}, function(err) {
         if (err) console.log(err);
         NixInterface.killNixEnvByAttribute(attribute);
@@ -305,7 +310,8 @@ dbs.markeds.delete = function(profileId, attribute, cb) {
 };
 
 dbs.markeds.delete_all = function(profileId, cb) {
-    data.packages[profileId].remove({}, { multi: true }, function(err) {
+    if (!data.markeds[profileId]) { cb(); return; }
+    data.markeds[profileId].remove({}, { multi: true }, function(err) {
         if (err) console.log(err);
         NixInterface.killNixEnvAll();
         cb(err);
@@ -313,7 +319,8 @@ dbs.markeds.delete_all = function(profileId, cb) {
 };
 
 dbs.markeds.delete_finished = function(profileId, cb) {
-    data.packages[profileId].remove({state: 'finish'}, { multi: true }, function(err) {
+    if (!data.markeds[profileId]) { cb(); return; }
+    data.markeds[profileId].remove({state: 'finish'}, { multi: true }, function(err) {
         if (err) console.log(err);
         cb(err);
     });
@@ -376,6 +383,7 @@ var createMark = function(pkg, mark) {
     };
 };
 var getNextInLineMarkObj = function(profileId, cb) {
+    if (!data.markeds[profileId]) { cb(); return; }
     data.markeds[profileId].findOne({state: 'wait'}, cb);
 };
 var applyAll = function(profileId) {
@@ -422,7 +430,9 @@ var setMarkObjStateByAttribute = function(profileId, attribute, state, cb) {
             return;
         }
         instance.state = state;
-        data.markeds[profileId].update({_id: instance._id}, instance, {}, cb);
+        data.markeds[profileId].update({_id: instance._id}, instance, {}, function(err, numReplaced, data){
+            cb(err, data);
+        });
     });
 };
 var applyMark = function(profileId, attribute, name, mark, finish_callback, error_callback) {

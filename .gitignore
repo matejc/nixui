@@ -2,5 +2,4 @@ result
 .zedstate
 data/
 var/
-node_modules/bower
-node_modules/.bin/bower
+node_modules/
