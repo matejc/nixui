@@ -174,15 +174,19 @@
                 this.fire('core-signal', {name: "progress", data: "start"});
 
                 this.$.packages.filter(this.$.profiles.current(), this.value, function(err, data) {
-                  if (err) {
-                    this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
-                  } else {
-                    this.fire('core-signal', {name: "query", data: data});
+                  try {
+                    if (err) {
+                      this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
+                    } else {
+                      this.fire('core-signal', {name: "query", data: data});
+                    }
+                    this.$.profiles.get(this.$.profiles.current(), function(err, profile) {
+                      this.fire('core-signal', {name: "message", data: {type: "info", text: "Finished for "+profile.name}});
+                    }.bind(this));
+                    this.fire('core-signal', {name: "progress", data: "finish"});
+                  } catch (err) {
+                    // console.log('not on the `package manager` page');
                   }
-                  this.$.profiles.get(this.$.profiles.current(), function(err, profile) {
-                    this.fire('core-signal', {name: "message", data: {type: "info", text: "Finished for "+profile.name}});
-                  }.bind(this));
-                  this.fire('core-signal', {name: "progress", data: "finish"});
                 }.bind(this));
               },
               ready: function() {
@@ -195,7 +199,11 @@
               },
               fillCache: function() {
                 this.$.packages.fill(this.$.profiles.current(), function() {
-                  this.setPackages.bind(this)();
+                  try {
+                    this.setPackages.bind(this)();
+                  } catch (err) {
+                    // console.log('not on the `package manager` page');
+                  }
                 }.bind(this));
               },
               keyHandler: function(event, detail, sender) {
