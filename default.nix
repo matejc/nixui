@@ -19,8 +19,6 @@ let
   nixui = pkgs.stdenv.mkDerivation rec {
     name = "nixui";
     src = [ { name = "nixui-src"; outPath = ./.; } ];
-    buildInputs = [ pkgs.git pkgs.nodePackages.npm ];
-    propagatedBuildInputs = [ pkgs.nix pkgs.nodejs ];
     buildPhase = "";
     installPhase = ''
       mkdir -p $out/bin
@@ -40,8 +38,7 @@ let
     if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = (with pkgs; [ nodejs psmisc nettools ]) ++ [ nodewebkit
-          npm2nix ];
+        buildInputs = [ nodewebkit npm2nix ];
         shellHook = ''
           export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';
@@ -52,7 +49,6 @@ let
       pkgs.stdenv.mkDerivation rec {
         name = "nixui";
         src = nixui;
-        buildInputs = with pkgs; [ psmisc nettools ];
         shellHook = ''
           ${nixui}/bin/nixui
         '';
