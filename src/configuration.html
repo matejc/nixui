@@ -163,6 +163,8 @@
                         bottom: 0;
                         left: 0;
                         position: absolute;
+
+                        overflow: scroll;
                     }
                     #editpanel {
                       border: 1px solid #50a0ff;
@@ -254,7 +256,7 @@
                         this.startPoint = { x: 0, y: 0 };
                         this.editPanelVisible = false;
                         this.force = d3.layout.force();
-                        this.graph_height = this.graph_width = 100;
+                        this.graph_height = this.graph_width = 1500;
                         this.optionDetails = {};
 
                         this.$.configs.init(this.$.configurations.current(), function(err, result) {
@@ -345,8 +347,16 @@
                         this.fire('core-signal', {name: "setpath", data: this.position});
                         this.fire('core-signal', {name: "setpathoptions", data: options});
 
-                        this.graph_width = $(this.$.graphoptions).width();
-                        this.graph_height = $(this.$.panel).height() - 3;
+
+                        // this.graph_width = $(this.$.graphoptions).width();
+                        // this.graph_height = $(this.$.panel).height() - 3;
+                        if ($(this.$.panel).height() > this.graph_height) {
+                            this.graph_height = $(this.$.panel).height();
+                        }
+                        if ($(this.$.panel).width() > this.graph_width) {
+                            this.graph_width = $(this.$.panel).width();
+                        }
+
                         if (this.editPanelVisible) {
                             this.graph_width = this.graph_width * 0.66;
                         }
@@ -368,6 +378,9 @@
 
                         svg.attr("width", this.graph_width)
                             .attr("height", this.graph_height);
+
+                        this.$.panel.scrollTop = ( this.graph_height - $(this.$.panel).height() ) / 2;
+                        this.$.panel.scrollLeft = ( this.graph_width - $(this.$.panel).width() ) / 2;
 
                         this.force
                             .gravity(.1)
@@ -527,13 +540,13 @@
                         font-family: sans-serif;
                         font-variant: small-caps;
                         font-size: 80%;
-                        width: 18em;
+                        width: 14em;
                         margin: 0.25em 0.25em 0 0.25em;
                         color: #005aa0;
                     }
                     core-menu {
                         margin: 0;
-                        width: 18em;
+                        width: 14em;
                         height: 5em;
                         font-family: sans-serif;
                         font-variant: small-caps;
@@ -550,7 +563,7 @@
                     #configuration-path {
                         font-family: sans-serif;
                         font-size: 70%;
-                        width: 18em;
+                        width: 14em;
                         margin: 0 0.25em 0.25em 0.25em;
                         color: #888;
                     }
