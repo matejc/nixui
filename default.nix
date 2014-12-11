@@ -6,6 +6,16 @@ let
 
   nodewebkit = pkgs.callPackage ./node-webkit.nix { gconf = pkgs.gnome.GConf; };
 
+  npm2nix_src = pkgs.fetchgit {
+    url = "git://github.com/svanderburg/npm2nix";
+    rev = "c1b83fa7263f2627f707d2969c48fb643759c3f5";
+    sha256 = "19h0br5w99bndls5jsiy145z307qbjgrarl2rjx5kymrrzchrqmn";
+  };
+  npm2nix = (import "${npm2nix_src}/default.nix" {
+    system = pkgs.system;
+    inherit pkgs;
+  }).build;
+
   nixui = pkgs.stdenv.mkDerivation rec {
     name = "nixui";
     src = [ { name = "nixui-src"; outPath = ./.; } ];
@@ -30,8 +40,8 @@ let
     if action == "env" then
       pkgs.stdenv.mkDerivation rec {
         name = "nixui-env";
-        buildInputs = with pkgs; [ nodejs psmisc nettools nodewebkit
-          nodePackages.npm2nix ];
+        buildInputs = (with pkgs; [ nodejs psmisc nettools ]) ++ [ nodewebkit
+          npm2nix ];
         shellHook = ''
           export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';
