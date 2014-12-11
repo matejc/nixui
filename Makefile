@@ -3,8 +3,6 @@ clean:
 	@rm -rf ./node_modules/*
 	@rm -rf ./bower_components/*
 
-build: clean node
-
 develop:
 	@nix-shell --argstr action env --command "./develop.sh"
 
@@ -27,4 +25,4 @@ just-run-it: clean node
 package:
 	nix-env -f ./default.nix -i --argstr action package
 
-.PHONY: test develop build clean just-run-it
+.PHONY: test develop clean just-run-it
