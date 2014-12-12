@@ -40,7 +40,7 @@
           Polymer({
               ready: function() {
                   var elem = this.$.logo;
-                  var anim = new Animation(elem, [{opacity: 0, transform: "rotate(0deg)"}, {opacity: 0.75, transform: "rotate(360deg)"}], {fill: "forwards", duration: 1000, iterations: 1, easing: "ease", delay: 500});
+                  var anim = new Animation(elem, [{opacity: 0, transform: "rotate(0deg)"}, {opacity: 0.75, transform: "rotate(360deg)"}], {fill: "forwards", duration: 750, iterations: 1, easing: "ease", delay: 500});
                   var player = document.timeline.play(anim);
               }
           });
