@@ -50,12 +50,12 @@ describe('NixInterface', function() {
             mock.expects('nixEnv').once().returns({
                 process: "foo"
             }).withExactArgs(
-            ["-iA", "pkgs.bash", "-f", "./file", "-p", "./profile"],
+            ["-iA", "pkgs.bash", "-f", "./file", "-p", "./profile"], {},
             finish_callback, error_callback);
 
             // trigger
             NixInterface.installPackage(
-                'pkgs.bash', "./file", "./profile",
+                'pkgs.bash', "./file", "./profile", {},
             finish_callback, error_callback);
 
             // verify mock expectations
@@ -69,11 +69,11 @@ describe('NixInterface', function() {
             mock.expects('nixEnv').once().returns({
                 process: "foo"
             }).withExactArgs(
-            ["-e", "bash-0.1.2", "-f", "./file", "-p", "./profile"],
+            ["-e", "bash-0.1.2", "-f", "./file", "-p", "./profile"], {},
             finish_callback, error_callback);
 
             NixInterface.uninstallPackage(
-                'pkgs.bash', 'bash-0.1.2', "./file", "./profile",
+                'pkgs.bash', 'bash-0.1.2', "./file", "./profile", {},
             finish_callback, error_callback);
 
             mock.verify();
