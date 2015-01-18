@@ -11,7 +11,7 @@ let
     paths = [
       xlibs.libX11 xlibs.libXrender glib gtk atk pango cairo gdk_pixbuf
       freetype fontconfig xlibs.libXcomposite alsaLib xlibs.libXdamage
-      xlibs.libXext xlibs.libXfixes nss nspr gconf expat dbus stdenv.gcc.gcc
+      xlibs.libXext xlibs.libXfixes nss nspr gconf expat dbus stdenv.cc
       xlibs.libXtst xlibs.libXi xlibs.libXcursor xlibs.libXrandr libcap
       libnotify
     ];
@@ -32,8 +32,8 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/share/node-webkit
     cp -R * $out/share/node-webkit
 
-    patchelf --set-interpreter "$(cat $NIX_GCC/nix-support/dynamic-linker)" $out/share/node-webkit/nw
-    patchelf --set-interpreter "$(cat $NIX_GCC/nix-support/dynamic-linker)" $out/share/node-webkit/nwsnapshot
+    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" $out/share/node-webkit/nw
+    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" $out/share/node-webkit/nwsnapshot
 
     ln -s ${udev}/lib/libudev.so $out/share/node-webkit/libudev.so.0
 
