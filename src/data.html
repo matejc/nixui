@@ -65,8 +65,14 @@
             init: function(configurationId, cb) {
                 this.configs(configurationId, "configuration", cb);
             },
-            all: function() {
-                this.configs.all();
+            tree: function() {
+                return this.configs.tree();
+            },
+            all: function(cb) {
+                this.configs.all(cb);
+            },
+            filter: function(query, cb) {
+                this.configs.filter(query, cb);
             }
         });
     })();

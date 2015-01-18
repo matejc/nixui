@@ -1,0 +1,293 @@
+<!doctype html>
+<html>
+    <head>
+        <title>NixUI</title>
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+        <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+        <link rel="import" href="../bower_components/polymer/polymer.html">
+        <link rel="import" href="../bower_components/core-header-panel/core-header-panel.html">
+        <link rel="import" href="../bower_components/core-toolbar/core-toolbar.html">
+        <link rel="import" href="../bower_components/core-input/core-input.html">
+        <link rel="import" href="../bower_components/paper-input/paper-input.html">
+        <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
+        <link rel="import" href="../bower_components/core-icon-button/core-icon-button.html">
+        <link rel="import" href="../bower_components/core-signals/core-signals.html">
+        <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
+        <link rel="import" href="../bower_components/paper-item/paper-item.html">
+        <link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+        <link rel="import" href="../bower_components/core-dropdown/core-dropdown.html">
+        <link rel="import" href="../bower_components/core-item/core-item.html">
+        <link rel="import" href="../bower_components/core-menu/core-menu.html">
+        <link rel="import" href="../bower_components/core-animation/web-animations.html">
+        <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+        <link rel="import" href="../bower_components/paper-dropdown/paper-dropdown.html">
+
+        <link rel="import" href="./progress-bar.html">
+        <link rel="import" href="./data.html">
+
+        <polymer-element name="nixui-configuration">
+            <template>
+                <style>
+                    core-header-panel {
+                        height: 100%;
+                        overflow: auto;
+                        -webkit-overflow-scrolling: touch;
+                    }
+                    core-toolbar {
+                        background: white;
+                        border-color: #005aa0;
+                    }
+                    .nixuicenter {
+                        color: #005aa0;
+                        position: relative;
+                        text-align: center;
+                    }
+                    .nixuilink {
+                        color: #005aa0;
+                        text-decoration: none;
+                    }
+                    #dimmer
+                    {
+                        background:#000;
+                        opacity:0.2;
+                        position:fixed; /* important to use fixed, not absolute */
+                        top:0;
+                        left:0;
+                        width:100%;
+                        height:100%;
+                        display:none;
+                        z-index:1;
+                    }
+                </style>
+                <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
+                <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
+                <core-signals on-core-signal-message="{{message}}"></core-signals>
+                <core-header-panel id="contentpanel" mode="seamed">
+                    <div id="dimmer"></div>
+                    <div class="core-header">
+                        <core-toolbar>
+                            <div class="nixuicenter">
+                                <a href="chooser.html" class="nixuilink">NixUI
+                                    <paper-ripple fit></paper-ripple>
+                                </a>
+                            </div>
+                            <div flex></div>
+                            <search-input id="searchfield"></search-input>
+                            <div flex></div>
+                        </core-toolbar>
+                        <progress-bar id="progressbar"></progress-bar>
+                    </div>
+                    <div id="optionscontainer">
+                        <config-options></config-options>
+                    </div>
+                </core-header-panel>
+                <!--<package-dialog controlDim="true"></package-dialog>-->
+                <error-dialog controlDim="true"></error-dialog>
+                <!--<marked-dialog controlDim="true"></marked-dialog>-->
+                <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
+            </template>
+            <script>
+                (function() {
+                    Polymer('nixui-configuration', {
+                      progressSignal: function(e, detail, sender) {
+                        this.$.progressbar.doProgress(detail);
+                      },
+                      dimSignal: function(e, detail, sender) {
+                        this.$.dimmer.style.display=(detail)?"block":"none";
+                      },
+                      searchFor: function(e, detail, sender) {
+                        this.query = sender.getAttribute("data-query");
+                      },
+                      message: function(e, detail, sender) {
+                        this.$.message.text = detail.text;
+                        var color = "#005aa0";
+                        switch (detail.type) {
+                        case "error":
+                            color = "#a05a5a";
+                            break;
+                        }
+                        this.$.message.style.color = color;
+                        this.$.message.show();
+                      }
+                    });
+
+                  })();
+            </script>
+        </polymer-element>
+
+        <polymer-element name="config-options">
+            <template>
+                <core-signals on-core-signal-search="{{searchSignal}}"></core-signals>
+                <style>
+                    .optionname {
+                      color: #005aa0;
+                      font-size: 90%;
+                      font-family: sans-serif;
+                      font-variant: small-caps;
+                      font-weight: bold;
+                    }
+                    .optionval {
+                      font-size: 70%;
+                      font-weight: bold;
+                      color: #589f4a;
+                      text-overflow: ellipsis;
+                      white-space: nowrap;
+                      overflow: hidden;
+                    }
+                    .optiondesc {
+                      color: #777;
+                      font-size: 70%;
+                      margin-left: 2em;
+                      text-overflow: ellipsis;
+                      white-space: nowrap;
+                      overflow: hidden;
+                    }
+                    .option {
+                      position: relative;
+                      height: 40;
+                      line-height: 16px;
+                      padding-top: 0.1em;
+                      padding-bottom: 0.1em;
+                      padding-right: 0.5em;
+                      padding-left: 0.5em;
+                    }
+                    .option:hover {
+                      background-color: #eeeeee;
+                    }
+                </style>
+                <div id="listcontainer" on-mouseleave="{{closeToolTips}}">
+                    <template repeat="{{option in configs}}">
+                        <div data-optionname="{{option.name}}" class="option">
+                            <span class="optionname">{{option.name}}</span>
+                            <span class="optionval">{{option.val}}</span>
+                            <div class="optiondesc">{{option.description}}</div>
+                            <paper-ripple fit></paper-ripple>
+                        </div>
+                    </template>
+                </div>
+                <nixui-configs id="configs"></nixui-configs>
+                <nixui-configurations id="configurations"></nixui-configurations>
+            </template>
+            <script>
+                (function() {
+                  Polymer({
+                      ready: function() {
+                        this.panelVisible = false;
+                        this.query = "";
+                        this.configstree = {};
+                        this.configs = [];
+
+                        this.fire('core-signal', {name: "progress", data: "start"});
+
+                        this.$.configs.init(this.$.configurations.current(), function(err, result) {
+                            if (err) throw err;
+                            this.options = result;
+                            this.searchSignal(undefined, {query: ""});
+                        }.bind(this));
+                      },
+                      searchSignal: function(e, detail, sender) {
+                        this.query = detail.query;
+                        this.fire('core-signal', {name: "progress", data: "start"});
+                        this.$.configs.filter(this.query, function(err, result) {
+                            if (err) throw err;
+                            this.configs = result;
+                            this.fire('core-signal', {name: "progress", data: "finish"});
+                        }.bind(this));
+                      },
+                      panelAnimate: function(show) {
+                        var elem = this.$.editpanel;
+                        var anim;
+                        if (show) {
+                            anim = new Animation(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 200});
+                            // this.force.size([this.graph_width * 0.66, this.graph_height]).start();
+                            elem.style.display = "block";
+                            this.panelVisible = true;
+                        } else {
+                            anim = new Animation(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 200});
+                            // this.force.size([this.graph_width, this.graph_height]).start();
+                            anim.onfinish = function() {
+                                this.$.editpanel.style.display = "none";
+                            }.bind(this);
+                            this.panelVisible = false;
+                        }
+                        var player = document.timeline.play(anim);
+                      }
+                  });
+                })();
+            </script>
+        </polymer-element>
+
+
+        <polymer-element name="search-input">
+            <template>
+                <style type="text/css">
+                    .dropdown {
+                        position: absolute;
+                        top: 20px;
+                    }
+                    #dropdown {
+                        overflow: hidden;
+                    }
+                    #searchfield {
+                        border-bottom: 1px solid #50a0ff;
+                        font-family: sans-serif;
+                        font-variant: small-caps;
+                        font-size: 75%;
+                        width: 20em;
+                        margin: 0.25em;
+                        color: #005aa0;
+                    }
+                    core-menu {
+                        margin: 0;
+                        width: 18em;
+                        height: 5em;
+                        font-family: sans-serif;
+                        font-variant: small-caps;
+                        font-size: 75%;
+                    }
+                    core-item {
+                        padding: 0.25em;
+                        background-color: #ddeeff;
+                        min-height: inherit;
+                    }
+                    core-item[active] {
+                        color: #005aa0;
+                    }
+                </style>
+                <span>
+                    <div id="container" relative>
+                        <input is="core-input" id="searchfield" on-keyup="{{keyUpHandler}}" value="{{value}}" placeholder="search (ex: nginx)"></input>
+                    </div>
+                </span>
+            </template>
+            <script>
+                (function() {
+                  Polymer('search-input', {
+                    ready: function() {
+                      this.value = "";
+                    },
+                    keyUpHandler: function(event, detail, sender) {
+                      if (event.keyCode == 13) {
+                        this.fire('core-signal', {
+                            name: "search",
+                            data: { query: this.value }
+                        });
+                      }
+                    }
+                  });
+                })();
+            </script>
+        </polymer-element>
+        <style>
+            html,body {
+                height: 100%;
+                margin: 0;
+                background-color: white;
+                font-family: sans-serif;
+              }
+        </style>
+    </head>
+    <body unresolved touch-action="auto">
+        <nixui-configuration></nixui-configuration>
+    </body>
+</html>

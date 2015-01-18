@@ -95,16 +95,37 @@ dbs.configs = function(configurationId, attrs, cb) {
     dbs.configurations.get(configurationId, function(err, o) {
         NixInterface.configTree(o.path, attrs, undefined, process.env, function(tree) {
             var result = JSON.parse(JSON.parse(tree));
-            data.configs = result;
-            cb(null, result);
+            data.configs = new nedb();
+            data.configstree = result;
+            data.configs.ensureIndex({fieldName: 'name', unique: true}, function(err) {
+                if (err) console.log(err);
+                recurseConfigs([], result);
+                cb(null, result);
+            });
         }, function(err) {
             cb(err);
         });
     });
 };
 
-dbs.configs.all = function() {
-    return data.configs;
+dbs.configs.tree = function() {
+    return data.configstree;
+};
+
+dbs.configs.all = function(cb) {
+    data.configs.find({}, cb);
+};
+
+dbs.configs.filter = function(query, cb) {
+    var requery = new RegExp(query, 'i');
+    var refind = {$or: [{name: {$regex: requery}}, {description: {$regex: requery}}, {val: {$regex: requery}}]};
+    data.configs.find(refind).limit(100).exec(function(err, data) {
+        if (err) {
+            console.log(err);
+            cb(err);
+        }
+        cb(null, data);
+    });
 };
 
 // packages
@@ -461,4 +482,16 @@ var applyMark = function(profileId, attribute, name, mark, finish_callback, erro
             NixInterface.uninstallPackage(attribute, name, undefined, profile.path, process.env, onFinish, onError);
         }
     });
+};
+
+var recurseConfigs = function(position, object) {
+    if (object && object.optType) {
+        data.configs.update({name: position.join(".")}, object, {upsert: true});
+    } else {
+        for (var key in object) {
+            if (object.hasOwnProperty(key)){
+                recurseConfigs(position.concat([key]), object[key]);
+            }
+        }
+    }
 };
