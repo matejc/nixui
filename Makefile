@@ -21,8 +21,8 @@ node: package.json
 generate-node: package.json
 	nix-shell --argstr action env --command "npm2nix --composition node-default.nix"
 
-just-run-it: clean node
-	nix-shell --argstr action run
+just-run-it:
+	`nix-build --argstr action package`/bin/nixui
 
 package:
 	nix-env -f ./default.nix -i --argstr action package

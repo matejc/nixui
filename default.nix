@@ -43,15 +43,7 @@ let
           export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
         '';
       }
-    else if action == "package" then
-      pkgs.callPackage ./package.nix { node_webkit = nodewebkit; }
-    else  # run
-      pkgs.stdenv.mkDerivation rec {
-        name = "nixui";
-        src = nixui;
-        shellHook = ''
-          ${nixui}/bin/nixui
-        '';
-      };
+    else
+      pkgs.callPackage ./package.nix { node_webkit = nodewebkit; };
 
 in dispatcher action
