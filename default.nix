@@ -1,49 +1,24 @@
-{ action ? "run" }:
-
+{ nixui ? { outPath = ./.; name = "nixui"; }
+, pkgs ? import <nixpkgs> {}
+}:
 let
-
-  pkgs = import <nixpkgs> {};
-
-  nodewebkit = pkgs.callPackage ./node-webkit.nix { gconf = pkgs.gnome.GConf; };
-
-  npm2nix_src = pkgs.fetchgit {
-    url = "git://github.com/svanderburg/npm2nix";
-    rev = "c1b83fa7263f2627f707d2969c48fb643759c3f5";
-    sha256 = "19h0br5w99bndls5jsiy145z307qbjgrarl2rjx5kymrrzchrqmn";
-  };
-  npm2nix = (import "${npm2nix_src}/default.nix" {
-    system = pkgs.system;
+  nodePackages = import "${pkgs.path}/pkgs/top-level/node-packages.nix" {
     inherit pkgs;
-  }).build;
-
-  nixui = pkgs.stdenv.mkDerivation rec {
-    name = "nixui";
-    src = [ { name = "nixui-src"; outPath = ./.; } ];
-    buildPhase = "";
-    installPhase = ''
-      mkdir -p $out/bin
-      cp -r $src/node_modules $out
-      cp -r $src/bower_components $out
-      cp -r $src/src $out
-      cp -r $src/package.json $out
-
-      cat > $out/bin/nixui <<EOF
-      PATH="${pkgs.nix}/bin:\$PATH" ${nodewebkit}/bin/nw $out "\$@"
-      EOF
-      chmod +x $out/bin/nixui
-    '';
+    inherit (pkgs) stdenv nodejs fetchurl fetchgit;
+    neededNatives = [ pkgs.python ] ++ pkgs.lib.optional pkgs.stdenv.isLinux pkgs.utillinux;
+    self = nodePackages;
+    generated = ./node.nix;
   };
-
-  dispatcher = action:
-    if action == "env" then
-      pkgs.stdenv.mkDerivation rec {
-        name = "nixui-env";
-        buildInputs = [ nodewebkit npm2nix ];
-        shellHook = ''
-          export NODE_PATH="`pwd`/node_modules:$NODE_PATH"
-        '';
-      }
-    else
-      pkgs.callPackage ./package.nix { node_webkit = nodewebkit; };
-
-in dispatcher action
+in rec {
+  tarball = pkgs.runCommand "nixui-0.0.1.tgz" { buildInputs = [ pkgs.nodejs ]; } ''
+    mv `HOME=$PWD npm pack ${nixui}` $out
+  '';
+  build = nodePackages.buildNodePackage {
+    name = "nixui-0.0.1";
+    src = [ tarball ];
+    buildInputs = nodePackages.nativeDeps."nixui" or [];
+    deps = [ nodePackages.by-spec."underscore"."^1.6.0" nodePackages.by-spec."nedb"."~1.0.0" ];
+    peerDependencies = [];
+    passthru.names = [ "nixui" ];
+  };
+}
