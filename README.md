@@ -1,7 +1,8 @@
 NixUI
 =====
 
-Web UI for Nix package manager
+NodeWebkit UI for Nix package manager
+
 
 Requirement
 -----------
@@ -30,8 +31,16 @@ Build development environment
 $ make build
 ```
 
-Run server
+Run UI
 
 ```
 $ make develop
 ```
+
+
+Screenshots
+-----------
+
+![Configuration Options](img/configoptions.jpg)
+![Packages](img/packages.jpg)
+![Package Information](img/package.jpg)
