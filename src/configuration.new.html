@@ -267,6 +267,7 @@
                             this.configs = result;
                             this.fire('core-signal', {name: "progress", data: "finish"});
                         }.bind(this));
+                        if (this.panelVisible) this.panelAnimate(false);
                       },
                       openPanel: function(e, detail, sender) {
                         if (e.keyCode == 13 || e.keyCode == 9 || e.keyCode == 0) {
