@@ -65,7 +65,7 @@
             <div class="core-header">
                 <core-toolbar>
                     <div class="nixuicenter">
-                        <a href="chooser.html" class="nixuilink">NixUI
+                        <a href="chooser.html" class="nixuilink" tabindex="-1">NixUI
                             <paper-ripple fit></paper-ripple>
                         </a>
                     </div>
@@ -73,7 +73,7 @@
                     <query-input id="queryfield" query="{{query}}"></query-input>
                     <div flex></div>
 
-                    <paper-menu-button>
+                    <paper-menu-button tabindex="-1">
                         <paper-icon-button icon="more-vert"></paper-icon-button>
                         <paper-dropdown class="dropdown" halign="right">
                             <core-menu class="menu">
@@ -253,6 +253,10 @@
             .package:hover {
               background-color: #eeeeee;
             }
+            .package:focus {
+              background-color: #dddddd;
+              outline: none;
+            }
             .available {
               display:none;
             }
@@ -267,7 +271,7 @@
         </style>
         <div id="listcontainer" on-mouseleave="{{closeToolTips}}">
             <template repeat="{{package in packages}}" bind="{{classNameFromCompare as classNameFromCompare}}">
-                <div on-click="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package">
+                <div on-click="{{openPackageDialog}}" on-keyup="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package" tabindex="1">
                     <div class="pkgname">{{package.name}}</div>
                     <div class="pkgstate {{package.compare | classNameFromCompare}}" class="pkgstate">{{package.compare}}</div>
                     <div class="pkgattr">{{package.attribute}}</div>
@@ -302,10 +306,12 @@
               this.currentToolTipAttr = "";
             },
             openPackageDialog: function(e, detail, sender) {
-              var attribute = sender.getAttribute('data-pkgattr');
-              var name = sender.getAttribute('data-pkgname');
-              var compare = sender.getAttribute('data-pkgcomp');
-              this.fire('core-signal', {name: "pkginfo", data: {pkgattr: attribute, pkgname: name, pkgcomp: compare, controlDim: true}});
+                if (e.keyCode == 13 || e.keyCode == 0) {
+                  var attribute = sender.getAttribute('data-pkgattr');
+                  var name = sender.getAttribute('data-pkgname');
+                  var compare = sender.getAttribute('data-pkgcomp');
+                  this.fire('core-signal', {name: "pkginfo", data: {pkgattr: attribute, pkgname: name, pkgcomp: compare, controlDim: true}});
+                }
             }
           });
         })();
