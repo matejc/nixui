@@ -190,6 +190,7 @@
                 }.bind(this));
               },
               ready: function() {
+                this.$.searchfield.shadowRoot.getElementsByTagName('input')[0].focus();
                 this.value = "";
               },
               resetCache: function() {

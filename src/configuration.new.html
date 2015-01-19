@@ -373,7 +373,8 @@
                 (function() {
                   Polymer('search-input', {
                     ready: function() {
-                      this.value = "";
+                        this.$.searchfield.focus();
+                        this.value = "";
                     },
                     keyDownHandler: function(event, detail, sender) {
                       if (event.keyCode == 13) {
