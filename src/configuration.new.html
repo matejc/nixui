@@ -67,7 +67,7 @@
                     <div class="core-header">
                         <core-toolbar>
                             <div class="nixuicenter">
-                                <a href="chooser.html" class="nixuilink">NixUI
+                                <a href="chooser.html" class="nixuilink" tabindex="-1">NixUI
                                     <paper-ripple fit></paper-ripple>
                                 </a>
                             </div>
@@ -78,7 +78,7 @@
                         <progress-bar id="progressbar"></progress-bar>
                     </div>
                     <div id="optionscontainer">
-                        <config-options></config-options>
+                        <config-options id="configoptions"></config-options>
                     </div>
                 </core-header-panel>
                 <!--<package-dialog controlDim="true"></package-dialog>-->
@@ -146,24 +146,96 @@
                       position: relative;
                       height: 40;
                       line-height: 16px;
-                      padding-top: 0.1em;
-                      padding-bottom: 0.1em;
-                      padding-right: 0.5em;
-                      padding-left: 0.5em;
+                      padding: 0.4em;
                     }
                     .option:hover {
                       background-color: #eeeeee;
                     }
+                    .option:focus {
+                      background-color: #dddddd;
+                    }
+                    #editpanel {
+                      border: 1px solid #50a0ff;
+                      background: white;
+                      display: none;
+                      top: 5em;
+                      right: 1em;
+                      bottom: 1em;
+                      position: fixed;
+                      overflow: auto;
+                      padding: 0.5em;
+                      width: 40%;
+                    }
+                    #editpanel #path {
+                        font-family: sans-serif;
+                        font-variant: small-caps;
+                        font-weight: bold;
+                        color: #005aa0;
+                    }
+                    #editpanel #type {
+                        font-family: sans-serif;
+                        font-variant: small-caps;
+                        font-weight: bold;
+                        color: #888;
+                    }
+                    #editpanel #description {
+                        color: #666;
+                        margin: 1em 0 1em 0;
+                    }
+                    #editpanel pre {
+                        background-color: #eee;
+                        border-radius: 4px;
+                        padding: 5px;
+                        margin: 0 0 1em 0;
+
+                        white-space: pre-wrap;       /* css-3 */
+                        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+                        white-space: -pre-wrap;      /* Opera 4-6 */
+                        white-space: -o-pre-wrap;    /* Opera 7 */
+                        word-wrap: break-word;       /* Internet Explorer 5.5+ */
+                    }
+                    .label {
+                        font-family: sans-serif;
+                        font-variant: small-caps;
+                        width: 100%;
+                        text-align: right;
+                        color: #005aa0;
+                        font-size: 80%;
+                    }
+                    #editpanel #value {
+                        width: 100%;
+                    }
+                    paper-input {
+                        font-family: monospace;
+                    }
                 </style>
                 <div id="listcontainer" on-mouseleave="{{closeToolTips}}">
                     <template repeat="{{option in configs}}">
-                        <div data-optionname="{{option.name}}" class="option">
+                        <div on-click="{{openPanel}}" on-keyup="{{openPanel}}" tabindex="2" data-optionname="{{option.name}}" class="option">
                             <span class="optionname">{{option.name}}</span>
                             <span class="optionval">{{option.val}}</span>
                             <div class="optiondesc">{{option.description}}</div>
                             <paper-ripple fit></paper-ripple>
                         </div>
                     </template>
+                </div>
+                <div id="editpanel">
+                    <div id="path">{{optionDetails._path}}</div>
+                    <div id="type">{{optionDetails.optType}}</div>
+                    <div id="description">{{optionDetails.description}}</div>
+                    <template if="{{optionDetails.example}}">
+                        <div class="label">example</div> <pre id="example">{{optionDetails.example}}</pre>
+
+                    </template>
+                    <template if="{{optionDetails.default}}">
+                        <div class="label">default</div> <pre id="default">{{optionDetails.default}}</pre>
+
+                    </template>
+
+                    <template if="{{optionDetails.val}}">
+                        <div class="label">value</div> <pre id="val">{{optionDetails.val}}</pre>
+                    </template>
+                    <!--<paper-input id="value" multiline maxRows="5" floatingLabel label="value ..." value="{{optionDetails.val}}" on-keydown="{{optionValueKeyDown}}" on-keypress="{{optionValueKeyPress}}"></paper-input>-->
                 </div>
                 <nixui-configs id="configs"></nixui-configs>
                 <nixui-configurations id="configurations"></nixui-configurations>
@@ -176,12 +248,13 @@
                         this.query = "";
                         this.configstree = {};
                         this.configs = [];
+                        this.optionDetails = {};
 
                         this.fire('core-signal', {name: "progress", data: "start"});
 
                         this.$.configs.init(this.$.configurations.current(), function(err, result) {
                             if (err) throw err;
-                            this.options = result;
+                            this.configstree = result;
                             this.searchSignal(undefined, {query: ""});
                         }.bind(this));
                       },
@@ -193,6 +266,41 @@
                             this.configs = result;
                             this.fire('core-signal', {name: "progress", data: "finish"});
                         }.bind(this));
+                      },
+                      openPanel: function(e, detail, sender) {
+                        if (e.keyCode == 13 || e.keyCode == 9 || e.keyCode == 0) {
+                            var optionName = sender.getAttribute("data-optionname");
+                            var optionPath = optionName.split('.');
+
+                            var option = this.getOptionByPath(optionPath);
+                            if (option && option.optType) {
+                                this.optionDetails = option;
+                                this.optionDetails._path = optionPath.join(".");
+                                if (!this.panelVisible) this.panelAnimate(true);
+                                return;
+                            }
+                        } else if (e.keyCode == 27) {
+                            if (this.panelVisible) this.panelAnimate(false);
+                        }
+                      },
+                      getOptionByPath: function(path) {
+                          option = this.configstree;
+                          if (path.length > 0) {
+                              for (var i in path) {
+                                  if (path[i] === "") {
+                                      continue;
+                                  }
+                                  try {
+                                      option = option[path[i]];
+                                  } catch (ex) {
+                                      console.log("Not found option: " + path.join("."));
+                                      return null;
+                                  }
+                              }
+                          } else {
+                              option = this.configstree;
+                          }
+                          return option;
                       },
                       panelAnimate: function(show) {
                         var elem = this.$.editpanel;
@@ -256,7 +364,7 @@
                 </style>
                 <span>
                     <div id="container" relative>
-                        <input is="core-input" id="searchfield" on-keyup="{{keyUpHandler}}" value="{{value}}" placeholder="search (ex: nginx)"></input>
+                        <input is="core-input" id="searchfield" tabindex="1" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="search (ex: nginx)"></input>
                     </div>
                 </span>
             </template>
@@ -266,7 +374,7 @@
                     ready: function() {
                       this.value = "";
                     },
-                    keyUpHandler: function(event, detail, sender) {
+                    keyDownHandler: function(event, detail, sender) {
                       if (event.keyCode == 13) {
                         this.fire('core-signal', {
                             name: "search",
