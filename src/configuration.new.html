@@ -62,7 +62,7 @@
                 <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
                 <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
                 <core-signals on-core-signal-message="{{message}}"></core-signals>
-                <core-header-panel id="contentpanel" mode="seamed">
+                <core-header-panel id="contentpanel" mode="seamed" on-keyup="{{globalKeyUp}}">
                     <div id="dimmer"></div>
                     <div class="core-header">
                         <core-toolbar>
@@ -108,6 +108,12 @@
                         }
                         this.$.message.style.color = color;
                         this.$.message.show();
+                      },
+                      globalKeyUp: function(e, detail, sender) {
+                        if (e.keyCode == 191) {  // the '/' key
+                          this.$.searchfield.focus();
+                          if (this.$.configoptions.panelVisible) this.$.configoptions.panelAnimate(false);
+                        }
                       }
                     });
 
@@ -373,9 +379,12 @@
             <script>
                 (function() {
                   Polymer('search-input', {
-                    ready: function() {
+                    focus: function() {
                         this.$.searchfield.focus();
+                    },
+                    ready: function() {
                         this.value = "";
+                        this.focus();
                     },
                     keyDownHandler: function(event, detail, sender) {
                       if (event.keyCode == 13) {

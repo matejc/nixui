@@ -60,7 +60,7 @@
         <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
         <core-signals on-core-signal-message="{{message}}"></core-signals>
         <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
-        <core-header-panel id="contentpanel" mode="seamed">
+        <core-header-panel id="contentpanel" mode="seamed" on-keyup="{{globalKeyUp}}">
             <div id="dimmer"></div>
             <div class="core-header">
                 <core-toolbar>
@@ -152,6 +152,11 @@
                   this.fire('core-signal', {name: "openmarked"});
                 }
               }.bind(this));
+            },
+            globalKeyUp: function(e, detail, sender) {
+              if (e.keyCode == 191) {  // the '/' key
+                this.$.queryfield.focus();
+              }
             }
           });
 
@@ -189,9 +194,12 @@
                   }
                 }.bind(this));
               },
-              ready: function() {
+              focus: function() {
                 this.$.searchfield.shadowRoot.getElementsByTagName('input')[0].focus();
+              },
+              ready: function() {
                 this.value = "";
+                this.focus();
               },
               resetCache: function() {
                 this.$.packages.reset(this.$.profiles.current(), function() {
