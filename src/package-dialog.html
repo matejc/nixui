@@ -60,6 +60,7 @@
       if (!this.$.pkgdialog.opened) {
         this.$.pkgdialog.controlDim = this.signalobj.controlDim;
         this.$.pkgdialog.toggle();
+        this.fire('core-signal', {name: "progress", data: "finish"});
       }
     },
     close: function() {
@@ -86,6 +87,7 @@
         this.pkginfo = data;
         this.open();
       }.bind(this));
+      this.fire('core-signal', {name: "progress", data: "start"});
     },
     toggleMarked: function(e, detail, sender) {
       this.$.markeds.toggle(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
