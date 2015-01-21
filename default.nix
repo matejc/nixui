@@ -10,11 +10,11 @@ let
     generated = ./node.nix;
   };
 in rec {
-  tarball = pkgs.runCommand "nixui-0.0.1.tgz" { buildInputs = [ pkgs.nodejs ]; } ''
+  tarball = pkgs.runCommand "nixui-0.1.tgz" { buildInputs = [ pkgs.nodejs ]; } ''
     mv `HOME=$PWD npm pack ${nixui}` $out
   '';
   build = nodePackages.buildNodePackage {
-    name = "nixui-0.0.1";
+    name = "nixui-0.1";
     src = [ tarball ];
     buildInputs = nodePackages.nativeDeps."nixui" or [];
     deps = [ nodePackages.by-spec."underscore"."^1.6.0" nodePackages.by-spec."nedb"."~1.0.0" ];

@@ -19,6 +19,8 @@ node: package.json
 	nix-shell dispatcher.nix --argstr action env --command "npm install bower"
 
 generate-node: package.json
+	rm node.nix
+	rm default.nix
 	nix-shell dispatcher.nix --argstr action env --command "npm2nix package.json node.nix"
 
 just-run-it:
