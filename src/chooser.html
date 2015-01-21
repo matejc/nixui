@@ -100,6 +100,13 @@
             font-size: 70%;
             color: #005aa0;
         }
+        #footer {
+            position: absolute;
+            bottom: 2em;
+            left: 2em;
+            font-size: 70%;
+            color: #005aa0;
+        }
         </style>
         <div id="wrapper" layout horizontal>
             <div id="actionlist" center-justified layout vertical>
@@ -135,6 +142,10 @@
                 <configurations-input></configurations-input>
             </div>
         </div>
+        <div id="footer">
+            NIX_PATH: {{nixPath}}
+        </div>
+
 
         <nixui-profiles id="profiles"></nixui-profiles>
         <nixui-configurations id="configurations"></nixui-configurations>
@@ -143,6 +154,8 @@
     (function() {
         Polymer('nixui-chooser', {
             ready: function() {
+                this.nixPath = process.env.NIX_PATH;
+
                 this.profiles = [];
                 this.actions = [
                     { id: 0, label: "Package Manager", url: "package-manager.html" },

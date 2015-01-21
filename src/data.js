@@ -3,10 +3,13 @@ var path = require('path');
 var NixInterface = require("./interface.js");
 var nedb = require('nedb');
 
+
 var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : require("./config.json"),
     dbs = {},
     data = {},
     dataDir = config.dataDir ? config.dataDir : '/tmp';
+
+process.env.NIX_PATH = config.NIX_PATH ? config.NIX_PATH : process.env.NIX_PATH;
 
 module.exports = dbs;
 
