@@ -5,7 +5,10 @@ let
   pkgs = import <nixpkgs> {};
 
   nodewebkit = pkgs.callPackage ./node-webkit.nix { gconf = pkgs.gnome.GConf; };
-  nixui = pkgs.callPackage ./default.nix { };
+  nixui = pkgs.callPackage ./default.nix {
+    nixui = { outPath = ./.; name = "nixui"; };
+    inherit pkgs;
+  };
 
   dispatcher = action:
     if action == "env" then

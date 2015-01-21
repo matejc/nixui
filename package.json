@@ -1,6 +1,6 @@
 {
   "name": "nixui",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "nix-env frontend written with Polymer",
   "main": "src/chooser.html",
   "keywords": [
@@ -33,6 +33,7 @@
   "window": {
     "toolbar": false,
     "width": 1000,
-    "height": 700
+    "height": 700,
+    "icon": "img/128.png"
   }
 }
