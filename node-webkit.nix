@@ -11,9 +11,9 @@ let
     paths = [
       xlibs.libX11 xlibs.libXrender glib gtk atk pango cairo gdk_pixbuf
       freetype fontconfig xlibs.libXcomposite alsaLib xlibs.libXdamage
-      xlibs.libXext xlibs.libXfixes nss nspr gconf expat dbus stdenv.cc
-      xlibs.libXtst xlibs.libXi xlibs.libXcursor xlibs.libXrandr libcap
-      libnotify
+      xlibs.libXext xlibs.libXfixes nss nspr gconf expat dbus xlibs.libXtst
+      xlibs.libXi xlibs.libXcursor xlibs.libXrandr libcap libnotify
+      (stdenv.gcc.gcc or stdenv.cc)
     ];
   };
 
