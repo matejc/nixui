@@ -402,6 +402,17 @@ dbs.actions.get = function(id) {
     }
 };
 
+// meta - meta data
+
+dbs.meta = function() {
+    data.meta = { package: require('../package.json'), config: config };
+};
+
+dbs.meta.all = function() {
+    return data.meta;
+};
+
+
 // helper functions
 
 var getPackageByAttribute = function(profileId, attribute, callback) {

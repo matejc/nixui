@@ -183,3 +183,21 @@
   })();
   </script>
 </polymer-element>
+
+<polymer-element name="nixui-meta">
+  <template>
+  </template>
+  <script>
+  (function() {
+    Polymer({
+      ready: function() {
+        this.meta = require("./data.js").meta;
+        this.meta();
+      },
+      all: function() {
+        return this.meta.all();
+      }
+    });
+  })();
+  </script>
+</polymer-element>
