@@ -1,7 +1,11 @@
 { attrs ? "configuration", configurationnix ? "", valuesInJson ? false }:
 let
   pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; };
-  configuration = import configurationnix { inherit pkgs; config = pkgs.config; };
+  configuration = import configurationnix {
+    inherit pkgs;
+    lib = pkgs.lib;
+    config = pkgs.config;
+  };
   values = (import ./configoption.nix {
     attrs = ""; inherit configurationnix; json = false;
   }).val;
