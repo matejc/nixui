@@ -1,6 +1,5 @@
 <link rel="import" href="../bower_components/core-header-panel/core-header-panel.html">
 <link rel="import" href="../bower_components/core-toolbar/core-toolbar.html">
-<link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
 <link rel="import" href="../bower_components/core-signals/core-signals.html">
 <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
@@ -9,6 +8,7 @@
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/paper-dropdown/paper-dropdown.html">
 <link rel="import" href="../bower_components/core-menu/core-menu.html">
+<link rel="import" href="../bower_components/core-input/core-input.html">
 
 <link rel="import" href="./progress-bar.html">
 <link rel="import" href="./data.html">
@@ -172,8 +172,19 @@
 </polymer-element>
 <polymer-element name="query-input" attributes="query" on-keypress="{{keypressHandler}}">
     <template>
+    <style type="text/css">
+    #searchfield {
+      border-bottom: 1px solid #50a0ff;
+      font-family: sans-serif;
+      width: 20em;
+      margin: 0.25em;
+      color: #005aa0;
+    }
+    </style>
     <span>
-      <paper-input id="searchfield" on-keyup="{{keyHandler}}" value="{{value}}" label="Search packages ..."></paper-input>
+      <div id="container" relative>
+        <input is="core-input" id="searchfield" tabindex="1" on-keyup="{{keyHandler}}" value="{{value}}" placeholder="Search packages ..."></input>
+      </div>
     </span>
 
     <nixui-packages id="packages"></nixui-packages>
@@ -202,7 +213,7 @@
                 }.bind(this));
               },
               focus: function() {
-                this.$.searchfield.shadowRoot.getElementsByTagName('input')[0].focus();
+                this.$.searchfield.focus();
               },
               ready: function() {
                 this.value = "";
@@ -265,6 +276,7 @@
               padding-right: 0.5em;
               padding-left: 0.5em;
               outline: none;
+              font-size: 85%;
             }
             .package:hover {
               background-color: #eeeeee;
