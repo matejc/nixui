@@ -147,6 +147,7 @@
         </div>
 
 
+        <nixui-actions id="actions"></nixui-actions>
         <nixui-profiles id="profiles"></nixui-profiles>
         <nixui-configurations id="configurations"></nixui-configurations>
     </template>
@@ -157,10 +158,7 @@
                 this.nixPath = process.env.NIX_PATH;
 
                 this.profiles = [];
-                this.actions = [
-                    { id: 0, label: "Package Manager", url: "package-manager.html" },
-                    { id: 1, label: "Configuration Options", url: "configuration.new.html" }
-                ];
+                this.actions = this.$.actions.all();
 
                 this.$.profiles.init();
                 this.$.profiles.all(function (err, profiles) {

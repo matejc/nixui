@@ -162,3 +162,24 @@
     })();
     </script>
 </polymer-element>
+
+<polymer-element name="nixui-actions">
+  <template>
+  </template>
+  <script>
+  (function() {
+    Polymer({
+      ready: function() {
+        this.actions = require("./data.js").actions;
+        this.actions();
+      },
+      all: function() {
+        return this.actions.all();
+      },
+      get: function(id) {
+        return this.actions.get(id);
+      }
+    });
+  })();
+  </script>
+</polymer-element>

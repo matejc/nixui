@@ -69,9 +69,14 @@
                             <paper-ripple fit></paper-ripple>
                         </a>
                     </div>
+                    <div class="nixuilink">></div>
+                    <div>
+                      <a href="{{action.url}}" class="nixuilink" tabindex="-1">
+                        {{action.label}}
+                      </a>
+                    </div>
                     <div flex></div>
                     <query-input id="queryfield" query="{{query}}"></query-input>
-                    <div flex></div>
 
                     <paper-menu-button tabindex="-1">
                         <paper-icon-button icon="more-vert"></paper-icon-button>
@@ -96,6 +101,7 @@
         <nixui-packages id="packages"></nixui-packages>
         <nixui-profiles id="profiles"></nixui-profiles>
         <nixui-markeds id="markeds"></nixui-markeds>
+        <nixui-actions id="actions"></nixui-actions>
         <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
     </template>
     <script>
@@ -115,6 +121,7 @@
               this.fire('core-signal', {name: "openmarked"});
             },
             ready: function() {
+              this.action = this.$.actions.get(0);
               setTimeout(this.fillCache.bind(this), 1);
             },
             fillCache: function() {

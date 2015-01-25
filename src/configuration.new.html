@@ -71,9 +71,14 @@
                                     <paper-ripple fit></paper-ripple>
                                 </a>
                             </div>
+                            <div class="nixuilink">></div>
+                            <div>
+                                <a href="{{action.url}}" class="nixuilink" tabindex="-1">
+                                    {{action.label}}
+                                </a>
+                            </div>
                             <div flex></div>
                             <search-input id="searchfield"></search-input>
-                            <div flex></div>
                         </core-toolbar>
                         <progress-bar id="progressbar"></progress-bar>
                     </div>
@@ -85,10 +90,14 @@
                 <error-dialog controlDim="true"></error-dialog>
                 <!--<marked-dialog controlDim="true"></marked-dialog>-->
                 <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
+                <nixui-actions id="actions"></nixui-actions>
             </template>
             <script>
                 (function() {
                     Polymer('nixui-configuration', {
+                      ready: function() {
+                        this.action = this.$.actions.get(1);
+                      },
                       progressSignal: function(e, detail, sender) {
                         this.$.progressbar.doProgress(detail);
                       },

@@ -380,6 +380,28 @@ dbs.markeds.list = function(profileId, cb) {
     }
 };
 
+
+// actions - views supported
+
+dbs.actions = function() {
+    data.actions = [
+        { id: 0, label: "Package Manager", url: "package-manager.html" },
+        { id: 1, label: "Configuration Options", url: "configuration.new.html" }
+    ];
+};
+
+dbs.actions.all = function() {
+    return data.actions;
+};
+
+dbs.actions.get = function(id) {
+    for (var i in data.actions) {
+        if (id == data.actions[i].id) {
+            return data.actions[i];
+        }
+    }
+};
+
 // helper functions
 
 var getPackageByAttribute = function(profileId, attribute, callback) {
