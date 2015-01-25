@@ -83,7 +83,11 @@
             color: #0080d0;
         }
         .item:hover {
-            background: rgba(250,250,250, .8);
+            background: rgba(240,240,240, .8);
+        }
+        .item:focus {
+          background-color: #dddddd;
+          outline: none;
         }
         .item_selected {
             color: #005aa0;
@@ -119,7 +123,7 @@
             <div id="actionlist" center-justified layout vertical>
                 <div class="label">Select action:</div>
                 <template repeat="{{ a in actions }}">
-                    <div class="item" on-click="{{selectaction}}" data-url="{{a.url}}" data-id="{{a.id}}">
+                    <div class="item" on-click="{{selectaction}}" on-keyup="{{selectaction}}" data-url="{{a.url}}" data-id="{{a.id}}" tabindex="1">
                         <span>{{a.label}}</span>
                         <paper-ripple fit/>
                     </div>
@@ -128,7 +132,7 @@
             <div id="profilelist" center-justified layout vertical>
                 <div class="label">Select profile:</div>
                 <template repeat="{{ p in profiles }}">
-                    <div class="item" on-click="{{selectprofile}}" data-id="{{p.id}}">
+                    <div class="item" on-click="{{selectprofile}}" on-keyup="{{selectprofile}}" data-id="{{p.id}}" tabindex="1">
                         <span class="{{ {default: p.profile} | tokenList}}">{{p.name}}</span>
                         <paper-ripple fit/>
                     </div>
@@ -136,12 +140,12 @@
             </div>
             <div id="configlist" center-justified layout vertical>
                 <div class="label">Select configuration:</div>
-                <div class="item" on-click="{{selectconfig}}" data-id="-1">
+                <div class="item" on-click="{{selectconfig}}" on-keyup="{{selectconfig}}" data-id="-1" tabindex="1">
                     <span>Empty</span>
                     <paper-ripple fit/>
                 </div>
                 <template repeat="{{ c in configurations }}">
-                    <div class="item" on-click="{{selectconfig}}" data-id="{{c._id}}">
+                    <div class="item" on-click="{{selectconfig}}" on-keyup="{{selectconfig}}" data-id="{{c._id}}" tabindex="1">
                         <span>{{c.path}}</span>
                         <paper-ripple fit/>
                     </div>
@@ -180,44 +184,52 @@
                     this.configurations = cfgs;
                 }.bind(this));
             },
-            selectaction: function(e) {
-                if (this.animating === true) {
-                    return;
-                }
+            selectaction: function(e, detail, sender) {
+                if (e.keyCode == 13 || e.keyCode == 0) {
 
-                item = e.target.parentNode;
-                if (item) {
-                    items = this.shadowRoot.querySelectorAll(".item");
-                    for (var i in items) {
-                        items[i].className = item.className.replace( /(?:^|\s)item_selected(?!\S)/g , '' )
+                    if (this.animating === true) {
+                        return;
                     }
-                    item.className += " item_selected";
-                    this.currentActionURL = item.getAttribute("data-url");
-                    this.currentActionId = item.getAttribute("data-id");
 
-                    switch (this.currentActionId) {
-                        case '0':
-                            this.listAnimationShow(this.$.profilelist);
-                            break;
+                    var item = sender;
 
-                        case '1':
-                            this.listAnimationShow(this.$.configlist);
-                            break;
+                    if (item) {
+                        items = this.shadowRoot.querySelectorAll(".item");
+                        for (var i in items) {
+                            items[i].className = item.className.replace( /(?:^|\s)item_selected(?!\S)/g , '' )
+                        }
+                        item.className += " item_selected";
+                        this.currentActionURL = item.getAttribute("data-url");
+                        this.currentActionId = item.getAttribute("data-id");
+
+                        switch (this.currentActionId) {
+                            case '0':
+                                this.listAnimationShow(this.$.profilelist);
+                                break;
+
+                            case '1':
+                                this.listAnimationShow(this.$.configlist);
+                                break;
+                        }
                     }
                 }
             },
-            selectconfig: function(e) {
-                item = e.target.parentNode;
-                if (item) {
-                    this.$.configurations.current(item.getAttribute("data-id"));
-                    window.location.assign(this.currentActionURL);
+            selectconfig: function(e, detail, sender) {
+                if (e.keyCode == 13 || e.keyCode == 0) {
+                    var item = sender;
+                    if (item) {
+                        this.$.configurations.current(item.getAttribute("data-id"));
+                        window.location.assign(this.currentActionURL);
+                    }
                 }
             },
-            selectprofile: function(e) {
-                item = e.target.parentNode;
-                if (item) {
-                    this.$.profiles.current(item.getAttribute("data-id"));
-                    window.location.assign(this.currentActionURL);
+            selectprofile: function(e, detail, sender) {
+                if (e.keyCode == 13 || e.keyCode == 0) {
+                    var item = sender;
+                    if (item) {
+                        this.$.profiles.current(item.getAttribute("data-id"));
+                        window.location.assign(this.currentActionURL);
+                    }
                 }
             },
             generateListAnimation: function(elem, show) {
