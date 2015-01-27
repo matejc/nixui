@@ -24,7 +24,7 @@ generate-node: package.json
 	nix-shell dispatcher.nix --argstr action env --command "npm2nix package.json node.nix"
 
 just-run-it:
-	`nix-build dispatcher.nix --argstr action package`/bin/nixui
+	`nix-build dispatcher.nix --argstr action package --no-out-link`/bin/nixui
 
 package:
 	nix-env -f ./dispatcher.nix -i --argstr action package
