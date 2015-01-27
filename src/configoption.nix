@@ -7,8 +7,15 @@ let
 
   configuration = import configurationnix {
     inherit pkgs;
-    lib = pkgs.lib;
-    config = pkgs.config;
+    inherit (eval) config;
+    inherit (pkgs) lib;
+  };
+
+  eval = pkgs.lib.evalModules {
+    prefix = [];
+    modules = [ configurationnix ];
+    args = { inherit pkgs; };
+    check = true;
   };
 
   createEntry = path: root: visitList:
