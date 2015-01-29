@@ -6,6 +6,8 @@ let
   bits = if stdenv.system == "x86_64-linux" then "x64"
          else "ia32";
 
+  useGCC = stdenv ? gcc;
+
   nwEnv = buildEnv {
     name = "node-webkit-env";
     paths = [
@@ -13,7 +15,7 @@ let
       freetype fontconfig xlibs.libXcomposite alsaLib xlibs.libXdamage
       xlibs.libXext xlibs.libXfixes nss nspr gconf expat dbus xlibs.libXtst
       xlibs.libXi xlibs.libXcursor xlibs.libXrandr libcap libnotify
-      (stdenv.gcc.gcc or stdenv.cc)
+      (if useGCC then stdenv.gcc else stdenv.cc)
     ];
   };
 
@@ -32,8 +34,8 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/share/node-webkit
     cp -R * $out/share/node-webkit
 
-    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" $out/share/node-webkit/nw
-    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" $out/share/node-webkit/nwsnapshot
+    patchelf --set-interpreter "$(cat $NIX_${if useGCC then "GCC" else "CC"}/nix-support/dynamic-linker)" $out/share/node-webkit/nw
+    patchelf --set-interpreter "$(cat $NIX_${if useGCC then "GCC" else "CC"}/nix-support/dynamic-linker)" $out/share/node-webkit/nwsnapshot
 
     ln -s ${udev}/lib/libudev.so $out/share/node-webkit/libudev.so.0
 
