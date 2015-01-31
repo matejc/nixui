@@ -22,9 +22,9 @@
         <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
         <link rel="import" href="../bower_components/paper-dropdown/paper-dropdown.html">
 
-        <script src="../bower_components/jQuery/dist/jquery.min.js"></script>
-        <script src="../bower_components/d3/d3.min.js"></script>
+        <link rel="import" href="./progress-bar.html">
         <link rel="import" href="./data.html">
+
         <polymer-element name="nixui-configuration">
             <template>
                 <style>
@@ -32,83 +32,75 @@
                         height: 100%;
                         overflow: auto;
                         -webkit-overflow-scrolling: touch;
-                      }
-                      core-toolbar {
+                    }
+                    core-toolbar {
                         background: white;
-                        border-bottom-style: solid;
-                        border-bottom-width: 3px;
                         border-color: #005aa0;
-                      }
-                      .nixuicenter {
+                    }
+                    .nixuicenter {
                         color: #005aa0;
                         position: relative;
                         text-align: center;
-                      }
-                      .nixuilink {
+                    }
+                    .nixuilink {
                         color: #005aa0;
                         text-decoration: none;
-                      }
-                      #dimmer
-                      {
-                          background:#000;
-                          opacity:0.2;
-                          position:fixed; /* important to use fixed, not absolute */
-                          top:0;
-                          left:0;
-                          width:100%;
-                          height:100%;
-                          display:none;
-                          z-index:1;
-                      }
-                      paper-menu-button {
-                        color: #005aa0;
-                      }
-                      paper-item {
-                        margin: 0.5em;
-                        font-size: 80%;
-                      }
+                    }
+                    #dimmer
+                    {
+                        background:#000;
+                        opacity:0.2;
+                        position:fixed; /* important to use fixed, not absolute */
+                        top:0;
+                        left:0;
+                        width:100%;
+                        height:100%;
+                        display:none;
+                        z-index:1;
+                    }
                 </style>
+                <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
                 <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
                 <core-signals on-core-signal-message="{{message}}"></core-signals>
-                <core-header-panel id="contentpanel" mode="seamed">
+                <core-header-panel id="contentpanel" mode="seamed" on-keyup="{{globalKeyUp}}">
                     <div id="dimmer"></div>
                     <div class="core-header">
                         <core-toolbar>
                             <div class="nixuicenter">
-                                <a href="chooser.html" class="nixuilink">NixUI
+                                <a href="chooser.html" class="nixuilink" tabindex="-1">NixUI
                                     <paper-ripple fit></paper-ripple>
                                 </a>
                             </div>
-                            <div flex></div>
-                            <path-input id="pathfield" path="{{path}}"></path-input>
+                            <div class="nixuilink">></div>
+                            <div>
+                                <a href="{{action.url}}" class="nixuilink" tabindex="-1">
+                                    {{action.label}}
+                                </a>
+                            </div>
                             <div flex></div>
                             <search-input id="searchfield"></search-input>
-                            <div flex></div>
-                            <paper-menu-button>
-                                <paper-icon-button icon="more-vert"></paper-icon-button>
-                                <paper-dropdown class="dropdown" halign="right">
-                                    <core-menu class="menu">
-                                        <paper-item on-click="{{switchGraph}}" data-graphtype="force">Force graph</paper-item>
-                                        <paper-item on-click="{{switchGraph}}" data-graphtype="indented">Indented graph</paper-item>
-                                    </core-menu>
-                                </paper-dropdown>
-                            </paper-menu-button>
                         </core-toolbar>
+                        <progress-bar id="progressbar"></progress-bar>
                     </div>
-                    <div id="graphcontainer">
-                        <graph-options graphtype="force"></graph-options>
+                    <div id="optionscontainer">
+                        <config-options id="configoptions"></config-options>
                     </div>
                 </core-header-panel>
                 <!--<package-dialog controlDim="true"></package-dialog>-->
                 <error-dialog controlDim="true"></error-dialog>
                 <!--<marked-dialog controlDim="true"></marked-dialog>-->
                 <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
+                <nixui-actions id="actions"></nixui-actions>
             </template>
             <script>
                 (function() {
-
-
                     Polymer('nixui-configuration', {
+                      ready: function() {
+                        this.action = this.$.actions.get(1);
+                      },
+                      progressSignal: function(e, detail, sender) {
+                        this.$.progressbar.doProgress(detail);
+                      },
                       dimSignal: function(e, detail, sender) {
                         this.$.dimmer.style.display=(detail)?"block":"none";
                       },
@@ -126,20 +118,57 @@
                         this.$.message.style.color = color;
                         this.$.message.show();
                       },
-                      switchGraph: function(e, detail, sender) {
-                          var graphcontainer = this.shadowRoot.getElementById("graphcontainer");
-                          graphcontainer.innerHTML = '<graph-options graphtype="'+sender.getAttribute("data-graphtype")+'"></graph-options>';
+                      globalKeyUp: function(e, detail, sender) {
+                        if (e.keyCode == 191) {  // the '/' key
+                          this.$.searchfield.focus();
+                          if (this.$.configoptions.panelVisible) this.$.configoptions.panelAnimate(false);
+                        }
                       }
                     });
 
                   })();
             </script>
         </polymer-element>
-        <polymer-element name="graph-options" attributes="graphtype">
+
+        <polymer-element name="config-options">
             <template>
-                <core-signals on-core-signal-query="{{querySignal}}"></core-signals>
-                <core-signals on-core-signal-path="{{pathSignal}}"></core-signals>
-                <style id="cssstyle">
+                <core-signals on-core-signal-search="{{searchSignal}}"></core-signals>
+                <style>
+                    .optionname {
+                      color: #005aa0;
+                      font-size: 90%;
+                      font-family: sans-serif;
+                      font-weight: bold;
+                    }
+                    .optionval {
+                      font-size: 70%;
+                      font-weight: bold;
+                      color: #589f4a;
+                      text-overflow: ellipsis;
+                      white-space: nowrap;
+                      overflow: hidden;
+                    }
+                    .optiondesc {
+                      color: #777;
+                      font-size: 70%;
+                      margin-left: 2em;
+                      text-overflow: ellipsis;
+                      white-space: nowrap;
+                      overflow: hidden;
+                    }
+                    .option {
+                      position: relative;
+                      height: 40;
+                      line-height: 16px;
+                      padding: 0.4em;
+                    }
+                    .option:hover {
+                      background-color: #eeeeee;
+                    }
+                    .option:focus {
+                      background-color: #dddddd;
+                      outline: none;
+                    }
                     #editpanel {
                       border: 1px solid #50a0ff;
                       background: white;
@@ -150,10 +179,10 @@
                       position: fixed;
                       overflow: auto;
                       padding: 0.5em;
+                      width: 60%;
                     }
                     #editpanel #path {
                         font-family: sans-serif;
-                        font-variant: small-caps;
                         font-weight: bold;
                         color: #005aa0;
                     }
@@ -193,11 +222,16 @@
                     paper-input {
                         font-family: monospace;
                     }
-
                 </style>
-
-                <div id="panel" layout horizontal>
-                    <div id="graphoptions" flex></div>
+                <div id="listcontainer" on-mouseleave="{{closeToolTips}}">
+                    <template repeat="{{option in configs}}">
+                        <div on-click="{{openPanel}}" on-keyup="{{openPanel}}" tabindex="2" data-optionname="{{option.name}}" class="option">
+                            <span class="optionname">{{option.name}}</span>
+                            <span class="optionval">{{option.val}}</span>
+                            <div class="optiondesc">{{option.description}}</div>
+                            <paper-ripple fit></paper-ripple>
+                        </div>
+                    </template>
                 </div>
                 <div id="editpanel">
                     <div id="path">{{optionDetails._path}}</div>
@@ -222,119 +256,50 @@
             </template>
             <script>
                 (function() {
-                    Polymer('graph-options', {
+                  Polymer({
                       ready: function() {
-                        this.graphtype == this.graphtype?this.graphtype:"force";
-
-                        this.$.cssstyle.textContent += require('fs').readFileSync("src/graphs/"+this.graphtype+".css");
-
-                        this.layout = require('./graphs/'+this.graphtype+'.js');
-
+                        this.panelVisible = false;
                         this.query = "";
-                        this.options = {};
-                        this.alloptions = [];
-                        this.position = [];
-                        this.startPoint = { x: 0, y: 0 };
-                        this.editPanelVisible = false;
-                        this.graph_height = this.graph_width = undefined;
+                        this.configstree = {};
+                        this.configs = [];
                         this.optionDetails = {};
-                        this.graph = this.layout.init(this, d3);
+
+                        this.fire('core-signal', {name: "progress", data: "start"});
 
                         this.$.configs.init(this.$.configurations.current(), function(err, result) {
                             if (err) throw err;
-
-                            this.options = result;
-                            this.optionsRedraw();
-
-                            this.recurse([], this.options);
-                            this.fire('core-signal', {name: "alloptions", data: this.alloptions});
+                            this.configstree = result;
+                            this.searchSignal(undefined, {query: ""});
                         }.bind(this));
-
                       },
-                      pathSignal: function(e, detail, sender) {
-                        this.position = $.grep(detail.position, function(value, index) {
-                          return value !== "";
-                        });
-                        this.positionName = detail.name;
-                        this.optionsRedraw();
+                      searchSignal: function(e, detail, sender) {
+                        this.query = detail.query;
+                        this.fire('core-signal', {name: "progress", data: "start"});
+                        this.$.configs.filter(this.query, function(err, result) {
+                            if (err) throw err;
+                            this.configs = result;
+                            this.fire('core-signal', {name: "progress", data: "finish"});
+                        }.bind(this));
+                        if (this.panelVisible) this.panelAnimate(false);
+                      },
+                      openPanel: function(e, detail, sender) {
+                        if (e.keyCode == 13 || e.keyCode == 9 || e.keyCode == 0) {
+                            var optionName = sender.getAttribute("data-optionname");
+                            var optionPath = optionName.split('.');
 
-                        if (detail.name) {
-                            var optionPath = this.position.concat([detail.name]);
                             var option = this.getOptionByPath(optionPath);
                             if (option && option.optType) {
                                 this.optionDetails = option;
                                 this.optionDetails._path = optionPath.join(".");
-                                if (!this.editPanelVisible) this.editPanelAnimate(true);
+                                if (!this.panelVisible) this.panelAnimate(true);
                                 return;
                             }
+                        } else if (e.keyCode == 27) {
+                            if (this.panelVisible) this.panelAnimate(false);
                         }
-                        if (this.editPanelVisible) this.editPanelAnimate(false);
-                      },
-                      querySignal: function(e, detail, sender) {
-                        this.query = detail;
-                        this.optionsRedraw();
-                      },
-                      recurse: function(position, object) {
-                          if (object && object.optType) {
-                            this.alloptions.push(position.join("."));
-                          } else {
-                            for (var key in object) {
-                              if (object.hasOwnProperty(key)){
-                                this.recurse(position.concat([key]), object[key]);
-                              }
-                            }
-                          }
-                      },
-                      optionsRedraw: function() {
-                        var root_name, root_option = this.options;
-                        if (this.position.length > 0) {
-                            root_name = this.position[this.position.length-1];
-                            for (var i in this.position) {
-                                if (this.position[i] === "") {
-                                    continue;
-                                }
-                                try {
-                                    root_option = root_option[this.position[i]];
-                                } catch (ex) {
-                                    console.log("Not found option: " + name);
-                                }
-                            }
-                        } else {
-                            root_name = "";
-                        }
-
-                        var i = 1;
-                        var options = [];
-                        for (var key in root_option) {
-                            if (!this.query || (new RegExp(this.query, "i")).test("" + key)) {
-                                options.push({"name": key});
-                            }
-                        }
-
-                        this.layout.update(this, this.graph, this.options, d3, $);
-                        this.fire('core-signal', {name: "setpath", data: this.position});
-                        this.fire('core-signal', {name: "setpathoptions", data: options});
-                      },
-                      editPanelAnimate: function(show) {
-                        var elem = this.$.editpanel;
-                        var anim;
-                        if (show) {
-                            anim = new Animation(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 200});
-                            // this.force.size([this.graph_width * 0.66, this.graph_height]).start();
-                            elem.style.display = "block";
-                            this.editPanelVisible = true;
-                        } else {
-                            anim = new Animation(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 200});
-                            // this.force.size([this.graph_width, this.graph_height]).start();
-                            anim.onfinish = function() {
-                                this.$.editpanel.style.display = "none";
-                            }.bind(this);
-                            this.editPanelVisible = false;
-                        }
-                        var player = document.timeline.play(anim);
                       },
                       getOptionByPath: function(path) {
-                          option = this.options;
+                          option = this.configstree;
                           if (path.length > 0) {
                               for (var i in path) {
                                   if (path[i] === "") {
@@ -343,310 +308,72 @@
                                   try {
                                       option = option[path[i]];
                                   } catch (ex) {
-                                      console.log("Not found option: " + name + " in path " + path.join("."));
+                                      console.log("Not found option: " + path.join("."));
                                       return null;
                                   }
                               }
                           } else {
-                              option = this.options;
+                              option = this.configstree;
                           }
                           return option;
-                      }
-                    });
-                  })();
-            </script>
-        </polymer-element>
-
-        <polymer-element name="path-input" attributes="path">
-            <template>
-                <core-signals on-core-signal-setpath="{{setpathSignal}}"></core-signals>
-                <core-signals on-core-signal-setpathoptions="{{setpathoptionsSignal}}"></core-signals>
-                <style type="text/css">
-                    .dropdown {
-                        position: absolute;
-                        top: 20px;
-                    }
-                    #dropdown {
-                        overflow: hidden;
-                    }
-                    #pathfield {
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        font-size: 80%;
-                        width: 14em;
-                        margin: 0.25em 0.25em 0 0.25em;
-                        color: #005aa0;
-                    }
-                    core-menu {
-                        margin: 0;
-                        width: 14em;
-                        height: 5em;
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        font-size: 75%;
-                    }
-                    core-item {
-                        padding: 0.25em;
-                        background-color: #ddeeff;
-                        min-height: inherit;
-                    }
-                    core-item[active] {
-                        color: #005aa0;
-                    }
-                    #configuration-path {
-                        font-family: sans-serif;
-                        font-size: 70%;
-                        width: 14em;
-                        margin: 0 0.25em 0.25em 0.25em;
-                        color: #888;
-                    }
-                </style>
-                <span>
-
-                    <div id="container" relative>
-                        <input is="core-input" id="pathfield" on-keyup="{{keyUpHandler}}" on-keydown="{{keyDownHandler}}" value="{{value}}"></input>
-                        <div class="dropdown">
-                            <core-dropdown id="dropdown" relatedTarget="{{$.pathfield}}" on-keydown="{{dropdownKeyDownHandler}}" on-keyup="{{dropdownKeyUpHandler}}">
-
-                                <core-menu id="dropdownmenu" selected="0">
-                                    <template repeat="{{option in dropDownOptions}}" bind="{{absolutePosition as absolutePosition}}">
-                                        <core-item label="{{option.name | absolutePosition}}"></core-item>
-                                    </template>
-                                </core-menu>
-
-                            </core-dropdown>
-                        </div>
-                    </div>
-                    <div if="{{configurationPath}}" id="configuration-path">{{configurationPath}}</div>
-                </span>
-                <nixui-configurations id="configurations"></nixui-configurations>
-            </template>
-            <script>
-                (function() {
-                  Polymer('path-input', {
-                    ready: function() {
-                      this.value = "";
-                      this.position = [];
-                      this.options = this.dropDownOptions = [];
-
-                      this.$.configurations.get(undefined, function(err, o){
-                        this.configurationPath = o.path;
-                      }.bind(this));
-                    },
-                    absolutePosition: function(name) {
-                        var joined = this.position.join(".");
-                        return joined ? joined+"."+name : name;
-                    },
-                    dropdownKeyUpHandler: function(event, detail, sender) {
-                        if (this.$.dropdown.opened) {
-                            $(this.$.dropdownmenu.selectedItem).get(0).scrollIntoView();
-                        }
-                    },
-                    dropdownKeyDownHandler: function(event, detail, sender) {
-                      if (event.keyCode == 40 || (event.keyCode == 9 && !event.shiftKey)) {
-                        event.preventDefault();
-                        this.$.dropdownmenu.selectNext(false);
-                      } else if (event.keyCode == 38 || (event.keyCode == 9 && event.shiftKey)) {
-                        event.preventDefault();
-                        this.$.dropdownmenu.selectPrevious(false);
-                      } else if (event.keyCode == 13) {
-                        event.preventDefault();
-                        this.value = this.$.dropdownmenu.selectedItem.label;
-                        this.$.dropdown.opened = false;
-                        this.$.pathfield.focus();
-                      } else if (event.keyCode == 27) {
-                        event.preventDefault();
-                        this.$.pathfield.focus();
-                      }
-                    },
-                    keyDownHandler: function(event, detail, sender) {
-                      if ($.inArray(event.keyCode, [40, 9, 190, 8]) != -1) {
-                        event.preventDefault();
-                      }
-                    },
-                    keyUpHandler: function(event, detail, sender) {
-                      if (event.keyCode == 13) {
-                        if (this.value.indexOf(".") === -1) {
-                            this.position = [this.value];
+                      },
+                      panelAnimate: function(show) {
+                        var elem = this.$.editpanel;
+                        var anim;
+                        if (show) {
+                            anim = new Animation(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 200});
+                            // this.force.size([this.graph_width * 0.66, this.graph_height]).start();
+                            elem.style.display = "block";
+                            this.panelVisible = true;
                         } else {
-                            this.position = this.value.split(".");
+                            anim = new Animation(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 200});
+                            // this.force.size([this.graph_width, this.graph_height]).start();
+                            anim.onfinish = function() {
+                                this.$.editpanel.style.display = "none";
+                            }.bind(this);
+                            this.panelVisible = false;
                         }
-                        this.fire('core-signal', {
-                            name: "path",
-                            data: { position: this.position, name: undefined }
-                        });
-                      } else if (event.keyCode == 40 || event.keyCode == 9 || event.keyCode == 190) {  // down arrow || tab || '.'
-                        this.setOptions();
-                        this.$.dropdownmenu.selected = 0;
-                        this.$.dropdown.opened = true;
-                      } else if (event.keyCode == 8) {
-                        var name;
-                        if (this.value.indexOf(".") === -1) {
-                            this.position = [];
-                            name = this.value;
-                        } else {
-                            this.position = this.value.split(".");
-                            name = this.position[this.position.length-1];
-                            this.position.splice(-1, 1);
-                        }
-                        this.fire('core-signal', {
-                            name: "path",
-                            data: { position: this.position, name: name }
-                        });
+                        var player = document.timeline.play(anim);
                       }
-                    },
-                    setpathoptionsSignal: function(e, detail, sender) {
-                      this.setOptions(detail);
-                    },
-                    setpathSignal: function(e, detail, sender) {
-                      this.position = detail;
-                      this.value = detail.join(".");
-                    },
-                    setOptions: function(options) {
-                      if (options) {
-                        this.options = options;
-                      }
-                      var query = this.value;
-                      if (!query) {
-                        this.dropDownOptions = this.options;
-                        return;
-                      }
-                      this.dropDownOptions = $.grep(this.options, function(value, index) {
-                        return (new RegExp(query, "i")).test(this.absolutePosition(value.name));
-                      }.bind(this));
-                    }
                   });
                 })();
             </script>
         </polymer-element>
+
+
         <polymer-element name="search-input">
             <template>
-                <core-signals on-core-signal-alloptions="{{alloptionsSignal}}"></core-signals>
                 <style type="text/css">
-                    .dropdown {
-                        position: absolute;
-                        top: 20px;
-                    }
-                    #dropdown {
-                        overflow: hidden;
-                    }
                     #searchfield {
                         border-bottom: 1px solid #50a0ff;
                         font-family: sans-serif;
-                        font-variant: small-caps;
-                        font-size: 75%;
-                        width: 18em;
+                        width: 20em;
                         margin: 0.25em;
-                        color: #005aa0;
-                    }
-                    core-menu {
-                        margin: 0;
-                        width: 18em;
-                        height: 5em;
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        font-size: 75%;
-                    }
-                    core-item {
-                        padding: 0.25em;
-                        background-color: #ddeeff;
-                        min-height: inherit;
-                    }
-                    core-item[active] {
                         color: #005aa0;
                     }
                 </style>
                 <span>
-
                     <div id="container" relative>
-                        <input is="core-input" id="searchfield" on-keyup="{{keyUpHandler}}" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="search (ex: nginx<TAB>)"></input>
-                        <div class="dropdown">
-                            <core-dropdown id="dropdown" relatedTarget="{{$.searchfield}}" on-keydown="{{dropdownKeyDownHandler}}" on-keyup="{{dropdownKeyUpHandler}}">
-
-                                <core-menu id="dropdownmenu" selected="0">
-                                    <template repeat="{{option in dropDownOptions}}">
-                                        <core-item label="{{option}}"></core-item>
-                                    </template>
-                                </core-menu>
-
-                            </core-dropdown>
-                        </div>
+                        <input is="core-input" id="searchfield" tabindex="1" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="search (ex: nginx)"></input>
                     </div>
-
                 </span>
             </template>
             <script>
                 (function() {
                   Polymer('search-input', {
+                    focus: function() {
+                        this.$.searchfield.focus();
+                    },
                     ready: function() {
-                      this.value = "";
-                      this.options = this.dropDownOptions = [];
-                    },
-                    dropdownKeyUpHandler: function(event, detail, sender) {
-                        if (this.$.dropdown.opened) {
-                            $(this.$.dropdownmenu.selectedItem).get(0).scrollIntoView();
-                        }
-                    },
-                    dropdownKeyDownHandler: function(event, detail, sender) {
-                      if (event.keyCode == 40 || (event.keyCode == 9 && !event.shiftKey)) {
-                        event.preventDefault();
-                        this.$.dropdownmenu.selectNext(false);
-                      } else if (event.keyCode == 38 || (event.keyCode == 9 && event.shiftKey)) {
-                        event.preventDefault();
-                        this.$.dropdownmenu.selectPrevious(false);
-                      } else if (event.keyCode == 13) {
-                        event.preventDefault();
-                        this.value = this.$.dropdownmenu.selectedItem.label;
-                        this.$.dropdown.opened = false;
-                        this.$.searchfield.focus();
-                      } else if (event.keyCode == 27) {
-                        event.preventDefault();
-                        this.$.searchfield.focus();
-                      }
+                        this.value = "";
+                        this.focus();
                     },
                     keyDownHandler: function(event, detail, sender) {
-                      if ($.inArray(event.keyCode, [40, 9]) != -1) {
-                        event.preventDefault();
-                      }
-                    },
-                    keyUpHandler: function(event, detail, sender) {
                       if (event.keyCode == 13) {
-                        var name;
-                        if (this.value.indexOf(".") === -1) {
-                            this.position = [];
-                            name = this.value;
-                        } else {
-                            this.position = this.value.split(".");
-                            name = this.position[this.position.length-1];
-                            this.position.splice(-1,1);
-                        }
                         this.fire('core-signal', {
-                            name: "path",
-                            data: { position: this.position, name: name }
+                            name: "search",
+                            data: { query: this.value }
                         });
-                      } else if (event.keyCode == 40 || event.keyCode == 9) {  // down arrow || tab
-                        this.setOptions();
-                        if (this.dropDownOptions.length != 0) {
-                            this.$.dropdownmenu.selected = 0;
-                            this.$.dropdown.opened = true;
-                        }
-                      }
-                    },
-                    alloptionsSignal: function(e, detail, sender) {
-                      this.setOptions(detail);
-                    },
-                    setOptions: function(options) {
-                      if (options) {
-                        this.options = options;
-                      }
-                      var query = this.value;
-                      if (query) {
-                        this.dropDownOptions = $.grep(this.options, function(value, index) {
-                          return (new RegExp(query, "i")).test(value);
-                        });
-                        this.dropDownOptions = this.dropDownOptions.splice(0, 10);
-                      } else {
-                        this.dropDownOptions = [];
                       }
                     }
                   });
