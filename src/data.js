@@ -3,6 +3,9 @@ var path = require('path');
 var NixInterface = require("./interface.js");
 var nedb = require('nedb');
 
+if (process.env.NIXUI_DEBUG !== undefined) {
+    window.require('nw.gui').Window.get().showDevTools();
+}
 
 var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : require("./config.json"),
     dbs = {},
