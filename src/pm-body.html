@@ -55,6 +55,11 @@
               margin: 0.5em;
               font-size: 80%;
             }
+            .notactive {
+              pointer-events: none;
+              cursor: default;
+              color: #c9c9c9;
+            }
         </style>
         <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
         <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
@@ -65,20 +70,21 @@
             <div class="core-header">
                 <core-toolbar>
                     <div class="nixuicenter">
-                        <a href="chooser.html" class="nixuilink" tabindex="-1">NixUI
+                        <a href="chooser.html" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
+                            NixUI
                             <paper-ripple fit></paper-ripple>
                         </a>
                     </div>
-                    <div class="nixuilink">></div>
+                    <div class="nixuilink {{ {notactive: workLock} | tokenList }}">></div>
                     <div>
-                      <a href="{{action.url}}" class="nixuilink" tabindex="-1">
+                      <a href="{{action.url}}" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
                         {{action.label}}
                       </a>
                     </div>
                     <div flex></div>
-                    <query-input id="queryfield" query="{{query}}"></query-input>
+                    <query-input id="queryfield" query="{{query}}" disabled?="{{workLock}}"></query-input>
 
-                    <paper-menu-button tabindex="-1">
+                    <paper-menu-button tabindex="-1" disabled?="{{workLock}}">
                         <paper-icon-button icon="more-vert"></paper-icon-button>
                         <paper-dropdown class="dropdown" halign="right">
                             <core-menu class="menu">
@@ -93,7 +99,7 @@
                 </core-toolbar>
                 <progress-bar id="progressbar"></progress-bar>
             </div>
-            <list-packages></list-packages>
+            <list-packages disabled?="{{workLock}}"></list-packages>
         </core-header-panel>
         <package-dialog controlDim="true"></package-dialog>
         <error-dialog controlDim="true"></error-dialog>
@@ -111,6 +117,12 @@
             progressSignal: function(e, detail, sender) {
               this.$.progressbar.doProgress(detail);
             },
+            observe: {
+              '$.progressbar.animating': 'observeAnimating'
+            },
+            observeAnimating: function (oldValue, newValue) {
+              this.workLock = newValue;
+            },
             dimSignal: function(e, detail, sender) {
               this.$.dimmer.style.display=(detail)?"block":"none";
             },
@@ -122,6 +134,7 @@
             },
             ready: function() {
               this.action = this.$.actions.get(0);
+              this.workLock = false;
               setTimeout(this.fillCache.bind(this), 1);
             },
             fillCache: function() {
@@ -170,7 +183,7 @@
         })();
     </script>
 </polymer-element>
-<polymer-element name="query-input" attributes="query" on-keypress="{{keypressHandler}}">
+<polymer-element name="query-input" attributes="query disabled" on-keypress="{{keypressHandler}}">
     <template>
     <style type="text/css">
     #searchfield {
@@ -180,10 +193,19 @@
       margin: 0.25em;
       color: #005aa0;
     }
+    #searchfield.notactive {
+      pointer-events: none;
+      cursor: default;
+      color: #c9c9c9;
+      border-bottom-color: #c9c9c9;
+    }
     </style>
     <span>
       <div id="container" relative>
-        <input is="core-input" id="searchfield" tabindex="1" on-keyup="{{keyHandler}}" value="{{value}}" placeholder="Search packages ..."></input>
+        <input is="core-input" id="searchfield" tabindex="{{disabled===null?1:-1}}" on-keyup="{{keyHandler}}"
+          value="{{value}}" placeholder="Search packages ..." disabled?="{{disabled}}"
+          class="{{ {notactive: disabled!==null} | tokenList }}">
+        </input>
       </div>
     </span>
 
@@ -207,6 +229,7 @@
                       this.fire('core-signal', {name: "message", data: {type: "info", text: "Finished for "+profile.name}});
                     }.bind(this));
                     this.fire('core-signal', {name: "progress", data: "finish"});
+                    this.focus();
                   } catch (err) {
                     // console.log('not on the `package manager` page');
                   }
@@ -217,7 +240,6 @@
               },
               ready: function() {
                 this.value = "";
-                this.focus();
               },
               resetCache: function() {
                 this.$.packages.reset(this.$.profiles.current(), function() {
@@ -249,7 +271,7 @@
           })();
     </script>
 </polymer-element>
-<polymer-element name="list-packages">
+<polymer-element name="list-packages" attributes="disabled">
     <template>
         <core-signals on-core-signal-query="{{querySignal}}"></core-signals>
         <style>
@@ -297,7 +319,7 @@
               color: #a05a5a;
             }
         </style>
-        <div id="listcontainer" on-mouseleave="{{closeToolTips}}">
+        <div id="listcontainer">
             <template repeat="{{package in packages}}" bind="{{classNameFromCompare as classNameFromCompare}}">
                 <div on-click="{{openPackageDialog}}" on-keyup="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package" tabindex="1">
                     <div class="pkgname">{{package.name}}</div>
@@ -331,15 +353,14 @@
             },
             ready: function() {
               this.packages = [];
-              this.currentToolTipAttr = "";
             },
             openPackageDialog: function(e, detail, sender) {
-                if (e.keyCode == 13 || e.keyCode == 0) {
-                  var attribute = sender.getAttribute('data-pkgattr');
-                  var name = sender.getAttribute('data-pkgname');
-                  var compare = sender.getAttribute('data-pkgcomp');
-                  this.fire('core-signal', {name: "pkginfo", data: {pkgattr: attribute, pkgname: name, pkgcomp: compare, controlDim: true}});
-                }
+              if ((e.keyCode == 13 || e.keyCode == 0) && this.disabled===null) {
+                var attribute = sender.getAttribute('data-pkgattr');
+                var name = sender.getAttribute('data-pkgname');
+                var compare = sender.getAttribute('data-pkgcomp');
+                this.fire('core-signal', {name: "pkginfo", data: {pkgattr: attribute, pkgname: name, pkgcomp: compare, controlDim: true}});
+              }
             }
           });
         })();

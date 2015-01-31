@@ -58,6 +58,11 @@
                         display:none;
                         z-index:1;
                     }
+                    .notactive {
+                      pointer-events: none;
+                      cursor: default;
+                      color: #c9c9c9;
+                    }
                 </style>
                 <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
                 <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
@@ -67,23 +72,24 @@
                     <div class="core-header">
                         <core-toolbar>
                             <div class="nixuicenter">
-                                <a href="chooser.html" class="nixuilink" tabindex="-1">NixUI
+                                <a href="chooser.html" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
+                                    NixUI
                                     <paper-ripple fit></paper-ripple>
                                 </a>
                             </div>
-                            <div class="nixuilink">></div>
+                            <div class="nixuilink {{ {notactive: workLock} | tokenList }}">></div>
                             <div>
-                                <a href="{{action.url}}" class="nixuilink" tabindex="-1">
+                                <a href="{{action.url}}" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
                                     {{action.label}}
                                 </a>
                             </div>
                             <div flex></div>
-                            <search-input id="searchfield"></search-input>
+                            <search-input id="searchfield" disabled?="{{workLock}}"></search-input>
                         </core-toolbar>
                         <progress-bar id="progressbar"></progress-bar>
                     </div>
                     <div id="optionscontainer">
-                        <config-options id="configoptions"></config-options>
+                        <config-options id="configoptions" disabled?="{{workLock}}"></config-options>
                     </div>
                 </core-header-panel>
                 <!--<package-dialog controlDim="true"></package-dialog>-->
@@ -95,11 +101,21 @@
             <script>
                 (function() {
                     Polymer('nixui-configuration', {
+                      observe: {
+                        '$.progressbar.animating': 'observeAnimating'
+                      },
+                      observeAnimating: function (oldValue, newValue) {
+                        this.workLock = newValue;
+                      },
                       ready: function() {
                         this.action = this.$.actions.get(1);
+                        this.workLock = false;
                       },
                       progressSignal: function(e, detail, sender) {
                         this.$.progressbar.doProgress(detail);
+                        if (detail === "finish") {
+                            this.$.searchfield.focus();
+                        }
                       },
                       dimSignal: function(e, detail, sender) {
                         this.$.dimmer.style.display=(detail)?"block":"none";
@@ -130,7 +146,7 @@
             </script>
         </polymer-element>
 
-        <polymer-element name="config-options">
+        <polymer-element name="config-options" attributes="disabled">
             <template>
                 <core-signals on-core-signal-search="{{searchSignal}}"></core-signals>
                 <style>
@@ -283,7 +299,7 @@
                         if (this.panelVisible) this.panelAnimate(false);
                       },
                       openPanel: function(e, detail, sender) {
-                        if (e.keyCode == 13 || e.keyCode == 9 || e.keyCode == 0) {
+                        if ((e.keyCode == 13 || e.keyCode == 9 || e.keyCode == 0) && this.disabled===null) {
                             var optionName = sender.getAttribute("data-optionname");
                             var optionPath = optionName.split('.');
 
@@ -341,7 +357,7 @@
         </polymer-element>
 
 
-        <polymer-element name="search-input">
+        <polymer-element name="search-input" attributes="disabled">
             <template>
                 <style type="text/css">
                     #searchfield {
@@ -351,10 +367,18 @@
                         margin: 0.25em;
                         color: #005aa0;
                     }
+                    #searchfield.notactive {
+                      pointer-events: none;
+                      cursor: default;
+                      color: #c9c9c9;
+                      border-bottom-color: #c9c9c9;
+                    }
                 </style>
                 <span>
                     <div id="container" relative>
-                        <input is="core-input" id="searchfield" tabindex="1" on-keydown="{{keyDownHandler}}" value="{{value}}" placeholder="search (ex: nginx)"></input>
+                        <input is="core-input" id="searchfield" tabindex="{{disabled===null?1:-1}}" on-keydown="{{keyDownHandler}}"
+                            value="{{value}}" placeholder="Search configuration ..." disabled?="{{disabled}}"
+                            class="{{ {notactive: disabled!==null} | tokenList }}"></input>
                     </div>
                 </span>
             </template>
@@ -366,7 +390,6 @@
                     },
                     ready: function() {
                         this.value = "";
-                        this.focus();
                     },
                     keyDownHandler: function(event, detail, sender) {
                       if (event.keyCode == 13) {
