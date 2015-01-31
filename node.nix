@@ -489,6 +489,21 @@
     passthru.names = [ "nedb" ];
   };
   "nedb" = self.by-version."nedb"."1.0.2";
+  by-spec."open"."0.0.5" =
+    self.by-version."open"."0.0.5";
+  by-version."open"."0.0.5" = self.buildNodePackage {
+    name = "open-0.0.5";
+    bin = false;
+    src = fetchurl {
+      url = "http://registry.npmjs.org/open/-/open-0.0.5.tgz";
+      name = "open-0.0.5.tgz";
+      sha1 = "42c3e18ec95466b6bf0dc42f3a2945c3f0cad8fc";
+    };
+    deps = {
+    };
+    peerDependencies = [];
+  };
+  "open" = self.by-version."open"."0.0.5";
   by-spec."samsam"."~1.1" =
     self.by-version."samsam"."1.1.2";
   by-version."samsam"."1.1.2" = lib.makeOverridable self.buildNodePackage {

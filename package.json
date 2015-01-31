@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "underscore": "^1.6.0",
-    "nedb": "~1.0.0"
+    "nedb": "~1.0.0",
+    "open": "~0.0.3"
   },
   "devDependencies": {
     "mocha": "~1.21.0",
