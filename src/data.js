@@ -16,6 +16,7 @@ process.env.NIX_PATH = config.NIX_PATH ? config.NIX_PATH : process.env.NIX_PATH;
 
 module.exports = dbs;
 
+
 // profiles - nix environments/profiles
 
 dbs.profiles = function() {
@@ -38,13 +39,21 @@ dbs.profiles.current = function(id) {
     if (id) {
         data.currentProfileId = id;
     }
+    if (data.currentProfileId === undefined) {
+        data.currentProfileId = '-1';
+    }
     return data.currentProfileId;
 };
 
 dbs.profiles.get = function(profileId, cb) {
     var id = (profileId===undefined) ? dbs.profiles.current() : profileId;
-    data.profiles.findOne({id: id}, cb);
+    if (id === '-1') {
+        cb(null, {id: "-1"});
+    } else {
+        data.profiles.findOne({id: id}, cb);
+    }
 };
+
 
 // configurations - nix configuration files
 
@@ -73,6 +82,9 @@ dbs.configurations.current = function(id) {
     if (id) {
         data.currentConfigurationId = id;
     }
+    if (data.currentConfigurationId === undefined) {
+        data.currentConfigurationId = '-1';
+    }
     return data.currentConfigurationId;
 };
 
@@ -94,6 +106,7 @@ dbs.configurations.set = function(configuration, cb) {
         cb("Configuration file does not exist");
     }
 };
+
 
 // configs - config options
 
@@ -133,6 +146,7 @@ dbs.configs.filter = function(query, cb) {
         cb(null, data);
     });
 };
+
 
 // packages
 
@@ -255,6 +269,7 @@ dbs.packages.reset = function(profileId, cb) {
         dbs.packages.fill(profileId, cb);
     });
 };
+
 
 // markeds - marked packages for install/uninstall
 
@@ -404,6 +419,7 @@ dbs.actions.get = function(id) {
         }
     }
 };
+
 
 // meta - meta data
 
