@@ -11,7 +11,7 @@ let
       ''
         n=$out
         touch $n
-        echo -n "`git -C '${nixpkgs}' rev-parse HEAD || cat '${nixpkgs}/nixpkgs/.git-revision' || echo master`" > "$n"
+        echo -n "`git -C '${nixpkgs}' rev-parse HEAD || cat '${nixpkgs}/.git-revision' || cat '${nixpkgs}/nixpkgs/.git-revision' || echo master`" > "$n"
       '';
 in
   nixpkgsGitRev

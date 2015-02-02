@@ -192,7 +192,9 @@
     Polymer({
       ready: function() {
         this.meta = require("./data.js").meta;
-        this.meta();
+      },
+      init: function(cb) {
+        return this.meta(cb);
       },
       all: function() {
         return this.meta.all();

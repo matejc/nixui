@@ -423,8 +423,23 @@ dbs.actions.get = function(id) {
 
 // meta - meta data
 
-dbs.meta = function() {
-    data.meta = { package: require('../package.json'), config: config };
+dbs.meta = function(cb) {
+    data.meta = {
+        package: require('../package.json'),
+        config: config,
+        nixpkgsRev: ''
+    };
+    NixInterface.nixpkgsGitRev(null, process.env,
+        function (rev) {
+            data.meta.nixpkgsRev = rev;
+            cb(null, data.meta);
+        }.bind(data),
+        function (err) {
+            console.log(err);
+            cb(err);
+        }
+    );
+    return data.meta;
 };
 
 dbs.meta.all = function() {

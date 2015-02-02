@@ -108,7 +108,7 @@
             position: absolute;
             bottom: 2em;
             left: 2em;
-            font-size: 70%;
+            font-size: 60%;
             color: #005aa0;
         }
         #version {
@@ -154,7 +154,8 @@
             </div>
         </div>
         <div id="footer">
-            NIX_PATH: {{nixPath}}
+            <div>NIX_PATH: {{nixPath}}</div>
+            <div>nixpkgs revision: {{nixpkgsRev}}</div>
         </div>
 
         <div id="version">{{nixuiVersion}}</div>
@@ -169,7 +170,9 @@
         Polymer('nixui-chooser', {
             ready: function() {
                 this.nixPath = process.env.NIX_PATH;
-                this.nixuiVersion = this.$.meta.all().package.version;
+                this.nixuiVersion = (this.$.meta.init(function(err, meta) {
+                    this.nixpkgsRev = meta.nixpkgsRev;
+                }.bind(this))).package.version;
 
                 this.profiles = [];
                 this.actions = this.$.actions.all();

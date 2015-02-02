@@ -270,7 +270,7 @@ exports.configTree = function (configurationnix, attrs, file_arg, env, callback,
   );
 };
 
-exports.gitRev = function (file_arg, env, callback, error_callback) {
+exports.nixpkgsGitRev = function (file_arg, env, callback, error_callback) {
   exports.nixBuild(
     [
         "./src/revision.nix",
