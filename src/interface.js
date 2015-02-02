@@ -82,6 +82,34 @@ exports.nixInstantiate = function (prefix_args, expression, removeQuotations, us
   });
 };
 
+exports.nixBuild = function(args, env, callback, error_callback) {
+  var output = "";
+  var outerr = "";
+
+  var options = { env: (env?env:process.env) };
+
+  var nixProcess = spawn('nix-build', args, options);
+
+  console.log("nix-build: " + args);
+
+  nixProcess.stdout.on("data", function(data) {
+    output += data;
+  });
+
+  nixProcess.stderr.on("data", function(data) {
+    console.error("nix-build: " + data);
+    outerr += data;
+  });
+
+  nixProcess.on("close", function(code) {
+    if(code === 0) {
+      callback(output.substring(0, output.length - 1));
+    } else {
+      error_callback(outerr+"\nnix-build exited with status: " + code);
+    }
+  }.bind(nixProcess));
+};
+
 exports.createArgsArray = function(prefix_args, file_arg, profile_arg, postfix_args) {
   var args = [];
 
@@ -238,6 +266,18 @@ exports.configTree = function (configurationnix, attrs, file_arg, env, callback,
     false,
     env,
     callback,
+    error_callback
+  );
+};
+
+exports.gitRev = function (file_arg, env, callback, error_callback) {
+  exports.nixBuild(
+    [
+        "./src/revision.nix",
+        "--arg", "nixpkgs", file_arg?file_arg:exports.nixpkgs()
+    ],
+    env,
+    function (file) { callback(fs.readFileSync(file, {encoding: 'utf8'})); },
     error_callback
   );
 };
