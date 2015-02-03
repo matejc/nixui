@@ -132,13 +132,13 @@ dbs.configs.tree = function() {
 };
 
 dbs.configs.all = function(cb) {
-    data.configs.find({}, cb);
+    data.configs.find({}).sort({name: 1}).exec(cb);
 };
 
 dbs.configs.filter = function(query, cb) {
     var requery = new RegExp(query, 'i');
     var refind = {$or: [{name: {$regex: requery}}, {description: {$regex: requery}}, {val: {$regex: requery}}]};
-    data.configs.find(refind).limit(100).exec(function(err, data) {
+    data.configs.find(refind).limit(100).sort({name: 1}).exec(function(err, data) {
         if (err) {
             console.log(err);
             cb(err);
@@ -231,7 +231,7 @@ dbs.packages.filter = function(profileId, query, cb) {
     if (installFilter) {
         refind.compare = {$regex: /^\=.*/};
     }
-    data.packages[profileId].find(refind).limit(100).exec(function(err, data) {
+    data.packages[profileId].find(refind).limit(100).sort({attribute: 1}).exec(function(err, data) {
         if (err) {
             console.log(err);
             cb(err);
@@ -392,7 +392,7 @@ dbs.markeds.apply_all = function(profileId, cb) {
 
 dbs.markeds.list = function(profileId, cb) {
     if (data.markeds[profileId]) {
-        data.markeds[profileId].find({}, cb);
+        data.markeds[profileId].find({}).sort({attribute: 1}).exec(cb);
     } else {
         cb(undefined, []);
     }
