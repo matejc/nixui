@@ -33,7 +33,7 @@
       <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
       <labeled-panel label="propagated Native Build Inputs" content="{{pkginfo.propagatedNativeBuildInputs}}"></labeled-panel>
 
-      <labeled-panel label="Home Page" content="{{pkginfo.meta.homepage}}" hyperlink="true"></labeled-panel>
+      <labeled-panel label="Home Page" content="{{pkginfo.meta.homepage}}"></labeled-panel>
       <labeled-panel label="Description" content="{{pkginfo.meta.description}}"></labeled-panel>
       <labeled-panel label="Long Description" content="{{pkginfo.meta.longDescription}}"></labeled-panel>
       <labeled-panel label="License" content="{{pkginfo.meta.license}}"></labeled-panel>
@@ -156,7 +156,7 @@
 </polymer-element>
 
 
-<polymer-element name="labeled-panel" attributes="label content hyperlink">
+<polymer-element name="labeled-panel" attributes="label content">
 <template>
   <style>
   #panellabel {
@@ -179,12 +179,7 @@
   </style>
   <div class="{{emptyEntryClass}}">
     <div id="panellabel">{{label}}</div>
-    <template if="{{hyperlink}}">
-      <div id="panelcontent"><a on-click="{{openUrl}}" href="#">{{content | contentToString}}</a></div>
-    </template>
-    <template if="{{!hyperlink}}">
-      <div id="panelcontent">{{content | contentToString}}</div>
-    </template>
+    <div id="panelcontent">{{content | contentToString}}</div>
   </div>
 </template>
 <script>
@@ -218,10 +213,6 @@
         return "";
       }
 
-    },
-    openUrl: function(event, detail, sender) {
-      require("./helper.js").openFileWithDefault(this.content);
-      event.preventDefault();
     },
     ready: function() {
       this.emptyEntryClass = "";
