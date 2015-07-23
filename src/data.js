@@ -4,7 +4,8 @@ var NixInterface = require("./interface.js");
 var nedb = require('nedb');
 
 if (process.env.NIXUI_DEBUG !== undefined) {
-    window.require('nw.gui').Window.get().showDevTools();
+    var gui = window.require('nw.gui');
+    gui.Window.get().showDevTools();
 }
 
 var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : require("./config.json"),

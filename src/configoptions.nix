@@ -1,6 +1,6 @@
 { attrs ? "configuration", configurationnix ? "", valuesInJson ? false }:
 let
-  pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; };
+  pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; system = builtins.currentSystem; };
   values = (import ./configoption.nix {
     attrs = ""; inherit configurationnix; json = false;
   }).val;
@@ -63,7 +63,7 @@ let
         else if builtins.typeOf x == "lambda" then "<function>"
         else toString x);
 
-  extraArgs = { modules = []; inherit pkgs baseModules; inherit (pkgs) modulesPath; pkgs_i686 = import <nixpkgs/nixos/lib/nixpkgs.nix> { system = "i686-linux"; config.allowUnfree = true; }; utils = import <nixpkgs/nixos/lib/utils.nix> pkgs; };
+  extraArgs = { modules = []; inherit pkgs baseModules; modulesPath = <nixpkgs/nixos/modules>; pkgs_i686 = import <nixpkgs/nixos/lib/nixpkgs.nix> { system = "i686-linux"; config.allowUnfree = true; }; utils = import <nixpkgs/nixos/lib/utils.nix> pkgs; };
   baseModules = import <nixpkgs/nixos/modules/module-list.nix>;
   shortRev = "gfedcba";
   versionModule =
@@ -72,7 +72,7 @@ let
   };
   eval = pkgs.lib.evalModules {
     modules = [ versionModule ] ++ baseModules;
-    args = extraArgs;
+    # args = extraArgs;
   };
 
   zipSets = (list: pkgs.lib.zipAttrsWith (n: v: if builtins.tail v != [] then zipSets v else builtins.head v ) list);
