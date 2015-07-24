@@ -1,22 +1,37 @@
-{ configurationnix ? "/etc/nixos/configuration.nix" }:
+# { configurationnix ? "/etc/nixos/configuration.nix" }:
+{ configurationnix ? "/home/matej/workarea/tmp/nixos/configuration.nix"
+, system ? builtins.currentSystem
+, optionsWithVal ? true
+, path ? "services.nginx" }:
 with import <nixpkgs/lib>;
 let
-  pkgs = import <nixpkgs> { config = { allowBroken = true; allowUnfree = true; }; system = builtins.currentSystem; };
+  # lib = import <nixpkgs/lib> {};
+  # config = { nixpkgs.config = { allowBroken = true; allowUnfree = true; }; };
+  # platform = (import <nixpkgs/pkgs/top-level/platforms.nix>).pc64;
+  # stdenv = (import <nixpkgs/pkgs/stdenv> {
+  #   inherit system platform config lib;
+  #   allPackages = args: import <nixpkgs/pkgs/top-level/all-packages.nix> ({ inherit config system; });
+  # }).stdenvLinux;
+  originalPkgs = import <nixpkgs> { };
+  configuration = (import configurationnix { pkgs = originalPkgs; config = originalPkgs.config; });
 
-  configuration = (import configurationnix { inherit pkgs; config = pkgs.config;}) // {nixpkgs.system = builtins.currentSystem;};
+  # baseModules = import <nixpkgs/nixos/modules/module-list.nix>;
 
-  baseModules = import <nixpkgs/nixos/modules/module-list.nix>;
+  # eval2 = import <nixpkgs/nixos/lib/eval-config.nix> {
+  #   modules = [ configuration ];
+  #   # system = builtins.currentSystem;
+  #   inherit pkgs;
+  #   check = false;
+  #   # prefix = [ "boot" ];
+  #   # lib = pkgs.lib;
+  #   # baseModules = [];
+  # };
 
-  eval = import <nixpkgs/nixos/lib/eval-config.nix> {
-    modules = [ configurationnix ] ++ baseModules;
-    # system = builtins.currentSystem;
-    inherit pkgs;
-    # check = true;
-    # prefix = [ "boot" ];
-    # lib = pkgs.lib;
-    # baseModules = [];
+  eval = import <nixpkgs/nixos> {
+    configuration = configuration;
+    inherit system;
   };
-
+  pkgs = eval.pkgs;
 
   scrubOptionValue_ = path: x: visitList:
     let
@@ -29,17 +44,18 @@ let
 
   tryScrubOptionValue = path: x: visitList:
     let
-      visitList_ = [x] ++ visitList;
+      visitList_ = ([x] ++ visitList);
     in
       builtins.tryEval (
-        if pkgs.lib.any (element: element == x) visitList then "<recursion>"
-        else if pkgs.lib.isDerivation x then "<drv>"+(toString x.outPath)+"</drv>"
-        else if pkgs.lib.isInt x then x
-        else if pkgs.lib.isString x then x
-        else if pkgs.lib.isBool x then x
-        else if pkgs.lib.isFunction x then "<function>"
-        else if pkgs.lib.isList x then (map (y: scrubOptionValue_ path y visitList_) x)
-        else if pkgs.lib.isAttrs x then (pkgs.lib.mapAttrs (n: v: (scrubOptionValue_ path v visitList_)) x)
+        if x == null then null
+        else if any (element: element == x) visitList then "<recursion>"
+        else if isDerivation x then "<drv>"+(toString x.outPath)+"</drv>"
+        else if isInt x then x
+        else if isString x then x
+        else if isBool x then x
+        else if isFunction x then "<function>"
+        else if isList x then (map (y: scrubOptionValue_ path y visitList_) x)
+        else if isAttrs x then (mapAttrs (n: v: if isNull v then "<null>" else (scrubOptionValue_ path v visitList_)) x)
         else if builtins.typeOf x == "lambda" then "<lambda>"
         else toString x);
 
@@ -54,8 +70,8 @@ let
           visible = opt.visible or true;
           type = opt.type.name or null;
         }
-        // (if opt ? example then { example = scrubOptionValue_ (pkgs.lib.splitString "." opt.loc) opt.example []; } else {})
-        // (if opt ? default then { default = scrubOptionValue_ (pkgs.lib.splitString "." opt.loc) opt.default []; } else {})
+        // (if opt ? example then { example = scrubOptionValue_ (opt.loc) opt.example []; } else {})
+        // (if opt ? default then { default = scrubOptionValue_ (opt.loc) opt.default []; } else {})
         // (if opt ? defaultText then { default = opt.defaultText; } else {});
 
         subOptions =
@@ -83,9 +99,15 @@ let
     else if builtins.isFunction x then "<function>"
     else x;
 
-  # Clean up declaration sites to not refer to the NixOS source tree.
-  optionsList_ = flip map optionsList (opt: opt // {
+  optionsList_ = flip map optionsList (opt: let
+      path = splitString "." opt.name;
+      val = if optionsWithVal then (value path).val else null;
+  in opt // {
     declarations = map (fn: stripPrefix fn) opt.declarations;
+    # inherit path;
+  }
+  // optionalAttrs (val != null) rec {
+    inherit val;
   }
   // optionalAttrs (opt ? example) { example = substFunction opt.example; }
   // optionalAttrs (opt ? default) { default = substFunction opt.default; }
@@ -94,21 +116,16 @@ let
 
   createEntry = path: root: visitList:
     let
-      value = if path == [""] then root else pkgs.lib.attrByPath path "<error>" root;
+      value = if path == [""] then root else attrByPath path null root;
       val = scrubOptionValue_ path value visitList;
     in (
       {inherit val path;}
     );
-  values = attrs: createEntry (pkgs.lib.splitString "." attrs) configuration [];
-  getValue = path:
-    let
-      value = pkgs.lib.attrByPath path null (values "");
-    in
-      { val = scrubOptionValue_ [""] value []; };
-      # { val = scrubOptionValue_ [""] value []; };
+  values = createEntry [""] configuration [];
+  value = path: createEntry path configuration [];
 
 in {
-  # output = optionAttrSetToDocList_ [] eval.options;
   options = (builtins.unsafeDiscardStringContext (builtins.toJSON (listToAttrs (map (o: { name = o.name; value = removeAttrs o ["name" "visible" "internal"]; }) optionsList_))));
-  config = builtins.toJSON (values "services");
+  config = builtins.unsafeDiscardStringContext (builtins.toJSON (values));
+  get = builtins.unsafeDiscardStringContext (builtins.toJSON (value (splitString "." path)));
 }
