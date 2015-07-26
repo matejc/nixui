@@ -112,14 +112,27 @@ dbs.configurations.set = function(configuration, cb) {
 // configs - config options
 
 dbs.configs = function(configurationId, attrs, cb) {
+    var configurationnix, path, optionsWithVal;
+    if (configurationId === null || configurationId === '-1') {
+        configurationnix = null;
+        path = null;
+        optionsWithVal = false;
+    } else {
+        path = attrs;
+        optionsWithVal = true;
+    }
+
     dbs.configurations.get(configurationId, function(err, o) {
-        NixInterface.configTree(o.path, attrs, undefined, process.env, function(tree) {
-            var result = JSON.parse(JSON.parse(tree));
+        if (configurationId !== null) {
+            configurationnix = o.path;
+        }
+        NixInterface.options(configurationnix, path, optionsWithVal, undefined, process.env, function(out) {
+            var result = JSON.parse(out);
             data.configs = new nedb();
-            data.configstree = result;
+            data.configslist = result;
             data.configs.ensureIndex({fieldName: 'name', unique: true}, function(err) {
-                if (err) console.log(err);
-                recurseConfigs([], result);
+                if (err) console.error(err);
+                fillConfigs(result);
                 cb(null, result);
             });
         }, function(err) {
@@ -128,8 +141,8 @@ dbs.configs = function(configurationId, attrs, cb) {
     });
 };
 
-dbs.configs.tree = function() {
-    return data.configstree;
+dbs.configs.list = function() {
+    return data.configslist;
 };
 
 dbs.configs.all = function(cb) {
@@ -141,12 +154,31 @@ dbs.configs.filter = function(query, cb) {
     var refind = {$or: [{name: {$regex: requery}}, {description: {$regex: requery}}, {val: {$regex: requery}}]};
     data.configs.find(refind).limit(100).exec(function(err, data) {
         if (err) {
-            console.log(err);
+            console.error(err);
             cb(err);
         }
         cb(null, data);
     });
 };
+
+dbs.configs.get = function(attrs, cb) {
+    dbs.configurations.get(undefined, function(err, o) {
+        NixInterface.get(o.path, attrs, undefined, process.env, function(result) {
+            cb(null, result);
+        }, function(err) {
+            cb(err);
+        });
+    });
+};
+
+dbs.configs.toNixString = function(object, cb) {
+    NixInterface.toNixString(object, process.env, function(result) {
+        cb(null, result);
+    }, function(err) {
+        cb(err);
+    });
+};
+
 
 
 // packages
@@ -548,6 +580,14 @@ var recurseConfigs = function(position, object) {
             if (object.hasOwnProperty(key)){
                 recurseConfigs(position.concat([key]), object[key]);
             }
+        }
+    }
+};
+
+var fillConfigs = function(object) {
+    for (var key in object) {
+        if (object.hasOwnProperty(key)){
+            data.configs.update({name: key}, object[key], {upsert: true});
         }
     }
 };

@@ -1,8 +1,9 @@
 # { configurationnix ? "/etc/nixos/configuration.nix" }:
-{ configurationnix ? "/home/matej/workarea/tmp/nixos/configuration.nix"
+{ configurationnix ? null
 , system ? builtins.currentSystem
-, optionsWithVal ? true
-, path ? "services.nginx" }:
+, optionsWithVal ? false
+, path ? "services.nginx"
+, json ? "" }:
 with import <nixpkgs/lib>;
 let
   # lib = import <nixpkgs/lib> {};
@@ -26,6 +27,10 @@ let
   #   # lib = pkgs.lib;
   #   # baseModules = [];
   # };
+
+  emptyEval = import <nixpkgs/nixos> {
+    inherit system;
+  };
 
   eval = import <nixpkgs/nixos> {
     configuration = configuration;
@@ -70,7 +75,7 @@ let
           visible = opt.visible or true;
           type = opt.type.name or null;
         }
-        // (if opt ? example then { example = scrubOptionValue_ (opt.loc) opt.example []; } else {})
+        // (if opt ? example then { example = scrubOptionValue_ (opt.loc) (parseExample opt.example) []; } else {})
         // (if opt ? default then { default = scrubOptionValue_ (opt.loc) opt.default []; } else {})
         // (if opt ? defaultText then { default = opt.defaultText; } else {});
 
@@ -85,7 +90,7 @@ let
   prefix = toString <nixpkgs>;
 
   # Remove invisible and internal options.
-  optionsList = filter (opt: opt.visible && !opt.internal) (optionAttrSetToDocList_ [] eval.options);
+  optionsList = filter (opt: opt.visible && !opt.internal) (optionAttrSetToDocList_ [] (if configurationnix == null then emptyEval.options else eval.options));
 
   stripPrefix = fn:
   if substring 0 (stringLength prefix) fn == prefix then
@@ -109,23 +114,28 @@ let
   // optionalAttrs (val != null) rec {
     inherit val;
   }
-  // optionalAttrs (opt ? example) { example = substFunction opt.example; }
+  // optionalAttrs (opt ? example) { example = parseExample (substFunction opt.example); }
   // optionalAttrs (opt ? default) { default = substFunction opt.default; }
   // optionalAttrs (opt ? type) { type = substFunction opt.type; });
 
+  parseExample = value:
+    if value ? _type && value._type == "literalExample" then value.text
+    else value;
 
   createEntry = path: root: visitList:
     let
       value = if path == [""] then root else attrByPath path null root;
       val = scrubOptionValue_ path value visitList;
-    in (
-      {inherit val path;}
-    );
-  values = createEntry [""] configuration [];
+    in {
+        inherit path val;
+      };
+
+  values = createEntry [""] (if configurationnix == null then emptyEval.options else configuration) [];
   value = path: createEntry path configuration [];
 
 in {
-  options = (builtins.unsafeDiscardStringContext (builtins.toJSON (listToAttrs (map (o: { name = o.name; value = removeAttrs o ["name" "visible" "internal"]; }) optionsList_))));
+  options = (builtins.unsafeDiscardStringContext (builtins.toJSON (listToAttrs (map (o: { name = o.name; value = removeAttrs o ["visible" "internal"]; }) optionsList_))));
   config = builtins.unsafeDiscardStringContext (builtins.toJSON (values));
-  get = builtins.unsafeDiscardStringContext (builtins.toJSON (value (splitString "." path)));
+  get = builtins.fromJSON (builtins.unsafeDiscardStringContext (builtins.toJSON (value (splitString "." path)).val));
+  parse = builtins.fromJSON json;
 }

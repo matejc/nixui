@@ -24,6 +24,7 @@
 
         <link rel="import" href="./progress-bar.html">
         <link rel="import" href="./data.html">
+        <link rel="import" href="./error-dialog.html">
 
         <polymer-element name="nixui-configuration">
             <template>
@@ -243,7 +244,9 @@
                     <template repeat="{{option in configs}}">
                         <div on-click="{{openPanel}}" on-keyup="{{openPanel}}" tabindex="2" data-optionname="{{option.name}}" class="option">
                             <span class="optionname">{{option.name}}</span>
-                            <span class="optionval">{{option.val}}</span>
+                            <template if="{{option.val}}">
+                                <span class="optionval">VALUE</span>
+                            </template>
                             <div class="optiondesc">{{option.description}}</div>
                             <paper-ripple fit></paper-ripple>
                         </div>
@@ -251,20 +254,11 @@
                 </div>
                 <div id="editpanel">
                     <div id="path">{{optionDetails._path}}</div>
-                    <div id="type">{{optionDetails.optType}}</div>
+                    <div id="type">{{optionDetails.type}}</div>
                     <div id="description">{{optionDetails.description}}</div>
-                    <template if="{{optionDetails.example}}">
-                        <div class="label">example</div> <pre id="example">{{optionDetails.example}}</pre>
-
-                    </template>
-                    <template if="{{optionDetails.default}}">
-                        <div class="label">default</div> <pre id="default">{{optionDetails.default}}</pre>
-
-                    </template>
-
-                    <template if="{{optionDetails.val}}">
-                        <div class="label">value</div> <pre id="val">{{optionDetails.val}}</pre>
-                    </template>
+                    <nix-value label="example" json="{{optionDetails.example|stringify}}"></nix-value>
+                    <nix-value label="default" json="{{optionDetails.default|stringify}}"></nix-value>
+                    <nix-value label="value" json="{{optionDetails.val|stringify}}"></nix-value>
                     <!--<paper-input id="value" multiline maxRows="5" floatingLabel label="value ..." value="{{optionDetails.val}}" on-keydown="{{optionValueKeyDown}}" on-keypress="{{optionValueKeyPress}}"></paper-input>-->
                 </div>
                 <nixui-configs id="configs"></nixui-configs>
@@ -276,15 +270,19 @@
                       ready: function() {
                         this.panelVisible = false;
                         this.query = "";
-                        this.configstree = {};
+                        this.configslist = {};
                         this.configs = [];
                         this.optionDetails = {};
 
                         this.fire('core-signal', {name: "progress", data: "start"});
 
                         this.$.configs.init(this.$.configurations.current(), function(err, result) {
-                            if (err) throw err;
-                            this.configstree = result;
+                            if (err) {
+                                this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
+                                this.fire('core-signal', {name: "progress", data: "error"});
+                                throw err;
+                            }
+                            this.configslist = result;
                             this.searchSignal(undefined, {query: ""});
                         }.bind(this));
                       },
@@ -292,7 +290,11 @@
                         this.query = detail.query;
                         this.fire('core-signal', {name: "progress", data: "start"});
                         this.$.configs.filter(this.query, function(err, result) {
-                            if (err) throw err;
+                            if (err) {
+                                this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
+                                this.fire('core-signal', {name: "progress", data: "error"});
+                                throw err;
+                            }
                             this.configs = result;
                             this.fire('core-signal', {name: "progress", data: "finish"});
                         }.bind(this));
@@ -303,10 +305,10 @@
                             var optionName = sender.getAttribute("data-optionname");
                             var optionPath = optionName.split('.');
 
-                            var option = this.getOptionByPath(optionPath);
-                            if (option && option.optType) {
+                            var option = this.getOptionByPath(optionName);
+                            if (option) {
                                 this.optionDetails = option;
-                                this.optionDetails._path = optionPath.join(".");
+                                this.optionDetails._path = optionName;
                                 if (!this.panelVisible) this.panelAnimate(true);
                                 return;
                             }
@@ -314,23 +316,12 @@
                             if (this.panelVisible) this.panelAnimate(false);
                         }
                       },
-                      getOptionByPath: function(path) {
-                          option = this.configstree;
-                          if (path.length > 0) {
-                              for (var i in path) {
-                                  if (path[i] === "") {
-                                      continue;
-                                  }
-                                  try {
-                                      option = option[path[i]];
-                                  } catch (ex) {
-                                      console.log("Not found option: " + path.join("."));
-                                      return null;
-                                  }
-                              }
-                          } else {
-                              option = this.configstree;
+                      getOptionByPath: function(optionName) {
+                          var option = this.configslist[optionName];
+                          if (!option) {
+                              console.log("Not found option: " + optionName);
                           }
+                          console.log("optionName:", optionName, option);
                           return option;
                       },
                       panelAnimate: function(show) {
@@ -350,6 +341,13 @@
                             this.panelVisible = false;
                         }
                         var player = document.timeline.play(anim);
+                      },
+                      stringify: function(value) {
+                          if (value) {
+                              return JSON.stringify(value);
+                          } else {
+                              return value;
+                          }
                       }
                   });
                 })();
@@ -403,6 +401,122 @@
                 })();
             </script>
         </polymer-element>
+
+
+        <polymer-element name="nix-value" attributes="label json">
+            <template if="{{value}}">
+                <nixui-configs id="configs"></nixui-configs>
+                <style type="text/css">
+                    .label {
+                        font-family: sans-serif;
+                        font-variant: small-caps;
+                        width: 100%;
+                        text-align: right;
+                        color: #005aa0;
+                        font-size: 80%;
+                    }
+                    pre {
+                        background-color: #eee;
+                        border-radius: 4px;
+                        padding: 5px;
+                        margin: 0 0 1em 0;
+
+                        white-space: pre-wrap;       /* css-3 */
+                        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+                        white-space: -pre-wrap;      /* Opera 4-6 */
+                        white-space: -o-pre-wrap;    /* Opera 7 */
+                        word-wrap: break-word;       /* Internet Explorer 5.5+ */
+                    }
+                </style>
+                <template if="{{value}}">
+                    <div class="label">{{label}}</div>
+                    <pre>{{value}}</pre>
+                </template>
+            </template>
+            <script>
+                (function() {
+                  Polymer({
+                    observe: {
+                        'json': 'update'
+                    },
+                    ready: function() {
+                        this.update();
+                    },
+                    update: function() {
+                        this.$.configs.toNixString(this.json, function(err, result) {
+                            this.value = this.beautify(result);
+                        }.bind(this));
+                    },
+                    beautify: function(value) {
+                        if (value && typeof value === 'string') {
+                            var lines = this.split(value);
+                            var next = 0;
+                            for (var i in lines) {
+                                if (lines[i][0] === '}') {
+                                    next -= 1;
+                                }
+                                lines[i] = this.times(' ', next*2) + lines[i];
+                                if (lines[i][lines[i].length-1] === '{') {
+                                    next += 1;
+                                }
+                            }
+                            return lines.join('\n');
+                        }
+                        return value;
+                    },
+                    times: function(s, times) {
+                        var result = "";
+                        for (var i=0; i<times; i++) {
+                            result = s + result;
+                        }
+                        return result;
+                    },
+                    split: function(value) {
+                        var result = "",
+                            inString = false,
+                            prevChar = '',
+                            lines = [];
+
+                        console.log(value)
+
+                        for (var i in value) {
+                            var c = value[i];
+
+                            if (c === '"' && !inString) {
+                                inString = true;
+                            } else if (c === '"' && prevChar !== '\\' && inString) {
+                                inString = false;
+                            }
+
+                            if (inString) {
+                                result = result.concat(c);
+                            } else {
+                                if (c === '{') {
+                                    result = result.concat('{');
+                                    lines.push(result);
+                                    result = '';
+                                } else if (c === ';') {
+                                    result = result.concat(';');
+                                    lines.push(result);
+                                    result = '';
+                                } else if (c === ' ') {
+                                } else {
+                                    result = result.concat(c);
+                                }
+                            }
+
+                            prevChar = c;
+                        }
+                        if (result !== '') {
+                            lines.push(result);
+                        }
+                        return lines;
+                    }
+                  });
+                })();
+            </script>
+        </polymer-element>
+
         <style>
             html,body {
                 height: 100%;

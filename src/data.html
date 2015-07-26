@@ -63,16 +63,22 @@
                 this.configs = require("./data.js").configs;
             },
             init: function(configurationId, cb) {
-                this.configs(configurationId, "configuration", cb);
+                this.configs(configurationId, null, cb);
             },
-            tree: function() {
-                return this.configs.tree();
+            list: function() {
+                return this.configs.list();
             },
             all: function(cb) {
                 this.configs.all(cb);
             },
             filter: function(query, cb) {
                 this.configs.filter(query, cb);
+            },
+            get: function(attrs, cb) {
+                this.configs.get(attrs, cb);
+            },
+            toNixString: function(obj, cb) {
+                this.configs.toNixString(obj, cb);
             }
         });
     })();
