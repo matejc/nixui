@@ -114,7 +114,7 @@ let
   // optionalAttrs (val != null) rec {
     inherit val;
   }
-  // optionalAttrs (opt ? example) { example = parseExample (substFunction opt.example); }
+  // optionalAttrs (opt ? example) { example = substFunction (parseExample opt.example); }
   // optionalAttrs (opt ? default) { default = substFunction opt.default; }
   // optionalAttrs (opt ? type) { type = substFunction opt.type; });
 
