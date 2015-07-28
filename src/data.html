@@ -1,9 +1,10 @@
-<polymer-element name="nixui-profiles">
+<dom-module name="nixui-profiles">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-profiles', {
+        Polymer({
+            is: 'nixui-profiles',
             ready: function() {
                 this.profiles = require("./data.js").profiles;
             },
@@ -22,14 +23,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-configurations">
+<dom-module name="nixui-configurations">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-configurations', {
+        Polymer({
+            is: 'nixui-configurations',
             ready: function() {
                 this.configurations = require("./data.js").configurations;
             },
@@ -51,14 +53,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-configs">
+<dom-module name="nixui-configs">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-configs', {
+        Polymer({
+            is: 'nixui-configs',
             ready: function() {
                 this.configs = require("./data.js").configs;
             },
@@ -83,14 +86,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-packages">
+<dom-module name="nixui-packages">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-packages', {
+        Polymer({
+            is: 'nixui-packages',
             ready: function() {
                 this.packages = require("./data.js").packages;
                 // this.init();
@@ -122,14 +126,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-markeds">
+<dom-module name="nixui-markeds">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-markeds', {
+        Polymer({
+            is: 'nixui-markeds',
             ready: function() {
                 this.markeds = require("./data.js").markeds;
                 this.init();
@@ -167,14 +172,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-actions">
+<dom-module name="nixui-actions">
   <template>
   </template>
   <script>
   (function() {
     Polymer({
+      is: 'nixui-actions',
       ready: function() {
         this.actions = require("./data.js").actions;
         this.actions();
@@ -188,14 +194,15 @@
     });
   })();
   </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-meta">
+<dom-module name="nixui-meta">
   <template>
   </template>
   <script>
   (function() {
     Polymer({
+      is: 'nixui-meta',
       ready: function() {
         this.meta = require("./data.js").meta;
         this.meta();
@@ -206,4 +213,4 @@
     });
   })();
   </script>
-</polymer-element>
+</dom-module>
