@@ -11,7 +11,8 @@ let
   };
 in rec {
   tarball = pkgs.runCommand "nixui.tgz" { buildInputs = [ pkgs.nodejs ]; } ''
-    mv `HOME=$PWD npm pack ${nixui}` $out
+    cp -r ${nixui} ./nixui
+    mv `HOME=$PWD npm pack ./nixui` $out
   '';
   build = nodePackages.buildNodePackage {
     name = "nixui";
