@@ -11,6 +11,7 @@
     <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
     <link rel="import" href="../bower_components/neon-animation/neon-animation.html">
     <link rel="import" href="../bower_components/iron-signals/iron-signals.html">
+    <link rel="import" href="../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
 
     <link rel="import" href="./data.html">
 
@@ -51,7 +52,7 @@
 
     <dom-module name="nixui-chooser">
     <template>
-        <iron-signal on-iron-signal-setconfiguration="{{setConfiguration}}"></iron-signal>
+        <iron-signals on-iron-signal-setconfiguration="setConfiguration"></iron-signals>
         <style>
         #actionlist {
             width: 200px;
@@ -120,8 +121,8 @@
             color: #005aa0;
         }
         </style>
-        <div id="wrapper" layout horizontal>
-            <div id="actionlist" center-justified layout vertical>
+        <div id="wrapper" class="layout horizontal">
+            <div id="actionlist" class="layout center-justified vertical">
                 <div class="label">Select action:</div>
                 <template is="dom-repeat" items="{{actions}}" as="a">
                     <div class="item" on-click="selectaction" on-keyup="selectaction" actionid="{{a.id}}" tabindex="1">
@@ -130,16 +131,16 @@
                     </div>
                 </template>
             </div>
-            <div id="profilelist" center-justified layout vertical>
+            <div id="profilelist" class="center-justified layout vertical">
                 <div class="label">Select profile:</div>
-                <template is="dom-repeat" items="{{ profiles }}" as="p">
+                <template is="dom-repeat" items="{{profiles}}" as="p">
                     <div class="item" on-click="selectprofile" on-keyup="selectprofile" data-id="{{p.id}}" tabindex="1">
                         <span class="{{ {default: p.profile} | tokenList}}">{{p.name}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
             </div>
-            <div id="configlist" center-justified layout vertical>
+            <div id="configlist" class="center-justified layout vertical">
                 <div class="label">Select configuration:</div>
                 <div class="item" on-click="selectconfig" on-keyup="selectconfig" data-id="-1" tabindex="1">
                     <span>Empty</span>
@@ -175,6 +176,7 @@
 
                 this.profiles = [];
                 this.actions = this.$.actions.all();
+                this.currentAction = {};
 
                 this.$.profiles.init();
                 this.$.profiles.all(function (err, profiles) {
@@ -201,36 +203,36 @@
                             items[i].className = items[i].className.replace( /(?:^|\s)item_selected(?!\S)/g , '' )
                         }
                         item.className += " item_selected";
-                        var action = _.findWhere(this.actions, {id: item.actionid});
-                        this.currentActionURL = action.url;
+                        this.currentAction = _.findWhere(this.actions, {id: item.actionid});
+                        this.currentActionURL = this.currentAction.url;
 
-                        switch (action.id) {
-                            case '0':
+                        switch (this.currentAction.id) {
+                            case 0:
                                 this.listAnimationShow(this.$.profilelist);
                                 break;
 
-                            case '1':
+                            case 1:
                                 this.listAnimationShow(this.$.configlist);
                                 break;
                         }
                     }
                 }
             },
-            selectconfig: function(e, detail, sender) {
+            selectconfig: function(e) {
                 if (e.keyCode == 13 || e.keyCode == 0) {
-                    var item = sender;
+                    var item = e.target.parentNode;
                     if (item) {
-                        this.$.configurations.current(item.getAttribute("data-id"));
-                        window.location.assign(this.currentActionURL);
+                        this.$.configurations.current(this.currentAction.id);
+                        window.location.assign(this.currentAction.url);
                     }
                 }
             },
-            selectprofile: function(e, detail, sender) {
+            selectprofile: function(e) {
                 if (e.keyCode == 13 || e.keyCode == 0) {
-                    var item = sender;
+                    var item = e.target.parentNode;
                     if (item) {
-                        this.$.profiles.current(item.getAttribute("data-id"));
-                        window.location.assign(this.currentActionURL);
+                        this.$.profiles.current(this.currentAction.id);
+                        window.location.assign(this.currentAction.url);
                     }
                 }
             },
@@ -280,7 +282,7 @@
           <template>
               <style type="text/css">
                   #configurationsfield {
-                      border-bottom: 1px solid #50a0ff;
+                      /*border-bottom: 1px solid #50a0ff;*/
                       font-family: sans-serif;
                       /*font-variant: small-caps;*/
                       font-size: 75%;
@@ -291,7 +293,7 @@
               </style>
               <span>
                   <div id="container" relative>
-                      <input is="core-input" id="configurationsfield" on-keyup="{{keyUpHandler}}" value="{{value}}" placeholder="new configuration"></input>
+                      <paper-input id="configurationsfield" on-keyup="keyUpHandler" value="{{value}}" placeholder="new configuration"></paper-input>
                   </div>
               </span>
           </template>
