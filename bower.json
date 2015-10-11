@@ -23,10 +23,14 @@
   ],
   "dependencies": {
     "underscore": "underscore#1.7.0",
-    "polymer": "Polymer/polymer#1.0.6",
+    "polymer": "Polymer/polymer#1.1.0",
     "paper-elements": "PolymerElements/paper-elements#1.0.2",
     "iron-elements": "PolymerElements/iron-elements#1.0.3",
     "neon-elements": "PolymerElements/neon-elements#1.0.0",
-    "js-beautify": "1.5.10"
+    "js-beautify": "1.5.10",
+    "font-awesome-polymer-icons": "philya/font-awesome-polymer-icons#39d6e60662"
+  },
+  "resolutions": {
+    "polymer": "^1.0.0"
   }
 }

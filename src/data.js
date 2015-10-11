@@ -16,6 +16,7 @@ var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : requ
 
 env.NIX_PATH = config.NIX_PATH ? config.NIX_PATH : process.env.NIX_PATH;
 env.NIX_REMOTE = process.env.NIX_REMOTE;
+env.HOME = process.env.HOME;
 
 console.log("Environment:", env)
 
@@ -53,7 +54,7 @@ dbs.profiles.current = function(id) {
 dbs.profiles.get = function(profileId, cb) {
     var id = (profileId===undefined) ? dbs.profiles.current() : profileId;
     if (id === '-1') {
-        cb(null, {id: "-1"});
+        cb(null, {id: "-1", name: "None"});
     } else {
         data.profiles.findOne({id: id}, cb);
     }
@@ -96,7 +97,7 @@ dbs.configurations.current = function(id) {
 dbs.configurations.get = function(configurationId, cb) {
     var id = (configurationId===undefined) ? dbs.configurations.current() : configurationId;
     if (id == '-1') {
-        cb(null, {path: "", _id: "-1"});
+        cb(null, {path: "None", _id: "-1"});
     } else {
         data.configurations.findOne({_id: id}, cb);
     }
@@ -156,7 +157,7 @@ dbs.configs.all = function(cb) {
 dbs.configs.filter = function(query, cb) {
     var requery = new RegExp(query, 'i');
     var refind = {$or: [{name: {$regex: requery}}, {description: {$regex: requery}}, {val: {$regex: requery}}]};
-    data.configs.find(refind).limit(100).exec(function(err, data) {
+    data.configs.find(refind).sort({name: 1}).limit(100).exec(function(err, data) {
         if (err) {
             console.error(err);
             cb(err);
@@ -281,7 +282,7 @@ dbs.packages.filter = function(profileId, query, cb) {
     if (installFilter) {
         refind.compare = {$regex: /^\=.*/};
     }
-    data.packages[profileId].find(refind).limit(100).exec(function(err, data) {
+    data.packages[profileId].find(refind).sort({name: 1}).limit(100).exec(function(err, data) {
         if (err) {
             console.log(err);
             cb(err);

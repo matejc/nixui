@@ -15,10 +15,11 @@
         <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
         <link rel="import" href="../bower_components/paper-item/paper-item.html">
         <link rel="import" href="../bower_components/paper-toast/paper-toast.html">
-        <link rel="import" href="../bower_components/iron-dropdown/iron-dropdown.html">
         <link rel="import" href="../bower_components/paper-menu/paper-menu.html">
         <link rel="import" href="../bower_components/neon-animation/neon-animation.html">
         <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+        <link rel="import" href="../bower_components/font-awesome-polymer-icons/fa-all.html">
+        <link rel="import" href="../bower_components/iron-icon/iron-icon.html">
         <script src="../bower_components/js-beautify/js/lib/beautify.js"></script>
         <script src="../bower_components/underscore/underscore-min.js"></script>
 
@@ -32,7 +33,7 @@
                     :root {
                         --paper-header-panel-seamed-container: {
                             height: 100%;
-                            overflow: auto;
+                            /*overflow: auto;*/
                         };
                         --paper-toolbar: {
                             background: white;
@@ -75,7 +76,7 @@
                 <iron-signals on-iron-signal-progress="progressSignal"></iron-signals>
                 <iron-signals on-iron-signal-dim="dimSignal"></iron-signals>
                 <iron-signals on-iron-signal-message="message"></iron-signals>
-                <paper-header-panel id="contentpanel" mode="seamed" class="red" on-keyup="globalKeyUp">
+                <paper-header-panel id="contentpanel" mode="seamed" on-keyup="globalKeyUp">
                     <div id="dimmer"></div>
                     <div class="paper-header">
                         <paper-toolbar>
@@ -85,10 +86,15 @@
                                     <paper-ripple fit></paper-ripple>
                                 </a>
                             </div>
-                            <div class="nixuilink" disabled$="{{workLock}}">&nbsp;>&nbsp;</div>
+                            <div class="nixuilink" disabled$="{{workLock}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
                             <div>
                                 <a href="{{action.url}}" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">{{action.label}}</a>
                             </div>
+                            <div class="nixuilink" disabled$="{{workLock}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
+                            <div>
+                                <a href="{{action.url}}" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">{{configuration.path}}</a>
+                            </div>
+                            <div flex></div>
                             <search-input class="fixed-right" id="searchfield" disabled$="{{workLock}}"></search-input>
                         </paper-toolbar>
                         <progress-bar id="progressbar"></progress-bar>
@@ -101,6 +107,7 @@
                 <error-dialog controlDim="true"></error-dialog>
                 <!--<marked-dialog controlDim="true"></marked-dialog>-->
                 <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
+                <nixui-configurations id="configurations"></nixui-configurations>
                 <nixui-actions id="actions"></nixui-actions>
             </template>
             <script>
@@ -108,9 +115,11 @@
                     Polymer({
                         is: 'nixui-configuration',
                         ready: function() {
+                            this.progressSignal(null, 'start');
                             this.action = this.$.actions.get(1);
-                            this.workLock = false;
-                            this.fire('iron-signal', {name: "progress", data: "start"});
+                            this.$.configurations.get(undefined, function(err, configuration) {
+                                this.configuration = configuration;
+                            }.bind(this));
                         },
                         progressSignal: function(e, detail, sender) {
                             this.$.progressbar.doProgress(detail);

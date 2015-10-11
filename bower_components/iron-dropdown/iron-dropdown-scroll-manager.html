@@ -31,6 +31,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return this._lockingElements[this._lockingElements.length - 1];
       },
 
+
       /**
        * Returns true if the provided element is "scroll locked," which is to
        * say that it cannot be scrolled via pointer or keyboard interactions.
@@ -40,10 +41,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       elementIsScrollLocked: function(element) {
         var currentLockingElement = this.currentLockingElement;
+        var scrollLocked;
 
-        return !!currentLockingElement &&
+        if (this._hasCachedLockedElement(element)) {
+          return true;
+        }
+
+        if (this._hasCachedUnlockedElement(element)) {
+          return false;
+        }
+
+        scrollLocked = !!currentLockingElement &&
           currentLockingElement !== element &&
-          !currentLockingElement.contains(element);
+          !this._composedTreeContains(currentLockingElement, element);
+
+        if (scrollLocked) {
+          this._lockedElementCache.push(element);
+        } else {
+          this._unlockedElementCache.push(element);
+        }
+
+        return scrollLocked;
       },
 
       /**
@@ -62,6 +80,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         this._lockingElements.push(element);
+
+        this._lockedElementCache = [];
+        this._unlockedElementCache = [];
       },
 
       /**
@@ -82,6 +103,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         this._lockingElements.splice(index, 1);
 
+        this._lockedElementCache = [];
+        this._unlockedElementCache = [];
+
         if (this._lockingElements.length === 0) {
           this._unlockScrollInteractions();
         }
@@ -89,11 +113,56 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _lockingElements: [],
 
+      _lockedElementCache: null,
+
+      _unlockedElementCache: null,
+
       _originalBodyStyles: {},
 
       _isScrollingKeypress: function(event) {
         return Polymer.IronA11yKeysBehavior.keyboardEventMatchesKeys(
           event, 'pageup pagedown home end up left down right');
+      },
+
+      _hasCachedLockedElement: function(element) {
+        return this._lockedElementCache.indexOf(element) > -1;
+      },
+
+      _hasCachedUnlockedElement: function(element) {
+        return this._unlockedElementCache.indexOf(element) > -1;
+      },
+
+      _composedTreeContains: function(element, child) {
+        // NOTE(cdata): This method iterates over content elements and their
+        // corresponding distributed nodes to implement a contains-like method
+        // that pierces through the composed tree of the ShadowDOM. Results of
+        // this operation are cached (elsewhere) on a per-scroll-lock basis, to
+        // guard against potentially expensive lookups happening repeatedly as
+        // a user scrolls / touchmoves.
+        var contentElements;
+        var distributedNodes;
+        var contentIndex;
+        var nodeIndex;
+
+        if (element.contains(child)) {
+          return true;
+        }
+
+        contentElements = Polymer.dom(element).querySelectorAll('content');
+
+        for (contentIndex = 0; contentIndex < contentElements.length; ++contentIndex) {
+
+          distributedNodes = Polymer.dom(contentElements[contentIndex]).getDistributedNodes();
+
+          for (nodeIndex = 0; nodeIndex < distributedNodes.length; ++nodeIndex) {
+
+            if (this._composedTreeContains(distributedNodes[nodeIndex], child)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
       },
 
       _scrollInteractionHandler: function(event) {
