@@ -11,9 +11,13 @@ if (process.env.NIXUI_DEBUG !== undefined) {
 var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : require("./config.json"),
     dbs = {},
     data = {},
-    dataDir = config.dataDir ? config.dataDir : '/tmp';
+    dataDir = config.dataDir ? config.dataDir : '/tmp',
+    env = {};
 
-process.env.NIX_PATH = config.NIX_PATH ? config.NIX_PATH : process.env.NIX_PATH;
+env.NIX_PATH = config.NIX_PATH ? config.NIX_PATH : process.env.NIX_PATH;
+env.NIX_REMOTE = process.env.NIX_REMOTE;
+
+console.log("Environment:", env)
 
 module.exports = dbs;
 
@@ -123,10 +127,10 @@ dbs.configs = function(configurationId, attrs, cb) {
     }
 
     dbs.configurations.get(configurationId, function(err, o) {
-        if (configurationId !== null) {
+        if (configurationId !== null && o) {
             configurationnix = o.path;
         }
-        NixInterface.options(configurationnix, path, optionsWithVal, undefined, process.env, function(out) {
+        NixInterface.options(configurationnix, path, optionsWithVal, undefined, env, function(out) {
             var result = JSON.parse(out);
             data.configs = new nedb();
             data.configslist = result;
@@ -161,18 +165,31 @@ dbs.configs.filter = function(query, cb) {
     });
 };
 
+// dbs.configs.get = function(attrs, cb) {
+//     dbs.configurations.get(undefined, function(err, o) {
+//         NixInterface.get(o.path, attrs, undefined, env, function(result) {
+//             cb(null, result);
+//         }, function(err) {
+//             cb(err);
+//         });
+//     });
+// };
+
 dbs.configs.get = function(attrs, cb) {
-    dbs.configurations.get(undefined, function(err, o) {
-        NixInterface.get(o.path, attrs, undefined, process.env, function(result) {
-            cb(null, result);
-        }, function(err) {
+    data.configs.findOne({name: attrs}, function(err, data) {
+        if (err) {
+            console.error(err);
             cb(err);
-        });
+        }
+        cb(null, data);
     });
 };
 
-dbs.configs.toNixString = function(object, cb) {
-    NixInterface.toNixString(object, process.env, function(result) {
+dbs.configs.toNixString = function(json, cb) {
+    if (typeof json === 'undefined') {
+        return cb(null, '');
+    }
+    NixInterface.toNixString(json, env, function(result) {
         cb(null, result);
     }, function(err) {
         cb(err);
@@ -241,7 +258,7 @@ dbs.packages.fill = function(profileId, cb) {
             NixInterface.iteratePackages(
                 undefined,
                 profile.path,
-                process.env,
+                env,
                 callback,
                 done_cb,
                 function (err) {
@@ -276,7 +293,7 @@ dbs.packages.filter = function(profileId, query, cb) {
 dbs.packages.info = function(profileId, attribute, cb) {
     if ((new RegExp(/^[\-\.\w]+$/)).test(attribute)) {
 
-        NixInterface.packageInfo(attribute, undefined, process.env, function(data) {
+        NixInterface.packageInfo(attribute, undefined, env, function(data) {
             cb(null, JSON.parse(JSON.parse(data)));  // data is double json encoded :)
         }, function(data) {
             cb(null, data);
@@ -564,10 +581,10 @@ var applyMark = function(profileId, attribute, name, mark, finish_callback, erro
         };
 
         if (mark == "install") {
-            NixInterface.installPackage(attribute, undefined, profile.path, process.env, onFinish, onError);
+            NixInterface.installPackage(attribute, undefined, profile.path, env, onFinish, onError);
 
         } else if (mark == "uninstall") {
-            NixInterface.uninstallPackage(attribute, name, undefined, profile.path, process.env, onFinish, onError);
+            NixInterface.uninstallPackage(attribute, name, undefined, profile.path, env, onFinish, onError);
         }
     });
 };

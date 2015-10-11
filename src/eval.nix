@@ -1,141 +1,84 @@
-# { configurationnix ? "/etc/nixos/configuration.nix" }:
-{ configurationnix ? null
-, system ? builtins.currentSystem
+{ system ? builtins.currentSystem
 , optionsWithVal ? false
-, path ? "services.nginx"
+, configurationnix ? "/etc/nixos/configuration.nix"
+, path ? "networking.hostName"
 , json ? "" }:
+
 with import <nixpkgs/lib>;
+
 let
-  # lib = import <nixpkgs/lib> {};
-  # config = { nixpkgs.config = { allowBroken = true; allowUnfree = true; }; };
-  # platform = (import <nixpkgs/pkgs/top-level/platforms.nix>).pc64;
-  # stdenv = (import <nixpkgs/pkgs/stdenv> {
-  #   inherit system platform config lib;
-  #   allPackages = args: import <nixpkgs/pkgs/top-level/all-packages.nix> ({ inherit config system; });
-  # }).stdenvLinux;
-  originalPkgs = import <nixpkgs> { };
-  configuration = (import configurationnix { pkgs = originalPkgs; config = originalPkgs.config; });
+  emptyPkgs = import <nixpkgs> { inherit system; };
+  nixpkgsConfig = (import configurationnix { pkgs = emptyPkgs; config = emptyPkgs.config; }).nixpkgs.config // {allowBroken = true;};
+  pkgs = import <nixpkgs> { inherit system; config = nixpkgsConfig; };
+  lib = import <nixpkgs/lib>;
+  configuration = configurationnix: (import configurationnix { inherit pkgs lib; config = nixpkgsConfig; });
+  configurationModuleFun = configuration: filePath: rec {
+    _file = filePath;
+    # _file = <nixpkgs/nixos/lib/eval-config.nix>;
+    key = _file;
+    config = {
+      nixpkgs.system = mkDefault system;
+      _module.args.configuration = mkForce configuration;
+      _module.check = false;
+    };
+  };
+  evalConfig = filePath: evalModuleFun (configurationModuleFun (configuration filePath) filePath);
+  evalModuleFun = module: evalModules {
+    modules = [ module ];
+  };
 
-  # baseModules = import <nixpkgs/nixos/modules/module-list.nix>;
+  trySubst = x:
+    let
+      try = builtins.tryEval (subst x);
+    in
+      (if try.success then
+        try.value
+      else
+        "<error>");
+  subst = x:
+    if (x.meta.broken or false) then t ("<broken>"+x.outPath+"</broken>")
+    else if (x.meta.platforms or null != null && !elem system x.meta.platforms) then t ("<broken>"+x.outPath+"</broken>")
+    else if isDerivation x then "<drv>"+x.outPath+"</drv>"
+    else if builtins.isAttrs x then mapAttrs (name: trySubst) x
+    else if builtins.isList x then map trySubst x
+    else if builtins.isFunction x then "<function>"
+    else x;
 
-  # eval2 = import <nixpkgs/nixos/lib/eval-config.nix> {
-  #   modules = [ configuration ];
-  #   # system = builtins.currentSystem;
-  #   inherit pkgs;
-  #   check = false;
-  #   # prefix = [ "boot" ];
-  #   # lib = pkgs.lib;
-  #   # baseModules = [];
-  # };
+  t = o: builtins.trace (builtins.toJSON o) o;
+  tr = o: pass: builtins.trace (builtins.toJSON o) pass;
 
   emptyEval = import <nixpkgs/nixos> {
     inherit system;
   };
-
-  eval = import <nixpkgs/nixos> {
-    configuration = configuration;
-    inherit system;
-  };
-  pkgs = eval.pkgs;
-
-  scrubOptionValue_ = path: x: visitList:
-    let
-      t = tryScrubOptionValue path x visitList;
-    in
-      (if t.success then
-        t.value
-      else
-        "<error>");
-
-  tryScrubOptionValue = path: x: visitList:
-    let
-      visitList_ = ([x] ++ visitList);
-    in
-      builtins.tryEval (
-        if x == null then null
-        else if any (element: element == x) visitList then "<recursion>"
-        else if isDerivation x then "<drv>"+(toString x.outPath)+"</drv>"
-        else if isInt x then x
-        else if isString x then x
-        else if isBool x then x
-        else if isFunction x then "<function>"
-        else if isList x then (map (y: scrubOptionValue_ path y visitList_) x)
-        else if isAttrs x then (mapAttrs (n: v: if isNull v then "<null>" else (scrubOptionValue_ path v visitList_)) x)
-        else if builtins.typeOf x == "lambda" then "<lambda>"
-        else toString x);
-
-  optionAttrSetToDocList_ = prefix: options:
-    fold (opt: rest:
-      let
-        docOption = rec {
-          name = showOption opt.loc;
-          description = opt.description or (builtins.trace "Option `${name}' has no description." "");
-          declarations = filter (x: x != unknownModule) opt.declarations;
-          internal = opt.internal or false;
-          visible = opt.visible or true;
-          type = opt.type.name or null;
-        }
-        // (if opt ? example then { example = scrubOptionValue_ (opt.loc) (parseExample opt.example) []; } else {})
-        // (if opt ? default then { default = scrubOptionValue_ (opt.loc) opt.default []; } else {})
-        // (if opt ? defaultText then { default = opt.defaultText; } else {});
-
-        subOptions =
-          let ss = opt.type.getSubOptions opt.loc;
-          in if ss != {} then optionAttrSetToDocList_ opt.loc ss else [];
-      in
-        # FIXME: expensive, O(n^2)
-        [ docOption ] ++ subOptions ++ rest) [] (collect isOption options);
-
-
+  optionsList = filter (opt: opt.visible && !opt.internal) (optionAttrSetToDocList emptyEval.options);
   prefix = toString <nixpkgs>;
-
-  # Remove invisible and internal options.
-  optionsList = filter (opt: opt.visible && !opt.internal) (optionAttrSetToDocList_ [] (if configurationnix == null then emptyEval.options else eval.options));
-
   stripPrefix = fn:
-  if substring 0 (stringLength prefix) fn == prefix then
-    substring (stringLength prefix + 1) 1000 fn
-  else
-    fn;
-
-  substFunction = x:
-    if builtins.isAttrs x then mapAttrs (name: substFunction) x
-    else if builtins.isList x then map substFunction x
-    else if builtins.isFunction x then "<function>"
-    else x;
-
-  optionsList_ = flip map optionsList (opt: let
-      path = splitString "." opt.name;
-      val = if optionsWithVal then (value path).val else null;
-  in opt // {
-    declarations = map (fn: stripPrefix fn) opt.declarations;
-    # inherit path;
-  }
-  // optionalAttrs (val != null) rec {
-    inherit val;
-  }
-  // optionalAttrs (opt ? example) { example = substFunction (parseExample opt.example); }
-  // optionalAttrs (opt ? default) { default = substFunction opt.default; }
-  // optionalAttrs (opt ? type) { type = substFunction opt.type; });
-
-  parseExample = value:
-    if value ? _type && value._type == "literalExample" then value.text
-    else value;
-
-  createEntry = path: root: visitList:
+    if substring 0 (stringLength prefix) fn == prefix then
+      substring (stringLength prefix + 1) 1000 fn
+    else
+      fn;
+  optionsList_ = filePath: flip map optionsList (opt:
     let
-      value = if path == [""] then root else attrByPath path null root;
-      val = scrubOptionValue_ path value visitList;
-    in {
-        inherit path val;
-      };
-
-  values = createEntry [""] (if configurationnix == null then emptyEval.options else configuration) [];
-  value = path: createEntry path configuration [];
+        path = splitString "." opt.name;
+        root = trySubst (configuration filePath);
+        val = if path == [""] then root else attrByPath path null root;
+    in
+    opt // {
+      declarations = map (fn: stripPrefix fn) opt.declarations;
+    }
+    // optionalAttrs (opt ? example) { example = trySubst opt.example; }
+    // optionalAttrs (opt ? default) { default = trySubst opt.default; }
+    // optionalAttrs (opt ? type) { type = trySubst opt.type; }
+    // optionalAttrs (optionsWithVal) { val = trySubst val; });
 
 in {
-  options = (builtins.unsafeDiscardStringContext (builtins.toJSON (listToAttrs (map (o: { name = o.name; value = removeAttrs o ["visible" "internal"]; }) optionsList_))));
-  config = builtins.unsafeDiscardStringContext (builtins.toJSON (values));
-  get = builtins.fromJSON (builtins.unsafeDiscardStringContext (builtins.toJSON (value (splitString "." path)).val));
+  options = builtins.toJSON (optionsList_ configurationnix);
+  config = builtins.toJSON (trySubst (configuration configurationnix));
+  get = let
+    pathList = splitString "." path;
+    config = trySubst (configuration configurationnix);
+    result = if pathList == [""] then config else attrByPath pathList null config;
+  in
+    builtins.toJSON result;
   parse = builtins.fromJSON json;
 }

@@ -1,6 +1,5 @@
 <link rel="import" href="./dialog.html">
-<link rel="import" href="../bower_components/core-signals/core-signals.html">
-<link rel="import" href="../bower_components/paper-dialog/paper-dialog-transition.html">
+<link rel="import" href="../bower_components/iron-signals/iron-signals.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 
 <polymer-element name="error-dialog" attributes="controlDim">
@@ -27,14 +26,15 @@
     z-index: -1;
   }
   </style>
-  <my-dialog id="errordialog" heading="Error" controlDim="{{controlDim}}" transition="paper-dialog-transition-bottom">
+  <my-dialog id="errordialog" heading="Error" controlDim="{{controlDim}}">
     <p class="errortext" on-click="{{selectAll}}">{{signalobj.text}}</p>
     <paper-button label="Close" dismissive></paper-button>
   </my-dialog>
 </template>
 <script>
 (function() {
-  Polymer('error-dialog', {
+  Polymer({
+    is: 'error-dialog',
     errorSignal: function(e, detail, sender) {
       this.signalobj = detail;
       this.toggle();

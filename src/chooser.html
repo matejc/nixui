@@ -133,22 +133,22 @@
             </div>
             <div id="profilelist" class="center-justified layout vertical">
                 <div class="label">Select profile:</div>
-                <template is="dom-repeat" items="{{profiles}}" as="p">
-                    <div class="item" on-click="selectprofile" on-keyup="selectprofile" data-id="{{p.id}}" tabindex="1">
-                        <span class="{{ {default: p.profile} | tokenList}}">{{p.name}}</span>
+                <template is="dom-repeat" items="{{profiles}}">
+                    <div class="item" on-click="selectprofile" on-keyup="selectprofile" tabindex="1">
+                        <span class="{{ {default: item.profile} | tokenList}}">{{item.name}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
             </div>
             <div id="configlist" class="center-justified layout vertical">
                 <div class="label">Select configuration:</div>
-                <div class="item" on-click="selectconfig" on-keyup="selectconfig" data-id="-1" tabindex="1">
+                <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="1">
                     <span>Empty</span>
                     <paper-ripple fit/>
                 </div>
-                <template is="dom-repeat" items="{{ configurations }}" as="c">
-                    <div class="item" on-click="selectconfig" on-keyup="selectconfig" data-id="{{c._id}}" tabindex="1">
-                        <span>{{c.path}}</span>
+                <template is="dom-repeat" items="{{configurations}}">
+                    <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="1">
+                        <span>{{item.path}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
@@ -186,6 +186,7 @@
                 this.$.configurations.init();
                 this.$.configurations.all(function (err, cfgs) {
                     this.configurations = cfgs;
+                    console.log(cfgs)
                 }.bind(this));
             },
             selectaction: function(e) {
@@ -220,18 +221,21 @@
             },
             selectconfig: function(e) {
                 if (e.keyCode == 13 || e.keyCode == 0) {
-                    var item = e.target.parentNode;
-                    if (item) {
-                        this.$.configurations.current(this.currentAction.id);
+                    var model = e.model;
+                    if (model) {
+                        this.$.configurations.current(model.item._id);
+                        window.location.assign(this.currentAction.url);
+                    } else {
+                        this.$.configurations.current('-1');
                         window.location.assign(this.currentAction.url);
                     }
                 }
             },
             selectprofile: function(e) {
                 if (e.keyCode == 13 || e.keyCode == 0) {
-                    var item = e.target.parentNode;
-                    if (item) {
-                        this.$.profiles.current(this.currentAction.id);
+                    var model = e.model;
+                    if (model) {
+                        this.$.profiles.current(model.item.id);
                         window.location.assign(this.currentAction.url);
                     }
                 }
@@ -277,7 +281,6 @@
     })();
     </script>
     </dom-module>
-
     <dom-module name="configurations-input">
           <template>
               <style type="text/css">
