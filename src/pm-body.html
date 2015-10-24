@@ -12,12 +12,13 @@
 <link rel="import" href="../bower_components/paper-input/paper-input-container.html">
 <link rel="import" href="../bower_components/font-awesome-polymer-icons/fa-all.html">
 <link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-collapse/iron-collapse.html">
 
 <link rel="import" href="./progress-bar.html">
 <link rel="import" href="./data.html">
 <!-- <link rel="import" href="./marked.html"> -->
 <link rel="import" href="./error-dialog.html">
-<!-- <link rel="import" href="./package-dialog.html"> -->
+<link rel="import" href="./package-dialog.html">
 
 <dom-module name="nixui-packagemanager">
     <template>
@@ -109,7 +110,7 @@
                             <paper-menu class="menu">
                                 <paper-item on-click="searchFor" data-query="!i">Search installed</paper-item>
                                 <paper-item on-click="upgradeInstalled">Upgrade installed ...</paper-item>
-                                <paper-item on-click="openMarkedDialog">Manage marked ...</paper-item>
+                                <!-- <paper-item on-click="openMarkedDialog">Manage marked ...</paper-item> -->
                                 <paper-item on-click="resetCache">Reset cache</paper-item>
                             </paper-menu>
                         </iron-dropdown>
@@ -122,10 +123,10 @@
         </paper-header-panel>
         <package-dialog controlDim="true"></package-dialog>
         <error-dialog controlDim="true"></error-dialog>
-        <marked-dialog controlDim="true"></marked-dialog>
+        <!-- <marked-dialog controlDim="true"></marked-dialog> -->
         <nixui-packages id="packages"></nixui-packages>
         <nixui-profiles id="profiles"></nixui-profiles>
-        <nixui-markeds id="markeds"></nixui-markeds>
+        <!-- <nixui-markeds id="markeds"></nixui-markeds> -->
         <nixui-actions id="actions"></nixui-actions>
         <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
     </template>
@@ -155,11 +156,11 @@
                 searchFor: function(e, detail, sender) {
                     this.query = "!i";
                 },
-                openMarkedDialog: function(e, detail, sender) {
-                    this.fire('iron-signal', {
-                        name: "openmarked"
-                    });
-                },
+                // openMarkedDialog: function(e, detail, sender) {
+                //     this.fire('iron-signal', {
+                //         name: "openmarked"
+                //     });
+                // },
                 ready: function() {
                     this.progressSignal(null, 'start');
                     this.action = this.$.actions.get(0);
@@ -363,7 +364,7 @@
         <iron-signals on-iron-signal-query="querySignal"></iron-signals>
         <div id="listcontainer">
             <template is="dom-repeat" items="{{packages}}" as="package">
-                <package-item on-click="openPackageDialog" on-keyup="openPackageDialog" package="{{package}}" tabindex="1">
+                <package-item on-click="openPackageDialog" package="{{package}}" tabindex="1">
                 </package-item>
             </template>
         </div>
@@ -376,12 +377,22 @@
                     disabled: Boolean
                 },
                 querySignal: function(e, detail, sender) {
+                    // this.packagesObject = {};
+                    // for (var i in detail) {
+                    //     var attribute = detail[i]['attribute'];
+                    //     this.packagesObject[attribute] = detail[i];
+                    //     this.packagesObject[attribute].opened = false;
+                    // }
                     this.packages = detail;
                 },
                 ready: function() {
                     this.packages = [];
+                    // this.packagesObject = {};
                 },
-                openPackageDialog: function(e, detail, sender) {
+                openPackageDialog: function(e) {
+                    // console.log(e.model.package.attribute);
+                    // this.packagesObject[e.model.package.attribute].opened = true;
+                    // console.log(this.packagesObject[e.model.package.attribute])
                     if (e.keyCode == 13 || e.keyCode == 0) {
                         var attribute = e.model.package.attribute;
                         var name = e.model.package.name;
@@ -460,6 +471,9 @@
                 display: block;
                 color: #a05a5a;
             }
+            #container {
+
+            }
         </style>
         <span>
             <div id="container" class="package" tabindex="1">
@@ -468,6 +482,9 @@
                 <div id="pkgattr">{{package.attribute}}</div>
                 <paper-ripple fit></paper-ripple>
             </div>
+            <!-- <iron-collapse id="collapse" opened="{{opened}}">
+                <div id=""></div>
+            </iron-collapse> -->
         </span>
     </template>
     <script>
@@ -479,9 +496,16 @@
                     type: Object,
                     observer: 'classNameFromCompare'
                 }
+                // opened: {
+                //     type: Boolean,
+                //     value: false
+                // }
             },
             ready: function() {
             },
+            // triggerCollapse: function(e) {
+            //     this.opened = !this.opened;
+            // },
             classNameFromCompare: function() {
                 if (!this.package) {
                     return;

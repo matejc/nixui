@@ -1,7 +1,5 @@
-<link rel="import" href="../bower_components/iron-overlay-behavior/iron-overlay-behavior.html">
-
 <!-- copy of paper-dialog, without shadow with dimming support -->
-<polymer-element name="my-dialog" attributes="opened heading transition autoCloseDisabled backdrop layered closeSelector controlDim contentSelect" role="dialog">
+<dom-module name="my-dialog" role="dialog">
   <template>
     <style type="text/css">
     :host {
@@ -32,7 +30,7 @@
       height: 2.5em;
     }
     </style>
-    <core-overlay id="overlay" opened?="{{opened}}" autoCloseDisabled?="{{autoCloseDisabled}}" backdrop?="{{backdrop}}" layered?="{{layered}}" target="{{}}" sizingTarget="{{$.container}}" closeSelector="{{closeSelector}}" transition="{{transition}}" margin="20"></core-overlay>
+    <core-overlay id="overlay" opened$="{{opened}}" autoCloseDisabled$="{{autoCloseDisabled}}" backdrop$="{{backdrop}}" layered$="{{layered}}" target="{{}}" sizingTarget="{{$.container}}" closeSelector="{{closeSelector}}" transition="{{transition}}" margin="20"></core-overlay>
     <div id="container">
       <div id="main">
         <h1>{{heading}}</h1>
@@ -48,15 +46,45 @@
   <script>
     Polymer({
       is: 'my-dialog',
-      opened: false,
-      backdrop: false,
-      layered: false,
-      autoCloseDisabled: false,
-      closeSelector: '[dismissive],[affirmative]',
-      heading: '',
-      contentSelect: '',
-      transition: '',
-      controlDim: false,
+      properties: {
+          opened: {
+              type: Boolean,
+              value: false,
+              observer: 'observeOpened'
+          },
+          heading: {
+              type: String,
+              value: ''
+          },
+          transition: {
+              type: String,
+              value: ''
+          },
+          autoCloseDisabled: {
+              type: Boolean,
+              value: false
+          },
+          backdrop: {
+              type: Boolean,
+              value: false
+          },
+          layered: {
+              type: Boolean,
+              value: false
+          },
+          closeSelector: {
+              type: String,
+              value: '[dismissive],[affirmative]'
+          },
+          controlDim: {
+              type: Boolean,
+              value: false
+          },
+          contentSelect: {
+              type: String,
+              value: ''
+          }
+      },
       toggle: function() {
         this.$.overlay.toggle();
       },
@@ -65,12 +93,9 @@
       },
       observeOpened: function(oldValue, newValue) {
         if (this.controlDim) {
-          this.fire('core-signal', {name: "dim", data: newValue});
+          this.fire('iron-signal', {name: "dim", data: newValue});
         }
-      },
-      observe: {
-        '$.overlay.opened': 'observeOpened'
       }
     });
   </script>
-</polymer-element>
+</dom-module>

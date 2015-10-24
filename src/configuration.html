@@ -190,7 +190,7 @@
                     }
                     .option {
                       position: relative;
-                      height: 40;
+                      height: 32px;
                       line-height: 16px;
                       padding: 0.4em;
                     }
@@ -427,21 +427,40 @@
                     is: 'search-input',
                     properties: {
                         disabled: Boolean,
-                        value: String
+                        value: {
+                            type: String,
+                            value: "",
+                            observer: 'triggerSearchCheck'
+                        },
+                        prevValue: {
+                            type: String,
+                            value: ""
+                        }
                     },
                     focus: function() {
                         this.$.searchfield.focus();
                     },
                     ready: function() {
-                        this.value = "";
                     },
                     keyDownHandler: function(event, detail, sender) {
                         if (event.keyCode == 13) {
-                            this.fire('iron-signal', {
-                                name: "search",
-                                data: { query: this.value }
-                            });
+                            this.triggerSearch();
                         }
+                    },
+                    triggerSearchCheck: function() {
+                        if (this.value !== this.prevValue && typeof this.prevValue !== 'undefined') {
+                            if (this.triggerSearchAsync) {
+                                this.cancelAsync(this.triggerSearchAsync);
+                            }
+                            this.triggerSearchAsync = this.async(this.triggerSearch, 1000);
+                        }
+                    },
+                    triggerSearch: function() {
+                        this.fire('iron-signal', {
+                            name: "search",
+                            data: { query: this.value }
+                        });
+                        this.prevValue = this.value;
                     }
                   });
                 })();

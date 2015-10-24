@@ -138,6 +138,7 @@ dbs.configs = function(configurationId, attrs, cb) {
             data.configs.ensureIndex({fieldName: 'name', unique: true}, function(err) {
                 if (err) console.error(err);
                 fillConfigs(result);
+                dbs.configs_isSet = true;
                 cb(null, result);
             });
         }, function(err) {
@@ -151,10 +152,16 @@ dbs.configs.list = function() {
 };
 
 dbs.configs.all = function(cb) {
+    if (!dbs.configs_isSet) {
+        return cb(null, []);
+    }
     data.configs.find({}, cb);
 };
 
 dbs.configs.filter = function(query, cb) {
+    if (!dbs.configs_isSet) {
+        return cb(null, []);
+    }
     var requery = new RegExp(query, 'i');
     var refind = {$or: [{name: {$regex: requery}}, {description: {$regex: requery}}, {val: {$regex: requery}}]};
     data.configs.find(refind).sort({name: 1}).limit(100).exec(function(err, data) {
@@ -177,6 +184,9 @@ dbs.configs.filter = function(query, cb) {
 // };
 
 dbs.configs.get = function(attrs, cb) {
+    if (!dbs.configs_isSet) {
+        return cb(null, {});
+    }
     data.configs.findOne({name: attrs}, function(err, data) {
         if (err) {
             console.error(err);
