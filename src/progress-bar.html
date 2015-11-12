@@ -14,6 +14,7 @@
   :root {
       --paper-progress-transition-timing-function: ease;
       --paper-progress-transition-transition-delay: 0s;
+      --paper-progress-active-color: #7eb3de;
   }
   </style>
   <paper-progress id="progressbar" class="transiting" value="{{position}}" id="progressbar" step="5" max="1000"></paper-progress>
@@ -29,10 +30,11 @@
       if (this.progress == command)
         return;
       this.progress = command;
-      this.async(this.waitProgress.bind(this));
-      this.async(this._doProgress.bind(this), 100);
+      this.async(this.waitProgress);
+      this.async(this._doProgress, 100);
     },
     _doProgress: function() {
+      console.log(this.progress);
       switch (this.progress) {
         case "start":
           this.startProgress();
@@ -46,35 +48,36 @@
       }
     },
     waitProgress: function() {
-      this.position = 0;
-    //   this.position = this.$.progressbar.value;
-      this.customStyle['--paper-progress-active-color'] = "#00a05a";
+//       this.position = this.$.progressbar.value;
+      this.customStyle['--paper-progress-active-color'] = "#7eb3de";
       this.toggleAttribute('indeterminate', false, this.$.progressbar);
       this.updateStyles();
+      this.position = 0;
     },
     startProgress: function() {
-      this.position = 1000;
-      this.customStyle['--paper-progress-active-color'] = "#00a05a";
       this.customStyle['--paper-progress-transition-duration'] = "5s";
+      this.customStyle['--paper-progress-active-color'] = "#7eb3de";
       this.toggleAttribute('indeterminate', true, this.$.progressbar);
       this.updateStyles();
+      this.position = 1000;
     },
     ready: function() {
       this.progress = null;
-      this.doProgress("wait");
+      this.waitProgress();
     },
     finishProgress: function() {
       this.customStyle['--paper-progress-transition-duration'] = "0.5s";
-      this.customStyle['--paper-progress-active-color'] = "#005aa0";
+      this.customStyle['--paper-progress-active-color'] = "#4d70b8";
       this.toggleAttribute('indeterminate', false, this.$.progressbar);
       this.updateStyles();
       this.position = 1000;
     },
     errorProgress: function() {
       this.customStyle['--paper-progress-transition-duration'] = "0.5s";
-      this.customStyle['--paper-progress-active-color'] = "#a05a5a";
+      this.customStyle['--paper-progress-active-color'] = "#c07a7a";
       this.toggleAttribute('indeterminate', false, this.$.progressbar);
       this.updateStyles();
+      this.position = 1000;
     },
     getProgress: function() {
       return this.progress;

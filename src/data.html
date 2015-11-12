@@ -190,6 +190,12 @@
       },
       get: function(id) {
         return this.actions.get(id);
+      },
+      set: function(id) {
+        return this.actions.set(id);
+      },
+      current: function() {
+        return this.actions.current();
       }
     });
   })();

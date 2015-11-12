@@ -1,34 +1,22 @@
 <link rel="import" href="./data.html">
-<!-- <link rel="import" href="./dialog.html"> -->
-<link rel="import" href="../bower_components/iron-signals/iron-signals.html">
-<link rel="import" href="../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../bower_components/iron-overlay-behavior/iron-overlay-behavior.html">
+<link rel="import" href="./animated-panel.html">
 <script src="../bower_components/underscore/underscore-min.js"></script>
 
-<dom-module name="package-dialog">
+<dom-module name="package-panel">
     <template>
-        <iron-signals on-iron-signal-pkginfo="pkginfoSignal"></iron-signals>
         <style>
             :host {
                 top: 2em;
                 padding: 1em;
             }
-            #pkgdialog {
+            labeled-panel {
                 font-family: sans-serif;
                 font-size: 90%;
-                border-style: solid;
-                border-width: 2px;
-                border-color: #4a9ae0;
-                background: white;
-            }
-
-            #closebtn {
-                color: #646464;
             }
         </style>
-        <div id="pkgdialog">
+        <animated-panel id="panel">
             <labeled-panel label="Name" content="{{pkginfo.name}}"></labeled-panel>
-            <labeled-panel label="Attribute" content="{{signalobj.pkgattr}}"></labeled-panel>
+            <labeled-panel label="Attribute" content="{{data.attribute}}"></labeled-panel>
             <labeled-panel label="Path" content="{{pkginfo.path}}"></labeled-panel>
 
             <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
@@ -41,64 +29,38 @@
             <labeled-panel label="Position" content="{{pkginfo.meta.position}}"></labeled-panel>
 
             <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
-
-            <paper-button id="closebtn" on-click="closeDialog">Close</paper-button>
-
-            <!-- <paper-button id="markedbtn" on-click="toggleMarked" affirmative>{{markItem.label}}</paper-button> -->
-        </div>
-        <!-- <nixui-markeds id="markeds"></nixui-markeds> -->
+        </animated-panel>
         <nixui-profiles id="profiles"></nixui-profiles>
         <nixui-packages id="packages"></nixui-packages>
     </template>
     <script>
         (function() {
             Polymer({
-                is: 'package-dialog',
-                behaviors: [
-                    Polymer.IronOverlayBehavior, Polymer.IronFitBehavior
-                ],
+                is: 'package-panel',
                 properties: {
-                    controlDim: {
-                        type: Boolean
+                    data: {
+                        type: Object,
+                        value: {},
+                        // observer: 'pkginfoChange'
                     }
                 },
                 donotclick: function(e, detail, sender) {
                     e.preventDefault();
                     e.stopPropagation();
                 },
-                openDialog: function() {
-                    if (this.$.pkgdialog && !this.opened) {
-                        this.$.pkgdialog.controlDim = this.signalobj.controlDim;
-                        this.toggle();
-                        this.fire('iron-signal', {
-                            name: "progress",
-                            data: "finish"
-                        });
-                    }
+                open: function(packageData) {
+                    this.$.panel.close(function() {
+                        this.data = packageData;
+                        this.pkginfoChange(function() {
+                            this.$.panel.open();
+                        }.bind(this));
+                    }.bind(this));
                 },
-                closeDialog: function() {
-                    if (this.opened) {
-                        this.$.pkgdialog.controlDim = this.signalobj.controlDim;
-                        this.async(this.toggle, 200);
-                    }
+                close: function() {
+                    this.$.panel.close();
                 },
-                pkginfoSignal: function(e, detail, sender) {
-                    this.signalobj = detail;
-                    // this.$.markeds.get(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
-                    //     if (err) {
-                    //         this.fire('iron-signal', {
-                    //             name: "error",
-                    //             data: {
-                    //                 text: err,
-                    //                 controlDim: true
-                    //             }
-                    //         });
-                    //         return;
-                    //     }
-                    //     this.markItem = this.getMarkItem(data);
-                    // }.bind(this));
-
-                    this.$.packages.info(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
+                pkginfoChange: function(cb) {
+                    this.$.packages.info(this.$.profiles.current(), this.data.attribute, function(err, data) {
                         if (err) {
                             this.fire('iron-signal', {
                                 name: "error",
@@ -110,74 +72,13 @@
                             return;
                         }
                         this.pkginfo = data;
-                        this.openDialog();
-                    }.bind(this));
-                    this.fire('iron-signal', {
-                        name: "progress",
-                        data: "start"
-                    });
-                },
-                toggleMarked: function(e, detail, sender) {
-                    // this.$.markeds.toggle(this.$.profiles.current(), this.signalobj.pkgattr, function(err, data) {
-                    //     if (err) {
-                    //         this.fire('iron-signal', {
-                    //             name: "error",
-                    //             data: {
-                    //                 text: err,
-                    //                 controlDim: true
-                    //             }
-                    //         });
-                    //         return;
-                    //     }
-                    //     require('console').log(data);
-                    //     this.markItem = this.getMarkItem(data);
-                    // }.bind(this));
-                },
-                closeBtnDown: function(e) {
-                    if (e.keyCode == 13 && e.keyCode == 0) {
-                        this.closeDialog();
-                    }
-                },
-                getMarkItem: function(markObj) {
-                    var _get = function(mark) {
-                        for (var i in this.markArray) {
-                            if (this.markArray[i].mark == mark) {
-                                return this.markArray[i];
-                            }
+                        if (cb) {
+                            cb();
                         }
-                    }.bind(this);
-
-                    if (markObj.mark == "install" || markObj.mark == "uninstall") {
-                        return _get(markObj.mark);
-                    }
-
-                    switch (this.signalobj.pkgcomp[0]) {
-                        case "-":
-                        case ">":
-                        case "<":
-                            return _get("available");
-                        case "=":
-                            return _get("installed");
-                    }
+                        // this.open();
+                    }.bind(this));
                 },
                 ready: function() {
-                    this.markArray = [{
-                        mark: "installed",
-                        label: "Installed!",
-                        color: "#4d70b8"
-                    }, {
-                        mark: "available",
-                        label: "Available!",
-                        color: "#646464"
-                    }, {
-                        mark: "install",
-                        label: "Marked for install!",
-                        color: "#00a05a"
-                    }, {
-                        mark: "uninstall",
-                        label: "Marked for removal!",
-                        color: "#a05a00"
-                    }, ];
                     var emptyInfo = {
                         name: "",
                         path: "",
@@ -191,12 +92,6 @@
                             homepage: "",
                             license: ""
                         }
-                    };
-                    this.signalobj = {
-                        pkgattr: "",
-                        pkgname: "",
-                        pkgcomp: "",
-                        controlDim: false
                     };
                     this.pkginfo = emptyInfo;
 

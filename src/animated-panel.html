@@ -1,0 +1,74 @@
+<link rel="import" href="../bower_components/neon-animation/neon-animation.html">
+
+<dom-module name="animated-panel">
+    <template>
+        <style>
+            #panel {
+              border: 1px solid #7eb3de;
+              background: white;
+              display: none;
+              top: 5em;
+              right: 1em;
+              bottom: 1em;
+              position: fixed;
+              overflow: auto;
+              padding: 0.5em;
+              width: 60%;
+            }
+        </style>
+        <div id="panel" on-mouseup="triggerClose" on-keyup="triggerClose">
+            <content></content>
+        </div>
+    </template>
+    <script>
+        (function() {
+          Polymer({
+              is: 'animated-panel',
+              ready: function() {
+                this.panelVisible = false;
+              },
+              open: function(cb) {
+                  if (!this.panelVisible) {
+                      this.panelAnimate(true, cb);
+                  } else if (cb) {
+                      cb();
+                  }
+              },
+              close: function(cb) {
+                  if (this.panelVisible) {
+                      this.panelAnimate(false, cb);
+                  } else if (cb) {
+                      cb();
+                  }
+              },
+              panelAnimate: function(show, cb) {
+                var elem = this.$.panel;
+                var anim;
+                if (show) {
+                    anim = new KeyframeEffect(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 150});
+                    // this.force.size([this.graph_width * 0.66, this.graph_height]).start();
+                    elem.style.display = "block";
+                    this.panelVisible = true;
+                } else {
+                    anim = new KeyframeEffect(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 150});
+                    // this.force.size([this.graph_width, this.graph_height]).start();
+                    this.panelVisible = false;
+                }
+                var player = document.timeline.play(anim);
+                player.onfinish = function() {
+                    if (!this.panelVisible)
+                        this.$.panel.style.display = "none";
+                    if (cb) {
+                        cb();
+                    }
+                }.bind(this);
+            },
+            triggerClose: function(e, detail, sender) {
+              if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
+                  this.close();
+              }
+            }
+          });
+        })();
+    </script>
+</dom-module>

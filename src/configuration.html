@@ -5,8 +5,6 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
         <link rel="import" href="../bower_components/polymer/polymer.html">
-        <link rel="import" href="../bower_components/paper-header-panel/paper-header-panel.html">
-        <link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
         <link rel="import" href="../bower_components/iron-input/iron-input.html">
         <link rel="import" href="../bower_components/paper-input/paper-input-container.html">
         <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
@@ -14,18 +12,17 @@
         <link rel="import" href="../bower_components/iron-signals/iron-signals.html">
         <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
         <link rel="import" href="../bower_components/paper-item/paper-item.html">
-        <link rel="import" href="../bower_components/paper-toast/paper-toast.html">
         <link rel="import" href="../bower_components/paper-menu/paper-menu.html">
         <link rel="import" href="../bower_components/neon-animation/neon-animation.html">
         <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
-        <link rel="import" href="../bower_components/font-awesome-polymer-icons/fa-all.html">
-        <link rel="import" href="../bower_components/iron-icon/iron-icon.html">
         <script src="../bower_components/js-beautify/js/lib/beautify.js"></script>
         <script src="../bower_components/underscore/underscore-min.js"></script>
 
-        <link rel="import" href="./progress-bar.html">
         <link rel="import" href="./data.html">
         <link rel="import" href="./error-dialog.html">
+        <link rel="import" href="./option-panel.html">
+        <link rel="import" href="./nixui-page.html">
+        <link rel="import" href="./input-field.html">
 
         <dom-module name="nixui-configuration">
             <template>
@@ -37,124 +34,39 @@
                         };
                         --paper-toolbar: {
                             background: white;
-                            border-color: #005aa0;
+                            border-color: #4d70b8;
                         };
                     }
                 </style>
                 <style>
-                    .nixuicenter {
-                        color: #005aa0;
-                        position: relative;
-                        text-align: center;
-                        margin: 0 0 0 1em;
-                    }
-                    .nixuilink {
-                        color: #005aa0;
-                        text-decoration: none;
-                    }
                     search-input {
                         margin: 0 3em 0 0;
-                    }
-                    #dimmer
-                    {
-                        background:#000;
-                        opacity:0.2;
-                        position:fixed; /* important to use fixed, not absolute */
-                        top:0;
-                        left:0;
-                        width:100%;
-                        height:100%;
-                        display:none;
-                        z-index:1;
                     }
                     [disabled] {
                         pointer-events: none;
                         cursor: default;
-                        color: #aaa;
+                        color: #ccc;
                     }
                 </style>
-                <iron-signals on-iron-signal-progress="progressSignal"></iron-signals>
-                <iron-signals on-iron-signal-dim="dimSignal"></iron-signals>
-                <iron-signals on-iron-signal-message="message"></iron-signals>
-                <paper-header-panel id="contentpanel" mode="seamed" on-keyup="globalKeyUp">
-                    <div id="dimmer"></div>
-                    <div class="paper-header">
-                        <paper-toolbar>
-                            <div class="nixuicenter">
-                                <a href="chooser.html" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">
-                                    NixUI
-                                    <paper-ripple fit></paper-ripple>
-                                </a>
-                            </div>
-                            <div class="nixuilink" disabled$="{{workLock}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
-                            <div>
-                                <a href="{{action.url}}" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">{{action.label}}</a>
-                            </div>
-                            <div class="nixuilink" disabled$="{{workLock}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
-                            <div>
-                                <a href="{{action.url}}" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">{{configuration.path}}</a>
-                            </div>
-                            <div flex></div>
-                            <search-input class="fixed-right" id="searchfield" disabled$="{{workLock}}"></search-input>
-                        </paper-toolbar>
-                        <progress-bar id="progressbar"></progress-bar>
-                    </div>
-                    <div id="optionscontainer">
-                        <config-options id="configoptions" disabled$="{{workLock}}"></config-options>
-                    </div>
-                </paper-header-panel>
-                <!--<package-dialog controlDim="true"></package-dialog>-->
+
+                <nixui-page id="page" selection="{{configuration.path}}" on-finish="onFinish">
+                    <search-input searchfield class="fixed-right" id="searchfield"></search-input>
+                    <config-options container id="configoptions"></config-options>
+                </nixui-page>
                 <error-dialog controlDim="true"></error-dialog>
-                <!--<marked-dialog controlDim="true"></marked-dialog>-->
-                <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
                 <nixui-configurations id="configurations"></nixui-configurations>
-                <nixui-actions id="actions"></nixui-actions>
             </template>
             <script>
                 (function() {
                     Polymer({
                         is: 'nixui-configuration',
                         ready: function() {
-                            this.progressSignal(null, 'start');
-                            this.action = this.$.actions.get(1);
                             this.$.configurations.get(undefined, function(err, configuration) {
                                 this.configuration = configuration;
                             }.bind(this));
                         },
-                        progressSignal: function(e, detail, sender) {
-                            this.$.progressbar.doProgress(detail);
-                            switch (detail) {
-                                case "start":
-                                    this.workLock = true;
-                                    break;
-                                case "finish":
-                                case "error":
-                                default:
-                                    this.workLock = false;
-                            }
-                            if (detail === "finish") {
-                                this.$.searchfield.focus();
-                            }
-                        },
-                        dimSignal: function(e, detail, sender) {
-                            this.$.dimmer.style.display=(detail)?"block":"none";
-                        },
-                        message: function(e, detail, sender) {
-                            this.$.message.text = detail.text;
-                            var color = "#005aa0";
-                            switch (detail.type) {
-                                case "error":
-                                color = "#a05a5a";
-                                break;
-                            }
-                            this.$.message.style.color = color;
-                            this.$.message.show();
-                        },
-                        globalKeyUp: function(e, detail, sender) {
-                            if (e.keyCode == 191) {  // the '/' key
-                                this.$.searchfield.focus();
-                                if (this.$.configoptions.panelVisible) this.$.configoptions.panelAnimate(false);
-                            }
+                        onFinish: function() {
+                            this.$.searchfield.focus();
                         }
                     });
 
@@ -167,7 +79,7 @@
                 <iron-signals on-iron-signal-search="searchSignal"></iron-signals>
                 <style>
                     .optionname {
-                      color: #005aa0;
+                      color: #4d70b8;
                       font-size: 90%;
                       font-family: sans-serif;
                       font-weight: bold;
@@ -175,13 +87,13 @@
                     .optionval {
                       font-size: 70%;
                       font-weight: bold;
-                      color: #589f4a;
+                      color: #7eb3de;
                       text-overflow: ellipsis;
                       white-space: nowrap;
                       overflow: hidden;
                     }
                     .optiondesc {
-                      color: #777;
+                      color: #7eb3de;
                       font-size: 70%;
                       margin-left: 2em;
                       text-overflow: ellipsis;
@@ -193,63 +105,15 @@
                       height: 32px;
                       line-height: 16px;
                       padding: 0.4em;
+                      cursor: pointer;
+                      color: #7eb3de;
                     }
                     .option:hover {
-                      background-color: #eeeeee;
+                      /*background-color: #eeeeee;*/
                     }
                     .option:focus {
-                      background-color: #dddddd;
+                      /*background-color: #dddddd;*/
                       outline: none;
-                    }
-                    #editpanel {
-                      border: 1px solid #50a0ff;
-                      background: white;
-                      display: none;
-                      top: 5em;
-                      right: 1em;
-                      bottom: 1em;
-                      position: fixed;
-                      overflow: auto;
-                      padding: 0.5em;
-                      width: 60%;
-                    }
-                    #editpanel #path {
-                        font-family: sans-serif;
-                        font-weight: bold;
-                        color: #005aa0;
-                    }
-                    #editpanel #type {
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        font-weight: bold;
-                        color: #888;
-                    }
-                    #editpanel #description {
-                        color: #666;
-                        margin: 1em 0 1em 0;
-                    }
-                    #editpanel pre {
-                        background-color: #eee;
-                        border-radius: 4px;
-                        padding: 5px;
-                        margin: 0 0 1em 0;
-
-                        white-space: pre-wrap;       /* css-3 */
-                        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-                        white-space: -pre-wrap;      /* Opera 4-6 */
-                        white-space: -o-pre-wrap;    /* Opera 7 */
-                        word-wrap: break-word;       /* Internet Explorer 5.5+ */
-                    }
-                    .label {
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        width: 100%;
-                        text-align: right;
-                        color: #005aa0;
-                        font-size: 80%;
-                    }
-                    #editpanel #value {
-                        width: 100%;
                     }
                     paper-input {
                         font-family: monospace;
@@ -267,17 +131,9 @@
                         </div>
                     </template>
                 </div>
-                <div id="editpanel">
-                    <div id="path">{{optionDetails.name}}</div>
-                    <div id="type">{{optionDetails.type}}</div>
-                    <div id="description"></div>
-                    <nix-value label="example" json="{{stringify(optionDetails.example)}}"></nix-value>
-                    <nix-value label="default" json="{{stringify(optionDetails.default)}}"></nix-value>
-                    <nix-value label="value" json="{{stringify(optionDetails.val)}}"></nix-value>
-                    <!--<paper-input id="value" multiline maxRows="5" floatingLabel label="value ..." value="{{optionDetails.val}}" on-keydown="{{optionValueKeyDown}}" on-keypress="{{optionValueKeyPress}}"></paper-input>-->
-                </div>
-                <nixui-configs id="configs"></nixui-configs>
                 <nixui-configurations id="configurations"></nixui-configurations>
+                <nixui-configs id="configs"></nixui-configs>
+                <option-panel id="panel"></option-panel>
             </template>
             <script>
                 (function() {
@@ -287,10 +143,8 @@
                           disabled: Boolean
                       },
                       ready: function() {
-                        this.panelVisible = false;
                         this.query = "";
                         this.configs = [];
-                        this.optionDetails = {};
 
                         this.$.configs.init(this.$.configurations.current(), function(err, result) {
                             if (err) {
@@ -302,6 +156,14 @@
                             this.searchSignal(undefined, {query: ""});
 
                         }.bind(this));
+                      },
+                      openPanel: function(e, detail, sender) {
+                        if (e.keyCode == 13 || e.keyCode == 9 || (e.keyCode == 0 && e.button == 0)) {
+                            var optionName = e.model.option.name;
+                            this.$.panel.open(optionName);
+                        } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
+                            this.$.panel.close();
+                        }
                       },
                       searchSignal: function(e, detail, sender) {
                         this.query = detail.query;
@@ -315,65 +177,7 @@
                             this.configs = result;
                             this.fire('iron-signal', {name: "progress", data: "finish"});
                         }.bind(this));
-                        if (this.panelVisible) this.panelAnimate(false);
-                      },
-                      openPanel: function(e, detail, sender) {
-                        if (e.keyCode == 13 || e.keyCode == 9 || (e.keyCode == 0 && e.button == 0)) {
-                            var optionName = e.model.option.name;
-
-                            this.getOptionByPath(optionName, function(option) {
-                                if (option) {
-                                    this.optionDetails = option;
-                                    document.getElementById("description").innerHTML = option.description.replace(/<.+>(.*)<\/.+>/g, '<b>$1</b>');
-                                    if (!this.panelVisible) this.panelAnimate(true);
-                                }
-                            }.bind(this));
-                        } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
-                            if (this.panelVisible) this.panelAnimate(false);
-                        }
-                      },
-                      getOptionByPath: function(optionName, cb) {
-                          this.$.configs.get(optionName, function(err, option) {
-                              if (err) {
-                                  this.fire('iron-signal', {name: "error", data: {text: err, controlDim: true}});
-                                  this.fire('iron-signal', {name: "progress", data: "error"});
-                                  throw err;
-                              }
-                              if (!option) {
-                                  console.log("Not found option: " + optionName);
-                              }
-                              console.log("optionName:", optionName, option);
-                              cb(option);
-                          });
-                      },
-                      panelAnimate: function(show) {
-                        var elem = this.$.editpanel;
-                        var anim;
-                        if (show) {
-                            anim = new KeyframeEffect(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 200});
-                            // this.force.size([this.graph_width * 0.66, this.graph_height]).start();
-                            elem.style.display = "block";
-                            this.panelVisible = true;
-                        } else {
-                            anim = new KeyframeEffect(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 200});
-                            // this.force.size([this.graph_width, this.graph_height]).start();
-                            this.panelVisible = false;
-                        }
-                        var player = document.timeline.play(anim);
-                        player.onfinish = function() {
-                            if (!this.panelVisible)
-                                this.$.editpanel.style.display = "none";
-                        }.bind(this);
-                      },
-                      stringify: function(value) {
-                          if (value) {
-                              if (value._type == "literalExample") {
-                                  return value.text;
-                              }
-                              return JSON.stringify(value);
-                          } else {
-                              return value;
-                          }
+                        this.$.panel.close();
                       }
                   });
                 })();
@@ -383,84 +187,22 @@
 
         <dom-module name="search-input">
             <template>
-                <style is="custom-style">
-                    :root {
-                        /*--paper-input-container: {*/
-                        /*    margin: 0 0 0 1em;*/
-                        /*};*/
-                        --paper-input-container-label: {
-                            color: #c9c9c9;
-                        };
-                        --paper-input-container-label-focus: {
-                            color: #c9c9c9;
-                        };
-                        --paper-input-container-underline: {
-                            background: #50aaf0;
-                        };
-                        --paper-input-container-underline-focus: {
-                            background: #005aa0;
-                        };
-                        --paper-input-container-input: {
-                            color: #50aaf0;
-                        };
-                        --paper-input-container-input-disabled: {
-                            pointer-events: none;
-                            cursor: default;
-                            color: #c9c9c9;
-                            border-bottom-color: #c9c9c9;
-                        };
-                    }
-                </style>
-                <span>
-                    <div id="container" relative>
-                        <paper-input-container disabled$="{{disabled}}">
-                            <label>Search configuration ...</label>
-                            <input is="iron-input" id="searchfield" tabindex="{{disabled===null?1:-1}}" on-keydown="keyDownHandler"
-                                bind-value="{{value}}"></input>
-                        </paper-input-container>
-                    </div>
-                </span>
+            <span>
+                <input-field id="searchfield" on-submit="triggerSearch" label="Search options ..."></input-field>
+            </span>
             </template>
             <script>
                 (function() {
                   Polymer({
                     is: 'search-input',
-                    properties: {
-                        disabled: Boolean,
-                        value: {
-                            type: String,
-                            value: "",
-                            observer: 'triggerSearchCheck'
-                        },
-                        prevValue: {
-                            type: String,
-                            value: ""
-                        }
-                    },
                     focus: function() {
                         this.$.searchfield.focus();
                     },
-                    ready: function() {
-                    },
-                    keyDownHandler: function(event, detail, sender) {
-                        if (event.keyCode == 13) {
-                            this.triggerSearch();
-                        }
-                    },
-                    triggerSearchCheck: function() {
-                        if (this.value !== this.prevValue && typeof this.prevValue !== 'undefined') {
-                            if (this.triggerSearchAsync) {
-                                this.cancelAsync(this.triggerSearchAsync);
-                            }
-                            this.triggerSearchAsync = this.async(this.triggerSearch, 1000);
-                        }
-                    },
-                    triggerSearch: function() {
+                    triggerSearch: function(e, detail) {
                         this.fire('iron-signal', {
                             name: "search",
-                            data: { query: this.value }
+                            data: { query: detail }
                         });
-                        this.prevValue = this.value;
                     }
                   });
                 })();
@@ -468,240 +210,7 @@
         </dom-module>
 
 
-        <dom-module name="nix-value">
-            <template if="{{value}}">
-                <nixui-configs id="configs"></nixui-configs>
-                <style type="text/css">
-                    .label {
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        width: 100%;
-                        text-align: right;
-                        color: #005aa0;
-                        font-size: 80%;
-                    }
-                    pre {
-                        background-color: #eee;
-                        border-radius: 4px;
-                        padding: 5px;
-                        margin: 0 0 1em 0;
 
-                        white-space: pre-wrap;       /* css-3 */
-                        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-                        white-space: -pre-wrap;      /* Opera 4-6 */
-                        white-space: -o-pre-wrap;    /* Opera 7 */
-                        word-wrap: break-word;       /* Internet Explorer 5.5+ */
-                    }
-                </style>
-                <template is="dom-if" if="{{value}}">
-                    <div class="label">{{label}}</div>
-                    <pre>{{value}}</pre>
-                </template>
-            </template>
-            <script>
-                (function() {
-                  Polymer({
-                    is: 'nix-value',
-                    properties: {
-                        label: String,
-                        json: {
-                            type: String,
-                            observer: 'update'
-                        }
-                    },
-                    ready: function() {
-                        this.update();
-                    },
-                    update: function() {
-                        if (!this.json) {
-                            this.value = '';
-                        } else {
-                            this.$.configs.toNixString(this.json, function(err, result) {
-                                if (result) {
-                                    this.value = this.beautify(result);
-                                } else {
-                                    this.value = '';
-                                }
-                            }.bind(this));
-                        }
-                    },
-                    beautify: function(value) {
-                        var output = js_beautify(
-                            value, {
-                                indent_size: 2,
-                                keep_array_indentation: true
-                            }
-                        );
-                        return _.reduce(this.splitByStringValue(output), function(result, v) {
-                            return result + (v.type==='string'?this.beautifyString(v):v.value);
-                        }.bind(this), '');
-                    },
-                    beautifyString: function(v) {
-                        var str = v.multiline?v.value.replace(/^\"(.*)\"$/g, "''\n$1''"):v.value;
-                        return str
-                            .replace(/\\"/g, '"')
-                            .replace(/\\t/g, '\t')
-                            .replace(/\\n/g, '\n');
-                    },
-                    splitByStringValue: function(value) {
-                        var results = [],
-                            inString = false,
-                            multiline = false,
-                            stringStop = -1,
-                            stringStart;
-
-                        for (var i=0; i<value.length; i++) {
-                            var c = value[i];
-                            var prevChar = value[i-1];
-
-                            if (c === '"' && !inString) {
-                                inString = true;
-                                multiline = false;
-                                stringStart = i;
-                                results.push({
-                                    value: value.substring(stringStop+1, stringStart),
-                                    type: 'code'
-                                });
-
-                            } else if (c === '"' && prevChar !== '\\' && inString) {
-                                inString = false;
-                                stringStop = i;
-                                results.push({
-                                    value: value.substring(stringStart, stringStop+1),
-                                    type: 'string',
-                                    multiline: multiline
-                                });
-                            }
-
-                            if (inString) {
-                                if (c === '\\' && value[i+1] === 'n') {
-                                    multiline = true;
-                                }
-                            }
-
-                        }
-                        results.push({
-                            value: value.substring(stringStop+1),
-                            type: 'code'
-                        });
-
-                        return results;
-                    },
-                    beautifyStrings: function(value) {
-                        var result = "",
-                            inString = false,
-                            multiline = false,
-                            stringStart;
-
-                        for (var i=0; i<value.length; i++) {
-                            var c = value[i];
-                            var prevChar = value[i-1];
-
-                            if (c === '"' && !inString) {
-                                inString = true;
-                                multiline = false;
-                                stringStart = i;
-                            } else if (c === '"' && prevChar !== '\\' && inString) {
-                                inString = false;
-                                if (multiline) {
-                                    result = result.concat("''");
-                                    if (stringStart !== undefined) {
-                                        var preLength = result.length;
-                                        var postString = result.slice(stringStart+1);
-                                        result = result.slice(0, stringStart) + "''\n" + postString.substring(stringStart, i).replace(/\\\"/g, '"') + result.slice(i+1);
-                                        i += result.length - preLength;
-                                        stringStart = undefined;
-                                    }
-                                    continue;
-                                }
-                            }
-
-                            if (inString) {
-                                if (c === '\\' && value[i+1] === 'n') {
-                                    result = result.concat('\n');
-                                    multiline = true;
-                                    i++;
-                                // } else if (c === '\\' && value[i+1] === '"' && multiline) {
-                                //     result = result.concat('"');
-                                //     i++;
-
-                                } else {
-                                    result = result.concat(c);
-                                }
-                            } else {
-                                result = result.concat(c);
-                            }
-
-                        }
-                        return result;
-                    },
-                    beautify2: function(value) {
-                        if (value && typeof value === 'string') {
-                            var lines = this.split(value);
-                            var next = 0;
-                            for (var i in lines) {
-                                if (lines[i][0] === '}') {
-                                    next -= 1;
-                                }
-                                lines[i] = this.times(' ', next*2) + lines[i];
-                                if (lines[i][lines[i].length-1] === '{') {
-                                    next += 1;
-                                }
-                            }
-                            return lines.join('\n');
-                        }
-                        return value;
-                    },
-                    times: function(s, times) {
-                        var result = "";
-                        for (var i=0; i<times; i++) {
-                            result = s + result;
-                        }
-                        return result;
-                    },
-                    split: function(value) {
-                        var result = "",
-                            inString = false,
-                            prevChar = '',
-                            lines = [];
-
-                        for (var i in value) {
-                            var c = value[i];
-
-                            if (c === '"' && !inString) {
-                                inString = true;
-                            } else if (c === '"' && prevChar !== '\\' && inString) {
-                                inString = false;
-                            }
-
-                            if (inString) {
-                                result = result.concat(c);
-                            } else {
-                                if (c === '{') {
-                                    result = result.concat('{');
-                                    lines.push(result);
-                                    result = '';
-                                } else if (c === ';') {
-                                    result = result.concat(';');
-                                    lines.push(result);
-                                    result = '';
-                                } else if (c === ' ') {
-                                } else {
-                                    result = result.concat(c);
-                                }
-                            }
-
-                            prevChar = c;
-                        }
-                        if (result !== '') {
-                            lines.push(result);
-                        }
-                        return lines;
-                    }
-                  });
-                })();
-            </script>
-        </dom-module>
 
         <style>
             html,body {

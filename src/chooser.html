@@ -62,37 +62,29 @@
         #profilelist {
             width: auto;
             height: 100%;
-            margin-left: 100px;
+            margin-left: 50px;
             display: none;
-            opacity: 0;
         }
         #configlist {
             width: auto;
             height: 100%;
-            margin-left: 100px;
+            margin-left: 50px;
             display: none;
-            opacity: 0;
         }
         .item {
             position: relative;
             height: 30px;
             line-height: 30px;
-            color: #888;
+            color: #7eb3de;
             padding-right: 0.5em;
             padding-left: 0.5em;
         }
-        span.default {
-            color: #0080d0;
-        }
-        .item:hover {
-            background: rgba(240,240,240, .8);
-        }
         .item:focus {
-          background-color: #dddddd;
-          outline: none;
+            /*background-color: #7eb3de;*/
+            outline: none;
+            color: #4d70b8;
         }
         .item_selected {
-            color: #005aa0;
         }
         #container {
             width: 100%;
@@ -104,21 +96,29 @@
         .label {
             font-weight: bold;
             font-size: 70%;
-            color: #005aa0;
+            color: #4d70b8;
         }
         #footer {
             position: absolute;
             bottom: 2em;
             left: 2em;
             font-size: 70%;
-            color: #005aa0;
+            color: #7eb3de;
         }
         #version {
             position: absolute;
             bottom: 0.1em;
             right: 0.1em;
             font-size: 70%;
-            color: #005aa0;
+            color: #4d70b8;
+        }
+        @-webkit-keyframes fadeIn {
+            from { opacity: 0; margin-left: 400px; }
+              to { opacity: 1; margin-left: 50px; }
+        }
+        @-webkit-keyframes fadeOut {
+            from { opacity: 1; margin-left: 50px; }
+              to { opacity: 0; margin-left: 400px; }
         }
         </style>
         <div id="wrapper" class="layout horizontal">
@@ -135,7 +135,7 @@
                 <div class="label">Select profile:</div>
                 <template is="dom-repeat" items="{{profiles}}">
                     <div class="item" on-click="selectprofile" on-keyup="selectprofile" tabindex="1">
-                        <span class="{{ {default: item.profile} | tokenList}}">{{item.name}}</span>
+                        <span>{{item.name}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
@@ -199,21 +199,28 @@
                     var item = e.target.parentNode;
 
                     if (item) {
-                        items = Polymer.dom(this.root).querySelectorAll(".item");
-                        for (var i in items) {
-                            items[i].className = items[i].className.replace( /(?:^|\s)item_selected(?!\S)/g , '' )
-                        }
-                        item.className += " item_selected";
-                        this.currentAction = _.findWhere(this.actions, {id: item.actionid});
+                        // items = Polymer.dom(this.$.wrapper).querySelectorAll(".item");
+                        // for (var i in items) {
+                        //     console.log(items[i])
+                        //     this.toggleClass('item_selected', false, items[i]);
+                        // }
+                        // this.toggleClass('item_selected', true, item);
+                        this.currentAction = this.$.actions.get(item.actionid);
                         this.currentActionURL = this.currentAction.url;
+
+                        this.$.actions.set(this.currentAction.id);
 
                         switch (this.currentAction.id) {
                             case 0:
-                                this.listAnimationShow(this.$.profilelist);
+                                this.listAnimationShow(this.$.profilelist,this.$.configlist);
                                 break;
 
                             case 1:
-                                this.listAnimationShow(this.$.configlist);
+                                this.listAnimationShow(this.$.configlist,this.$.profilelist);
+                                break;
+
+                            case 2:
+                                window.location.assign(this.currentAction.url);
                                 break;
                         }
                     }
@@ -240,35 +247,42 @@
                     }
                 }
             },
-            generateListAnimation: function(elem, show) {
-                var anim;
-                if (show) {
-                    anim = new KeyframeEffect(elem, [{opacity: "0", 'margin-left': '400px', display: 'none'}, {opacity: "1", 'margin-left': '100px', display: 'flex'}], {fill: "forwards", duration: 200, easing: "ease"});
-                } else {
-                    anim = new KeyframeEffect(elem, [{opacity: "1", 'margin-left': '100px', display: 'flex'}, {opacity: "0", 'margin-left': '400px', display: 'none'}], {fill: "forwards", duration: 200, easing: "ease"});
-                }
-                return anim;
-            },
-            listAnimationShow: function(elem) {
-                this.animating = true;
-                var sequence = [], hideElem;
+//             generateListAnimation: function(elem, show) {
+//                 var anim;
+//                 if (show) {
+//                     anim = new KeyframeEffect(elem, [{opacity: "0", 'margin-left': '400px', display: 'none'}, {opacity: "1", 'margin-left': '100px', display: 'flex'}], {fill: "forwards", duration: 200, easing: "ease"});
+//                 } else {
+//                     anim = new KeyframeEffect(elem, [{opacity: "1", 'margin-left': '100px', display: 'flex'}, {opacity: "0", 'margin-left': '400px', display: 'none'}], {fill: "forwards", duration: 200, easing: "ease"});
+//                 }
+//                 return anim;
+//             },
+//             listAnimationShow: function(elem) {
+//                 this.animating = true;
+//                 var sequence = [], hideElem;
 
-                if (this.$.profilelist.style.opacity == '1') {
-                    hideElem = this.$.profilelist;
-                    sequence.push(this.generateListAnimation(hideElem, false));
-                } else if (this.$.configlist.style.opacity == '1') {
-                    hideElem = this.$.configlist;
-                    sequence.push(this.generateListAnimation(hideElem, false));
-                }
+//                 if (this.$.profilelist.style.opacity == '1') {
+//                     hideElem = this.$.profilelist;
+//                     sequence.push(this.generateListAnimation(hideElem, false));
+//                 } else if (this.$.configlist.style.opacity == '1') {
+//                     hideElem = this.$.configlist;
+//                     sequence.push(this.generateListAnimation(hideElem, false));
+//                 }
 
-                sequence.push(this.generateListAnimation(elem, true));
+//                 sequence.push(this.generateListAnimation(elem, true));
 
-                var anim = new SequenceEffect(sequence);
+//                 var anim = new SequenceEffect(sequence);
 
-                var player = document.timeline.play(anim);
-                player.onfinish = function() {
-                    this.animating = false;
-                }.bind(this);
+//                 var player = document.timeline.play(anim);
+//                 player.onfinish = function() {
+//                     this.animating = false;
+//                 }.bind(this);
+//             },
+            listAnimationShow: function(showElem, hideElem) {
+                showElem.style['-webkit-animation'] = 'fadeIn 0.3s';
+                this.async(function() {showElem.style['display'] = 'flex';}, 300);
+                hideElem.style['-webkit-animation'] = 'fadeOut 0.3s';
+                this.async(function() {hideElem.style['display'] = 'none';}, 300);
+//                 this.updateStyles();
             },
             setConfiguration: function(event, detail, sender) {
                 this.$.configurations.set(detail, function() {
@@ -283,21 +297,55 @@
     </dom-module>
     <dom-module name="configurations-input">
           <template>
-              <style type="text/css">
+              <!-- /*<style type="text/css">
                   #configurationsfield {
                       /*border-bottom: 1px solid #50a0ff;*/
                       font-family: sans-serif;
                       /*font-variant: small-caps;*/
-                      font-size: 75%;
                       width: 18em;
                       margin: 1em 0.25em 0.25em 0.25em;
-                      color: #005aa0;
+                      color: #4d70b8;
                   }
+              </style>*/ -->
+              <style is="custom-style">
+              :root {
+                  --paper-input-container: {
+                      font-size: 75%;
+                  };
+                  --paper-input-container-label: {
+                      color: #ccc;
+                  }
+                  ;
+                  --paper-input-container-label-focus: {
+                      color: #ccc;
+                  }
+                  ;
+                  --paper-input-container-underline: {
+                      background: #7eb3de;
+                  }
+                  ;
+                  --paper-input-container-underline-focus: {
+                      background: #7eb3de;
+                  }
+                  ;
+                  --paper-input-container-input: {
+                      color: #4d70b8;
+                  }
+                  ;
+                  --paper-input-container-input-disabled: {
+                      pointer-events: none;
+                      cursor: default;
+                      color: #ccc;
+                  }
+                  ;
+              }
               </style>
               <span>
-                  <div id="container" relative>
-                      <paper-input id="configurationsfield" on-keyup="keyUpHandler" value="{{value}}" placeholder="new configuration"></paper-input>
-                  </div>
+                  <paper-input-container id="container" relative>
+                      <label>Enter configuration ...</label>
+                      <input is="iron-input" id="configurationsfield" on-keyup="keyUpHandler"
+                          bind-value="{{value}}"></input>
+                  </paper-input-container>
               </span>
           </template>
           <script>

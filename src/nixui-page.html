@@ -1,0 +1,122 @@
+<link rel="import" href="../bower_components/paper-header-panel/paper-header-panel.html">
+<link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/font-awesome-polymer-icons/fa-all.html">
+<link rel="import" href="./progress-bar.html">
+<link rel="import" href="./data.html">
+
+<dom-module name="nixui-page">
+    <template>
+        <style is="custom-style">
+            :root {
+                --paper-header-panel-seamed-container: {
+                    height: 100%;
+                    /*overflow: auto;*/
+                };
+                --paper-toolbar: {
+                    background: white;
+                    border-color: #4d70b8;
+                };
+            }
+        </style>
+        <style>
+            .nixuicenter {
+                color: #4d70b8;
+                /*position: relative;*/
+                /*text-align: center;*/
+                /*margin: 0 0 0 1em;*/
+            }
+            .nixuilink {
+                color: #4d70b8;
+                text-decoration: none;
+            }
+            [disabled] {
+                pointer-events: none;
+                cursor: default;
+                color: #ccc;
+                -webkit-filter: grayscale(1);
+            }
+            #logo {
+                margin-right: 1em;
+            }
+            #logo img {
+                width: 40px;
+            }
+        </style>
+        <paper-header-panel id="contentpanel" mode="seamed">
+            <div class="paper-header">
+                <paper-toolbar>
+                    <div class="nixuicenter">
+                        <a id="logo" href="chooser.html" class="nixuilink" tabindex="-1">
+                            <img disabled$="{{disabled}}" src="../img/128.png"></img>
+                        </a>
+                    </div>
+                    <div>
+                        <a href="{{action.url}}" class="nixuilink" disabled$="{{disabled}}" tabindex="-1">{{action.label}}</a>
+                    </div>
+                    <div class="nixuilink" disabled$="{{disabled}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
+                    <div>
+                        <a href="{{action.url}}" class="nixuilink" disabled$="{{disabled}}" tabindex="-1">{{selection}}</a>
+                    </div>
+                    <div flex></div>
+                    <content select="[searchfield]"></content>
+                </paper-toolbar>
+                <progress-bar id="progressbar"></progress-bar>
+            </div>
+            <content select="[container]"></content>
+        </paper-header-panel>
+        <nixui-actions id="actions"></nixui-actions>
+        <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
+        <iron-signals on-iron-signal-progress="progressSignal"></iron-signals>
+        <iron-signals on-iron-signal-message="message"></iron-signals>
+    </template>
+    <script>
+        (function() {
+          Polymer({
+            is: 'nixui-page',
+            properties: {
+                disabled: Boolean,
+                selection: String,
+                progress: {
+                    type: String,
+                    observer: 'progressSignal'
+                }
+            },
+            ready: function() {
+                this.action = this.$.actions.current();
+                this.progressSignal(null, 'start');
+            },
+            doProgress: function(detail) {
+                this.$.progressbar.doProgress(detail);
+            },
+            progressSignal: function(e, detail, sender) {
+                this.doProgress(detail);
+                switch (detail) {
+                    case "start":
+                        this.disabled = true;
+                        break;
+                    case "finish":
+                    case "error":
+                    default:
+                        this.disabled = false;
+                }
+                if (detail === "finish") {
+                    this.fire('finish');
+                }
+            },
+            message: function(e, detail, sender) {
+                this.$.message.text = detail.text;
+                var color = "#4d70b8";
+                switch (detail.type) {
+                    case "error":
+                    color = "#a05a5a";
+                    break;
+                }
+                this.$.message.style.color = color;
+                this.$.message.show();
+            }
+          });
+        })();
+    </script>
+</dom-module>

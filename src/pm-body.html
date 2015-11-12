@@ -8,17 +8,16 @@
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/iron-dropdown/iron-dropdown.html">
 <link rel="import" href="../bower_components/paper-menu/paper-menu.html">
-<link rel="import" href="../bower_components/iron-input/iron-input.html">
-<link rel="import" href="../bower_components/paper-input/paper-input-container.html">
 <link rel="import" href="../bower_components/font-awesome-polymer-icons/fa-all.html">
 <link rel="import" href="../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../bower_components/iron-collapse/iron-collapse.html">
 
-<link rel="import" href="./progress-bar.html">
 <link rel="import" href="./data.html">
 <!-- <link rel="import" href="./marked.html"> -->
-<link rel="import" href="./error-dialog.html">
-<link rel="import" href="./package-dialog.html">
+<!-- <link rel="import" href="./error-dialog.html"> -->
+<link rel="import" href="./package-panel.html">
+<link rel="import" href="./nixui-page.html">
+<link rel="import" href="./input-field.html">
 
 <dom-module name="nixui-packagemanager">
     <template>
@@ -30,151 +29,79 @@
                 };
                 --paper-toolbar: {
                     background: white;
-                    border-color: #005aa0;
+                    border-color: #4d70b8;
                 };
             }
         </style>
         <style>
             .nixuicenter {
-                color: #005aa0;
-                position: relative;
+                color: #4d70b8;
+                /*position: relative;
                 text-align: center;
-                margin: 0 0 0 1em;
+                margin: 0 0 0 1em;*/
             }
 
             .nixuilink {
-                color: #005aa0;
+                color: #4d70b8;
                 text-decoration: none;
             }
 
-            #dimmer {
-                background: #000;
-                opacity: 0.2;
-                position: fixed;
-                /* important to use fixed, not absolute */
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                display: none;
-                z-index: 1;
-            }
-
-            paper-menu-button {
-                color: #005aa0;
-            }
-
-            paper-item {
-                margin: 0.5em;
-                font-size: 80%;
-            }
-
-            query-input {
+            search-input {
                 margin: 0 3em 0 0;
             }
 
             [disabled] {
                 pointer-events: none;
                 cursor: default;
-                color: #aaa;
+                color: #ccc;
+            }
+            #logo {
+                margin-right: 1em;
+            }
+            #logo img {
+                width: 40px;
             }
         </style>
-        <iron-signals on-iron-signal-dim="dimSignal"></iron-signals>
-        <iron-signals on-iron-signal-resetcache="resetCache"></iron-signals>
-        <iron-signals on-iron-signal-message="message"></iron-signals>
-        <iron-signals on-iron-signal-progress="progressSignal"></iron-signals>
-        <paper-header-panel id="contentpanel" mode="seamed" on-keyup="globalKeyUp">
-            <div id="dimmer"></div>
-            <div class="paper-header">
-                <paper-toolbar>
-                    <div class="nixuicenter">
-                        <a href="chooser.html" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">
-                            NixUI
-                            <paper-ripple fit></paper-ripple>
-                        </a>
-                    </div>
-                    <div class="nixuilink" disabled$="{{workLock}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
-                    <div>
-                        <a href="{{action.url}}" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">{{action.label}}</a>
-                    </div>
-                    <div class="nixuilink" disabled$="{{workLock}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
-                    <div>
-                        <a href="{{action.url}}" class="nixuilink" disabled$="{{workLock}}" tabindex="-1">{{profile.name}}</a>
-                    </div>
-                    <div flex></div>
-                    <query-input id="queryfield" class="fixed-right" query="{{query}}" disabled$="{{workLock}}"></query-input>
+<!--         <iron-signals on-iron-signal-resetcache="resetCache"></iron-signals> -->
 
-                    <paper-menu-button tabindex="-1" disabled$="{{workLock}}">
-                        <paper-icon-button icon="more-vert"></paper-icon-button>
-                        <iron-dropdown class="dropdown" halign="right">
-                            <paper-menu class="menu">
-                                <paper-item on-click="searchFor" data-query="!i">Search installed</paper-item>
-                                <paper-item on-click="upgradeInstalled">Upgrade installed ...</paper-item>
-                                <!-- <paper-item on-click="openMarkedDialog">Manage marked ...</paper-item> -->
-                                <paper-item on-click="resetCache">Reset cache</paper-item>
-                            </paper-menu>
-                        </iron-dropdown>
-                    </paper-menu-button>
+        <nixui-page id="page" selection="{{profile.name}}" on-finish="onFinish">
+            <search-input searchfield id="queryfield" class="fixed-right" value="{{query}}"></search-input>
+            <list-packages container packages="{{packages}}"></list-packages>
+        </nixui-page>
 
-                </paper-toolbar>
-                <progress-bar id="progressbar"></progress-bar>
-            </div>
-            <list-packages disabled$="{{workLock}}"></list-packages>
-        </paper-header-panel>
-        <package-dialog controlDim="true"></package-dialog>
-        <error-dialog controlDim="true"></error-dialog>
+<!--         <error-dialog controlDim="true"></error-dialog> -->
         <!-- <marked-dialog controlDim="true"></marked-dialog> -->
         <nixui-packages id="packages"></nixui-packages>
         <nixui-profiles id="profiles"></nixui-profiles>
         <!-- <nixui-markeds id="markeds"></nixui-markeds> -->
         <nixui-actions id="actions"></nixui-actions>
-        <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
     </template>
     <script>
         (function() {
 
             Polymer({
                 is: 'nixui-packagemanager',
-                progressSignal: function(e, detail, sender) {
-                    this.$.progressbar.doProgress(detail);
-                    switch (detail) {
-                        case "start":
-                            this.workLock = true;
-                            break;
-                        case "finish":
-                        case "error":
-                        default:
-                            this.workLock = false;
-                    }
-                    if (detail === "finish") {
-                        this.$.queryfield.focus();
-                    }
-                },
-                dimSignal: function(e, detail, sender) {
-                    this.$.dimmer.style.display = (detail) ? "block" : "none";
+                onFinish: function() {
+                    this.$.queryfield.focus();
                 },
                 searchFor: function(e, detail, sender) {
                     this.query = "!i";
                 },
-                // openMarkedDialog: function(e, detail, sender) {
-                //     this.fire('iron-signal', {
-                //         name: "openmarked"
-                //     });
-                // },
                 ready: function() {
-                    this.progressSignal(null, 'start');
-                    this.action = this.$.actions.get(0);
                     this.$.profiles.get(undefined, function(err, profile) {
                         this.profile = profile;
+                        this.async(this.fillCache, 100);
                     }.bind(this));
-                    this.async(this.fillCache);
                 },
                 fillCache: function() {
                     this.fire('iron-signal', {
                         name: "progress",
                         data: "start"
                     });
-                    this.$.queryfield.fillCache();
+//                     this.$.queryfield.fillCache();
+                    this.$.queryfield.fillCache((function(err, data){
+                        this.packages = data;
+                    }).bind(this));
                 },
                 resetCache: function() {
                     this.fire('iron-signal', {
@@ -182,199 +109,109 @@
                         data: "start"
                     });
                     this.$.queryfield.resetCache();
-                },
-                message: function(e, detail, sender) {
-                    this.$.message.text = detail.text;
-                    var color = "#007ac0";
-                    switch (detail.type) {
-                        case "error":
-                            color = "#a05a5a";
-                            break;
-                    }
-                    this.$.message.style.color = color;
-                    this.$.message.show();
-                },
-                upgradeInstalled: function(e, detail, sender) {
-                    this.$.packages.filter(this.$.profiles.current(), "!i", function(err, data) {
-                        if (err) {
-                            this.fire('iron-signal', {
-                                name: "error",
-                                data: {
-                                    text: err,
-                                    controlDim: true
-                                }
-                            });
-                        } else {
-                            for (item in data) {
-                                this.$.markeds.set(
-                                    this.$.profiles.current(),
-                                    data[item].attribute,
-                                    'install',
-                                    function(data) {}.bind(this)
-                                );
-                            }
-                            this.fire('iron-signal', {
-                                name: "openmarked"
-                            });
-                        }
-                    }.bind(this));
-                },
-                globalKeyUp: function(e, detail, sender) {
-                    if (e.keyCode == 191) { // the '/' key
-                        this.$.queryfield.focus();
-                    }
                 }
             });
 
         })();
     </script>
 </dom-module>
-<dom-module name="query-input" attributes="query disabled" on-keypress="keypressHandler">
-    <template>
-        <style is="custom-style">
-            :root {
-                /*--paper-input-container: {*/
-                /*    margin: 0 0 0 1em;*/
-                /*};*/
-                --paper-input-container-label: {
-                    color: #c9c9c9;
-                }
-                ;
-                --paper-input-container-label-focus: {
-                    color: #c9c9c9;
-                }
-                ;
-                --paper-input-container-underline: {
-                    background: #50aaf0;
-                }
-                ;
-                --paper-input-container-underline-focus: {
-                    background: #005aa0;
-                }
-                ;
-                --paper-input-container-input: {
-                    color: #50aaf0;
-                }
-                ;
-                --paper-input-container-input-disabled: {
-                    pointer-events: none;
-                    cursor: default;
-                    color: #c9c9c9;
-                    border-bottom-color: #c9c9c9;
-                }
-                ;
-            }
-        </style>
-        <span>
-            <div id="container" relative>
-                <paper-input-container disabled$="{{disabled}}">
-                    <label>Search packages ...</label>
-                    <input is="iron-input" id="searchfield" tabindex="{{disabled===null?1:-1}}" on-keydown="keyHandler"
-                        bind-value="{{value}}"></input>
-                </paper-input-container>
-            </div>
-        </span>
 
-        <nixui-packages id="packages"></nixui-packages>
-        <nixui-profiles id="profiles"></nixui-profiles>
+
+<dom-module name="search-input">
+    <template>
+    <span>
+        <input-field id="searchfield" on-submit="triggerSearch" label="Search packages ..."></input-field>
+    </span>
+    <nixui-packages id="packages"></nixui-packages>
+    <nixui-profiles id="profiles"></nixui-profiles>
     </template>
     <script>
         (function() {
-            Polymer({
-                is: 'query-input',
-                setPackages: function() {
-                    this.fire('iron-signal', {
-                        name: "progress",
-                        data: "start"
-                    });
+          Polymer({
+            is: 'search-input',
+            properties: {
+                value: String
+            },
+            focus: function() {
+                this.$.searchfield.focus();
+            },
+            triggerSearch: function(e, detail) {
+                this.value = detail;
+                this.setPackages();
+            },
+            setPackages: function(cb) {
+                this.fire('iron-signal', {
+                    name: "progress",
+                    data: "start"
+                });
 
-                    this.$.packages.filter(this.$.profiles.current(), this.value, function(err, data) {
-                        try {
-                            if (err) {
-                                this.fire('iron-signal', {
-                                    name: "error",
-                                    data: {
-                                        text: err,
-                                        controlDim: true
-                                    }
-                                });
-                            } else {
-                                this.fire('iron-signal', {
-                                    name: "query",
-                                    data: data
-                                });
+                this.$.packages.filter(this.$.profiles.current(), this.value, function(err, data) {
+                    if (cb) {
+                        cb(err, data);
+                    }
+                    if (err) {
+                        this.fire('iron-signal', {
+                            name: "error",
+                            data: {
+                                text: err,
+                                controlDim: true
                             }
-                            this.$.profiles.get(this.$.profiles.current(), function(err, profile) {
-                                this.fire('iron-signal', {
-                                    name: "message",
-                                    data: {
-                                        type: "info",
-                                        text: "Finished for " + profile.name
-                                    }
-                                });
-                            }.bind(this));
-                            this.fire('iron-signal', {
-                                name: "progress",
-                                data: "finish"
-                            });
-                            this.focus();
-                        } catch (err) {
-                            // console.log('not on the `package manager` page');
-                        }
-                    }.bind(this));
-                },
-                focus: function() {
-                    this.$.searchfield.focus();
-                },
-                ready: function() {
-                    this.value = "";
-                },
-                resetCache: function() {
-                    this.$.packages.reset(this.$.profiles.current(), function() {
-                        this.setPackages.bind(this)();
-                    }.bind(this));
-                },
-                fillCache: function() {
-                    this.$.packages.fill(this.$.profiles.current(), function() {
-                        try {
-                            this.setPackages.bind(this)();
-                        } catch (err) {
-                            // console.log('not on the `package manager` page');
-                        }
-                    }.bind(this));
-                },
-                keyHandler: function(event, detail, sender) {
-                    if (event.keyCode == 13) {
-                        this.setPackages();
+                        });
+                    } else {
+                        this.fire('iron-signal', {
+                            name: "query",
+                            data: data
+                        });
+                        this.fire('iron-signal', {
+                            name: "progress",
+                            data: "finish"
+                        });
                     }
-                },
-                queryChanged: function() {
-                    if (this.query) {
-                        this.value = this.query;
-                        this.setPackages();
-                        this.query = ""; // unset so that next time change is detected
-                    }
-                }
-            });
+                    this.focus();
+                }.bind(this));
+            },
+            focus: function() {
+                this.$.searchfield.focus();
+            },
+            ready: function() {
+                this.value = "";
+            },
+            resetCache: function() {
+                this.$.packages.reset(this.$.profiles.current(), function() {
+                    this.setPackages.bind(this)();
+                }.bind(this));
+            },
+            fillCache: function(cb) {
+                this.$.packages.fill(this.$.profiles.current(), function() {
+                    this.setPackages.bind(this)(cb);
+                }.bind(this));
+            }
+          });
         })();
     </script>
 </dom-module>
+
+
 <dom-module name="list-packages">
     <template>
-        <iron-signals on-iron-signal-query="querySignal"></iron-signals>
         <div id="listcontainer">
             <template is="dom-repeat" items="{{packages}}" as="package">
-                <package-item on-click="openPackageDialog" package="{{package}}" tabindex="1">
+                <package-item on-mousedown="openPackagePanel" on-keyup="openPackagePanel" package="{{package}}" tabindex="1">
                 </package-item>
             </template>
         </div>
+        <package-panel id="panel"></package-panel>
+        <iron-signals on-iron-signal-query="querySignal"></iron-signals>
     </template>
     <script>
         (function() {
             Polymer({
                 is: 'list-packages',
                 properties: {
-                    disabled: Boolean
+                    packages: {
+                        type: Object,
+                        value: []
+                    }
                 },
                 querySignal: function(e, detail, sender) {
                     // this.packagesObject = {};
@@ -383,29 +220,19 @@
                     //     this.packagesObject[attribute] = detail[i];
                     //     this.packagesObject[attribute].opened = false;
                     // }
+                    console.log(detail)
                     this.packages = detail;
+                    this.$.panel.close();
                 },
                 ready: function() {
-                    this.packages = [];
+//                     this.packages = [];
                     // this.packagesObject = {};
                 },
-                openPackageDialog: function(e) {
-                    // console.log(e.model.package.attribute);
-                    // this.packagesObject[e.model.package.attribute].opened = true;
-                    // console.log(this.packagesObject[e.model.package.attribute])
-                    if (e.keyCode == 13 || e.keyCode == 0) {
-                        var attribute = e.model.package.attribute;
-                        var name = e.model.package.name;
-                        var compare = e.model.package.compare;
-                        this.fire('iron-signal', {
-                            name: "pkginfo",
-                            data: {
-                                pkgattr: attribute,
-                                pkgname: name,
-                                pkgcomp: compare,
-                                controlDim: true
-                            }
-                        });
+                openPackagePanel: function(e) {
+                    if (e.keyCode == 13 || (e.keyCode == 0 && e.button == 0)) {
+                        this.$.panel.open(e.model.package);
+                    } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
+                        this.$.panel.close();
                     }
                 }
             });
@@ -422,13 +249,13 @@
         <style>
             #pkgname {
                 float: left;
-                color: #005aa0;
+                color: #4d70b8;
             }
 
             #pkgattr {
                 float: right;
                 text-align: right;
-                color: #646464;
+                color: #7eb3de;
             }
 
             #pkgstate {
@@ -442,19 +269,19 @@
                 position: relative;
                 height: 40px;
                 line-height: 40px;
-                color: #646464;
                 padding-right: 0.5em;
                 padding-left: 0.5em;
                 outline: none;
                 font-size: 85%;
+                cursor: pointer;
             }
 
             .package:hover {
-                background-color: #eeeeee;
+                /*background-color: #ccc;*/
             }
 
             .package:focus {
-                background-color: #dddddd;
+                /*background-color: #ccc;*/
                 outline: none;
             }
 
@@ -472,7 +299,7 @@
                 color: #a05a5a;
             }
             #container {
-
+                color: #7eb3de;
             }
         </style>
         <span>

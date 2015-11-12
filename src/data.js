@@ -239,7 +239,7 @@ dbs.packages.delete_all = function(profileId, cb) {
 
 dbs.packages.fill = function(profileId, cb) {
     if (data.packages[profileId] !== undefined) {
-        cb();
+        cb(null, {});
         return;
     }
     data.packages[profileId] = new nedb();
@@ -465,7 +465,8 @@ dbs.markeds.list = function(profileId, cb) {
 dbs.actions = function() {
     data.actions = [
         { id: 0, label: "Package Manager", url: "package-manager.html" },
-        { id: 1, label: "Configuration Options", url: "configuration.html" }
+        { id: 1, label: "Configuration Options", url: "configuration.html" },
+        { id: 2, label: "Planet", url: "planet.html" }
     ];
 };
 
@@ -479,6 +480,14 @@ dbs.actions.get = function(id) {
             return data.actions[i];
         }
     }
+};
+
+dbs.actions.set = function(id) {
+    data.action = data.actions[id];
+};
+
+dbs.actions.current = function() {
+    return data.action;
 };
 
 

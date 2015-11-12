@@ -1,0 +1,113 @@
+<link rel="import" href="./data.html">
+<link rel="import" href="./animated-panel.html">
+<link rel="import" href="./nix-value.html">
+<script src="../bower_components/underscore/underscore-min.js"></script>
+
+<dom-module name="option-panel">
+    <template>
+        <style>
+            :host {
+                top: 2em;
+                padding: 1em;
+            }
+            #panel #path {
+                font-family: sans-serif;
+                font-weight: bold;
+                color: #4d70b8;
+            }
+            #panel #type {
+                font-family: sans-serif;
+                font-variant: small-caps;
+                font-weight: bold;
+                color: #888;
+            }
+            #panel #description {
+                color: #666;
+                margin: 1em 0 1em 0;
+            }
+            #panel pre {
+                background-color: #eee;
+                border-radius: 4px;
+                padding: 5px;
+                margin: 0 0 1em 0;
+
+                white-space: pre-wrap;       /* css-3 */
+                white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+                white-space: -pre-wrap;      /* Opera 4-6 */
+                white-space: -o-pre-wrap;    /* Opera 7 */
+                word-wrap: break-word;       /* Internet Explorer 5.5+ */
+            }
+            .label {
+                font-family: sans-serif;
+                font-variant: small-caps;
+                width: 100%;
+                text-align: right;
+                color: #4d70b8;
+                font-size: 80%;
+            }
+            #panel #value {
+                width: 100%;
+            }
+        </style>
+        <animated-panel id="panel">
+            <div id="path">{{data.name}}</div>
+            <div id="type">{{data.type}}</div>
+            <div id="description"></div>
+            <nix-value label="example" json="{{stringify(data.example)}}"></nix-value>
+            <nix-value label="default" json="{{stringify(data.default)}}"></nix-value>
+            <nix-value label="value" json="{{stringify(data.val)}}"></nix-value>
+        </animated-panel>
+        <nixui-configs id="configs"></nixui-configs>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'option-panel',
+                properties: {
+                    data: {
+                        type: Object,
+                        value: {}
+                    }
+                },
+                stringify: function(value) {
+                    if (value) {
+                        if (value._type == "literalExample") {
+                            return value.text;
+                        }
+                        return JSON.stringify(value);
+                    } else {
+                        return value;
+                    }
+                },
+                open: function(optionName) {
+                    this.$.panel.close(function() {
+                        this.getOptionByPath(optionName, function(option) {
+                            if (option) {
+                                this.data = option;
+                                document.getElementById("description").innerHTML = option.description.replace(/<.+>(.*)<\/.+>/g, '<b>$1</b>');
+                                this.$.panel.open();
+                            }
+                        }.bind(this));
+                    }.bind(this));
+                },
+                close: function() {
+                    this.$.panel.close();
+                },
+                getOptionByPath: function(optionName, cb) {
+                    this.$.configs.get(optionName, function(err, option) {
+                        if (err) {
+                            this.fire('iron-signal', {name: "error", data: {text: err, controlDim: true}});
+                            this.fire('iron-signal', {name: "progress", data: "error"});
+                            throw err;
+                        }
+                        if (!option) {
+                            console.log("Not found option: " + optionName);
+                        }
+                        console.log("optionName:", optionName, option);
+                        cb(option);
+                    });
+                }
+            });
+        })();
+    </script>
+</dom-module>
