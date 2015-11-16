@@ -126,7 +126,7 @@
             <div id="actionlist" class="layout center-justified vertical">
                 <div class="label">Select action:</div>
                 <template is="dom-repeat" items="{{actions}}" as="a">
-                    <div class="item" on-click="selectaction" on-keyup="selectaction" actionid="{{a.id}}" tabindex="1">
+                    <div class="item" on-click="selectaction" on-keyup="selectaction" actionid$="{{a.id}}" tabindex$="{{a.tabindex}}">
                         <span>{{a.label}}</span>
                         <paper-ripple fit/>
                     </div>
@@ -143,12 +143,12 @@
             </div>
             <div id="configlist" class="center-justified layout vertical">
                 <div class="label">Select configuration:</div>
-                <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="1">
+                <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="2">
                     <span>Empty</span>
                     <paper-ripple fit/>
                 </div>
                 <template is="dom-repeat" items="{{configurations}}">
-                    <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="1">
+                    <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="2">
                         <span>{{item.path}}</span>
                         <paper-ripple fit/>
                     </div>
@@ -187,7 +187,6 @@
                 this.$.configurations.init();
                 this.$.configurations.all(function (err, cfgs) {
                     this.configurations = cfgs;
-                    console.log(cfgs)
                 }.bind(this));
             },
             selectaction: function(e) {

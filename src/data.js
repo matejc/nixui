@@ -464,9 +464,9 @@ dbs.markeds.list = function(profileId, cb) {
 
 dbs.actions = function() {
     data.actions = [
-        { id: 0, label: "Package Manager", url: "package-manager.html" },
-        { id: 1, label: "Configuration Options", url: "configuration.html" },
-        { id: 2, label: "Planet", url: "planet.html" }
+        { id: 0, label: "Package Manager", url: "package-manager.html", tabindex: '1' },
+        { id: 1, label: "Configuration Options", url: "configuration.html", tabindex: '2' },
+        { id: 2, label: "Planet", url: "planet.html", tabindex: '3' }
     ];
 };
 
