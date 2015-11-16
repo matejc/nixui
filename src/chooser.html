@@ -169,6 +169,7 @@
     </template>
     <script>
     (function() {
+        var isNumber = require('isnumber');
         Polymer({
             is: 'nixui-chooser',
             ready: function() {
@@ -188,41 +189,50 @@
                 this.$.configurations.all(function (err, cfgs) {
                     this.configurations = cfgs;
                 }.bind(this));
+
+                function getParameterByName(name) {
+                    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+                    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+                        results = regex.exec(location.search);
+                    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+                }
+
+                this.async(function() {
+                    var actionId = parseInt(getParameterByName('actionId'));
+                    if (!isNumber(actionId)) {
+                        return;
+                    }
+                    this.selectaction({actionId: actionId});
+                }, 500);
             },
             selectaction: function(e) {
-                if (e.keyCode == 13 || e.keyCode == 0) {
+                if (_.isNumber(e.actionId) || e.keyCode == 13 || e.keyCode == 0) {
 
                     if (this.animating === true) {
                         return;
                     }
 
-                    var item = e.target.parentNode;
+                    var item = e.target?e.target.parentNode:{};
+                    var actionId = _.find([e.actionId, (e.model?e.model.__data__.a.id:undefined), item.actionid], function(id) {
+                        return isNumber(id);
+                    });
 
-                    if (item) {
-                        // items = Polymer.dom(this.$.wrapper).querySelectorAll(".item");
-                        // for (var i in items) {
-                        //     console.log(items[i])
-                        //     this.toggleClass('item_selected', false, items[i]);
-                        // }
-                        // this.toggleClass('item_selected', true, item);
-                        this.currentAction = e.model.__data__.a || this.$.actions.get(item.actionid);
-                        this.currentActionURL = this.currentAction.url;
+                    this.currentAction = this.$.actions.get(actionId);
 
-                        this.$.actions.set(this.currentAction.id);
+                    this.$.actions.set(this.currentAction.id);
 
-                        switch (this.currentAction.id) {
-                            case 0:
-                                this.listAnimationShow(this.$.profilelist,this.$.configlist);
-                                break;
+                    switch (this.currentAction.id) {
+                        case 0:
+                            this.listAnimationShow(this.$.profilelist,this.$.configlist);
+                            break;
 
-                            case 1:
-                                this.listAnimationShow(this.$.configlist,this.$.profilelist);
-                                break;
+                        case 1:
+                            this.listAnimationShow(this.$.configlist,this.$.profilelist);
+                            break;
 
-                            case 2:
-                                window.location.assign(this.currentAction.url);
-                                break;
-                        }
+                        case 2:
+                            window.location.assign(this.currentAction.url);
+                            break;
                     }
                 }
             },

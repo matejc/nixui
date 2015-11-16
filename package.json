@@ -1,39 +1,40 @@
 {
-    "name": "nixui",
-    "version": "0.2.0",
-    "description": "nix-env frontend written with Polymer",
-    "main": "src/chooser.html",
-    "keywords": [
-        "nixos",
-        "nix",
-        "nix-env",
-        "ui",
-        "gui",
-        "node-webkit"
-    ],
-    "author": "Matej Cotman",
-    "license": "BSD 2-Clause",
-    "homepage": "https://github.com/matejc/nixui",
-    "bugs": {
-        "url": "https://github.com/matejc/nixui/issues"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/matejc/nixui.git"
-    },
-    "dependencies": {
-        "underscore": "^1.6.0",
-        "nedb": "~1.0.0"
-    },
-    "devDependencies": {
-        "mocha": "~1.21.0",
-        "sinon": "~1.10.3",
-        "expect.js": "~0.3.1"
-    },
-    "window": {
-        "toolbar": false,
-        "width": 1000,
-        "height": 700,
-        "icon": "img/128.png"
-    }
+  "name": "nixui",
+  "version": "0.2.0",
+  "description": "nix-env frontend written with Polymer",
+  "main": "src/chooser.html",
+  "keywords": [
+    "nixos",
+    "nix",
+    "nix-env",
+    "ui",
+    "gui",
+    "node-webkit"
+  ],
+  "author": "Matej Cotman",
+  "license": "BSD 2-Clause",
+  "homepage": "https://github.com/matejc/nixui",
+  "bugs": {
+    "url": "https://github.com/matejc/nixui/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/matejc/nixui.git"
+  },
+  "dependencies": {
+    "isnumber": "^1.0.0",
+    "nedb": "~1.0.0",
+    "underscore": "^1.6.0"
+  },
+  "devDependencies": {
+    "mocha": "~1.21.0",
+    "sinon": "~1.10.3",
+    "expect.js": "~0.3.1"
+  },
+  "window": {
+    "toolbar": false,
+    "width": 1000,
+    "height": 700,
+    "icon": "img/128.png"
+  }
 }

@@ -53,7 +53,7 @@
                         </a>
                     </div>
                     <div>
-                        <a href="{{action.url}}" class="nixuilink" disabled$="{{disabled}}" tabindex="-1">{{action.label}}</a>
+                        <a href$="{{chooserUrl()}}" class="nixuilink" disabled$="{{disabled}}" tabindex="-1">{{action.label}}</a>
                     </div>
                     <div class="nixuilink" disabled$="{{disabled}}">&nbsp;<iron-icon icon="fa:angle-right"></iron-icon>&nbsp;</div>
                     <div>
@@ -73,6 +73,7 @@
     </template>
     <script>
         (function() {
+          var isNumber = require('isnumber');
           Polymer({
             is: 'nixui-page',
             properties: {
@@ -115,6 +116,10 @@
                 }
                 this.$.message.style.color = color;
                 this.$.message.show();
+            },
+            chooserUrl: function() {
+                var url = 'chooser.html?actionId='+this.$.actions.current().id;
+                return url;
             }
           });
         })();
