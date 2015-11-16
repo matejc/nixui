@@ -18,6 +18,8 @@
 <link rel="import" href="./package-panel.html">
 <link rel="import" href="./nixui-page.html">
 <link rel="import" href="./input-field.html">
+<link rel="import" href="./key-binding.html">
+
 
 <dom-module name="nixui-packagemanager">
     <template>
@@ -75,6 +77,8 @@
         <nixui-profiles id="profiles"></nixui-profiles>
         <!-- <nixui-markeds id="markeds"></nixui-markeds> -->
         <nixui-actions id="actions"></nixui-actions>
+        <key-binding id="keybindings"></key-binding>
+
     </template>
     <script>
         (function() {
@@ -91,6 +95,21 @@
                     this.$.profiles.get(undefined, function(err, profile) {
                         this.profile = profile;
                         this.async(this.fillCache, 100);
+                    }.bind(this));
+                    this.$.keybindings.register(191, function(e) {
+                        if (e.target.id !== 'queryfield') {
+                            this.$.queryfield.focus();
+                        } else {
+                            return true;
+                        }
+                        return false;
+                    }.bind(this)); // key === '/'
+                    this.$.keybindings.register(8, function(e) {
+                        if (e.target.id !== 'searchfield') {
+                            window.location.assign('chooser.html');
+                        } else {
+                            return true;
+                        }
                     }.bind(this));
                 },
                 fillCache: function() {
@@ -196,12 +215,13 @@
     <template>
         <div id="listcontainer">
             <template is="dom-repeat" items="{{packages}}" as="package">
-                <package-item on-mousedown="openPackagePanel" on-keyup="openPackagePanel" package="{{package}}" tabindex="1">
+                <package-item on-mousedown="openPackagePanel" on-keyup="openPackagePanel" package="{{package}}">
                 </package-item>
             </template>
         </div>
         <package-panel id="panel"></package-panel>
         <iron-signals on-iron-signal-query="querySignal"></iron-signals>
+        <key-binding id="keybindings"></key-binding>
     </template>
     <script>
         (function() {
@@ -214,19 +234,13 @@
                     }
                 },
                 querySignal: function(e, detail, sender) {
-                    // this.packagesObject = {};
-                    // for (var i in detail) {
-                    //     var attribute = detail[i]['attribute'];
-                    //     this.packagesObject[attribute] = detail[i];
-                    //     this.packagesObject[attribute].opened = false;
-                    // }
-                    console.log(detail)
                     this.packages = detail;
                     this.$.panel.close();
                 },
                 ready: function() {
-//                     this.packages = [];
-                    // this.packagesObject = {};
+                    this.$.keybindings.register(27, function() {
+                        this.$.panel.close();
+                    }.bind(this));
                 },
                 openPackagePanel: function(e) {
                     if (e.keyCode == 13 || (e.keyCode == 0 && e.button == 0)) {
@@ -276,12 +290,12 @@
                 cursor: pointer;
             }
 
-            .package:hover {
+            /*.package:hover {*/
                 /*background-color: #ccc;*/
-            }
+            /*}*/
 
             .package:focus {
-                /*background-color: #ccc;*/
+                background-color: #ccc;
                 outline: none;
             }
 

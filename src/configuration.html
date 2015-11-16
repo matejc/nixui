@@ -1,199 +1,258 @@
 <!doctype html>
 <html>
-    <head>
-        <title>NixUI</title>
-        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-        <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
-        <link rel="import" href="../bower_components/polymer/polymer.html">
-        <link rel="import" href="../bower_components/iron-input/iron-input.html">
-        <link rel="import" href="../bower_components/paper-input/paper-input-container.html">
-        <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
-        <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
-        <link rel="import" href="../bower_components/iron-signals/iron-signals.html">
-        <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
-        <link rel="import" href="../bower_components/paper-item/paper-item.html">
-        <link rel="import" href="../bower_components/paper-menu/paper-menu.html">
-        <link rel="import" href="../bower_components/neon-animation/neon-animation.html">
-        <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
-        <script src="../bower_components/js-beautify/js/lib/beautify.js"></script>
-        <script src="../bower_components/underscore/underscore-min.js"></script>
 
-        <link rel="import" href="./data.html">
-        <link rel="import" href="./error-dialog.html">
-        <link rel="import" href="./option-panel.html">
-        <link rel="import" href="./nixui-page.html">
-        <link rel="import" href="./input-field.html">
+<head>
+    <title>NixUI</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+    <link rel="import" href="../bower_components/polymer/polymer.html">
+    <link rel="import" href="../bower_components/iron-input/iron-input.html">
+    <link rel="import" href="../bower_components/paper-input/paper-input-container.html">
+    <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
+    <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+    <link rel="import" href="../bower_components/iron-signals/iron-signals.html">
+    <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
+    <link rel="import" href="../bower_components/paper-item/paper-item.html">
+    <link rel="import" href="../bower_components/paper-menu/paper-menu.html">
+    <link rel="import" href="../bower_components/neon-animation/neon-animation.html">
+    <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+    <script src="../bower_components/js-beautify/js/lib/beautify.js"></script>
+    <script src="../bower_components/underscore/underscore-min.js"></script>
 
-        <dom-module name="nixui-configuration">
-            <template>
-                <style is="custom-style">
-                    :root {
-                        --paper-header-panel-seamed-container: {
-                            height: 100%;
-                            /*overflow: auto;*/
-                        };
-                        --paper-toolbar: {
-                            background: white;
-                            border-color: #4d70b8;
-                        };
-                    }
-                </style>
-                <style>
-                    search-input {
-                        margin: 0 3em 0 0;
-                    }
-                    [disabled] {
-                        pointer-events: none;
-                        cursor: default;
-                        color: #ccc;
-                    }
-                </style>
+    <link rel="import" href="./data.html">
+    <link rel="import" href="./error-dialog.html">
+    <link rel="import" href="./option-panel.html">
+    <link rel="import" href="./nixui-page.html">
+    <link rel="import" href="./input-field.html">
+    <link rel="import" href="./key-binding.html">
 
-                <nixui-page id="page" selection="{{configuration.path}}" on-finish="onFinish">
-                    <search-input searchfield class="fixed-right" id="searchfield"></search-input>
-                    <config-options container id="configoptions"></config-options>
-                </nixui-page>
-                <error-dialog controlDim="true"></error-dialog>
-                <nixui-configurations id="configurations"></nixui-configurations>
-            </template>
-            <script>
-                (function() {
-                    Polymer({
-                        is: 'nixui-configuration',
-                        ready: function() {
-                            this.$.configurations.get(undefined, function(err, configuration) {
-                                this.configuration = configuration;
-                            }.bind(this));
-                        },
-                        onFinish: function() {
-                            this.$.searchfield.focus();
-                        }
-                    });
+    <dom-module name="nixui-configuration">
+        <template>
+            <style is="custom-style">
+                :root {
+                    --paper-header-panel-seamed-container: {
+                        height: 100%;
+                        /*overflow: auto;*/
+                    }
+                    ;
+                    --paper-toolbar: {
+                        background: white;
+                        border-color: #4d70b8;
+                    }
+                    ;
+                }
+            </style>
+            <style>
+                search-input {
+                    margin: 0 3em 0 0;
+                }
 
-                  })();
-            </script>
-        </dom-module>
+                [disabled] {
+                    pointer-events: none;
+                    cursor: default;
+                    color: #ccc;
+                }
+            </style>
 
-        <dom-module name="config-options">
-            <template>
-                <iron-signals on-iron-signal-search="searchSignal"></iron-signals>
-                <style>
-                    .optionname {
-                      color: #4d70b8;
-                      font-size: 90%;
-                      font-family: sans-serif;
-                      font-weight: bold;
+            <nixui-page id="page" selection="{{configuration.path}}" on-finish="onFinish">
+                <search-input searchfield class="fixed-right" id="searchfield"></search-input>
+                <config-options container id="configoptions"></config-options>
+            </nixui-page>
+            <error-dialog controlDim="true"></error-dialog>
+            <nixui-configurations id="configurations"></nixui-configurations>
+            <key-binding id="keybindings"></key-binding>
+        </template>
+        <script>
+            (function() {
+                Polymer({
+                    is: 'nixui-configuration',
+                    ready: function() {
+                        this.$.configurations.get(undefined, function(err, configuration) {
+                            this.configuration = configuration;
+                        }.bind(this));
+
+                        this.$.keybindings.register(191, function() {
+                            if (e.target.id !== 'searchfield') {
+                                this.$.searchfield.focus();
+                            } else {
+                                return true;
+                            }
+                            return false;
+                        }.bind(this)); // key === '/'
+                        this.$.keybindings.register(8, function(e) {
+                            if (e.target.id !== 'searchfield') {
+                                window.location.assign('chooser.html');
+                            } else {
+                                return true;
+                            }
+                        }.bind(this));
+                    },
+                    onFinish: function() {
+                        this.$.searchfield.focus();
                     }
-                    .optionval {
-                      font-size: 70%;
-                      font-weight: bold;
-                      color: #7edeb3;
-                      text-overflow: ellipsis;
-                      white-space: nowrap;
-                      overflow: hidden;
-                    }
-                    .optiondesc {
-                      color: #7eb3de;
-                      font-size: 70%;
-                      margin-left: 2em;
-                      text-overflow: ellipsis;
-                      white-space: nowrap;
-                      overflow: hidden;
-                    }
-                    .option {
-                      position: relative;
-                      height: 32px;
-                      line-height: 16px;
-                      padding: 0.4em;
-                      cursor: pointer;
-                      color: #7eb3de;
-                    }
-                    .option:hover {
-                      /*background-color: #eeeeee;*/
-                    }
-                    .option:focus {
-                      /*background-color: #dddddd;*/
-                      outline: none;
-                    }
-                    paper-input {
-                        font-family: monospace;
-                    }
-                </style>
-                <div id="listcontainer">
-                    <template is="dom-repeat" items="{{configs}}" as="option">
-                        <div on-mousedown="openPanel" on-keyup="openPanel" tabindex="2" data-optionname="{{option.name}}" class="option">
-                            <span class="optionname">{{option.name}}</span>
-                            <template is="dom-if" if="{{option.val}}">
-                                <span class="optionval">VALUE SET</span>
-                            </template>
-                            <div class="optiondesc">{{option.description}}</div>
-                            <paper-ripple fit></paper-ripple>
-                        </div>
-                    </template>
-                </div>
-                <nixui-configurations id="configurations"></nixui-configurations>
-                <nixui-configs id="configs"></nixui-configs>
-                <option-panel id="panel"></option-panel>
-            </template>
-            <script>
-                (function() {
-                  Polymer({
-                      is: 'config-options',
-                      properties: {
-                          disabled: Boolean
-                      },
-                      ready: function() {
+                });
+
+            })();
+        </script>
+    </dom-module>
+
+    <dom-module name="config-options">
+        <template>
+            <iron-signals on-iron-signal-search="searchSignal"></iron-signals>
+            <style>
+                .optionname {
+                    color: #4d70b8;
+                    font-size: 90%;
+                    font-family: sans-serif;
+                    font-weight: bold;
+                }
+
+                .optionval {
+                    font-size: 70%;
+                    font-weight: bold;
+                    color: #7edeb3;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+
+                .optiondesc {
+                    color: #7eb3de;
+                    font-size: 70%;
+                    margin-left: 2em;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+
+                .option {
+                    position: relative;
+                    height: 32px;
+                    line-height: 16px;
+                    padding: 0.4em;
+                    cursor: pointer;
+                    color: #7eb3de;
+                }
+
+                .option:hover {
+                    /*background-color: #eeeeee;*/
+                }
+
+                .option:focus {
+                    background-color: #ddd;
+                    outline: none;
+                }
+
+                paper-input {
+                    font-family: monospace;
+                }
+            </style>
+            <div id="listcontainer">
+                <template is="dom-repeat" items="{{configs}}" as="option">
+                    <div on-mousedown="openPanel" on-keyup="openPanel" tabindex="1" data-optionname="{{option.name}}" class="option">
+                        <span class="optionname">{{option.name}}</span>
+                        <template is="dom-if" if="{{option.val}}">
+                            <span class="optionval">VALUE SET</span>
+                        </template>
+                        <div class="optiondesc">{{option.description}}</div>
+                        <paper-ripple fit></paper-ripple>
+                    </div>
+                </template>
+            </div>
+            <nixui-configurations id="configurations"></nixui-configurations>
+            <nixui-configs id="configs"></nixui-configs>
+            <option-panel id="panel"></option-panel>
+            <key-binding id="keybindings"></key-binding>
+        </template>
+        <script>
+            (function() {
+                Polymer({
+                    is: 'config-options',
+                    properties: {
+                        disabled: Boolean
+                    },
+                    ready: function() {
                         this.query = "";
                         this.configs = [];
 
                         this.$.configs.init(this.$.configurations.current(), function(err, result) {
                             if (err) {
-                                this.fire('iron-signal', {name: "error", data: {text: err, controlDim: true}});
-                                this.fire('iron-signal', {name: "progress", data: "error"});
+                                this.fire('iron-signal', {
+                                    name: "error",
+                                    data: {
+                                        text: err,
+                                        controlDim: true
+                                    }
+                                });
+                                this.fire('iron-signal', {
+                                    name: "progress",
+                                    data: "error"
+                                });
                                 throw err;
                             }
 
-                            this.searchSignal(undefined, {query: ""});
+                            this.searchSignal(undefined, {
+                                query: ""
+                            });
 
                         }.bind(this));
-                      },
-                      openPanel: function(e, detail, sender) {
+
+                        this.$.keybindings.register(27, function() {
+                            this.$.panel.close();
+                        }.bind(this));
+                    },
+                    openPanel: function(e, detail, sender) {
                         if (e.keyCode == 13 || e.keyCode == 9 || (e.keyCode == 0 && e.button == 0)) {
                             var optionName = e.model.option.name;
                             this.$.panel.open(optionName);
                         } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
                             this.$.panel.close();
                         }
-                      },
-                      searchSignal: function(e, detail, sender) {
+                    },
+                    searchSignal: function(e, detail, sender) {
                         this.query = detail.query;
-                        this.fire('iron-signal', {name: "progress", data: "start"});
+                        this.fire('iron-signal', {
+                            name: "progress",
+                            data: "start"
+                        });
                         this.$.configs.filter(this.query, function(err, result) {
                             if (err) {
-                                this.fire('iron-signal', {name: "error", data: {text: err, controlDim: true}});
-                                this.fire('iron-signal', {name: "progress", data: "error"});
+                                this.fire('iron-signal', {
+                                    name: "error",
+                                    data: {
+                                        text: err,
+                                        controlDim: true
+                                    }
+                                });
+                                this.fire('iron-signal', {
+                                    name: "progress",
+                                    data: "error"
+                                });
                                 throw err;
                             }
                             this.configs = result;
-                            this.fire('iron-signal', {name: "progress", data: "finish"});
+                            this.fire('iron-signal', {
+                                name: "progress",
+                                data: "finish"
+                            });
                         }.bind(this));
                         this.$.panel.close();
-                      }
-                  });
-                })();
-            </script>
-        </dom-module>
+                    }
+                });
+            })();
+        </script>
+    </dom-module>
 
 
-        <dom-module name="search-input">
-            <template>
+    <dom-module name="search-input">
+        <template>
             <span>
                 <input-field id="searchfield" on-submit="triggerSearch" label="Search options ..."></input-field>
             </span>
-            </template>
-            <script>
-                (function() {
-                  Polymer({
+        </template>
+        <script>
+            (function() {
+                Polymer({
                     is: 'search-input',
                     focus: function() {
                         this.$.searchfield.focus();
@@ -201,27 +260,32 @@
                     triggerSearch: function(e, detail) {
                         this.fire('iron-signal', {
                             name: "search",
-                            data: { query: detail }
+                            data: {
+                                query: detail
+                            }
                         });
                     }
-                  });
-                })();
-            </script>
-        </dom-module>
+                });
+            })();
+        </script>
+    </dom-module>
 
 
 
 
-        <style>
-            html,body {
-                height: 100%;
-                margin: 0;
-                background-color: white;
-                font-family: sans-serif;
-              }
-        </style>
-    </head>
-    <body unresolved touch-action="auto">
-        <nixui-configuration></nixui-configuration>
-    </body>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background-color: white;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+
+<body unresolved touch-action="auto">
+    <nixui-configuration></nixui-configuration>
+</body>
+
 </html>

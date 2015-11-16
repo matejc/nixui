@@ -21,6 +21,7 @@
         margin: 0;
         background-color: white;
         font-family: sans-serif;
+        overflow: hidden;
     }
     </style>
 
@@ -43,7 +44,7 @@
               is: 'nixos-logo',
               ready: function() {
                   var elem = this.$.logo;
-                  elem.animate([{opacity: 0, transform: "rotate(0deg)"}, {opacity: 0.75, transform: "rotate(360deg)"}], {fill: "forwards", duration: 750, iterations: 1, easing: "ease", delay: 500});
+                  elem.animate([{opacity: 0, transform: "rotate(0deg)"}, {opacity: 0.75, transform: "rotate(360deg)"}], {fill: "forwards", duration: 900, iterations: 1, easing: "ease", delay: 500});
               }
           });
           })();
@@ -113,12 +114,12 @@
             color: #4d70b8;
         }
         @-webkit-keyframes fadeIn {
-            from { opacity: 0; margin-left: 400px; }
+            from { opacity: 0; margin-left: 300px; }
               to { opacity: 1; margin-left: 50px; }
         }
         @-webkit-keyframes fadeOut {
             from { opacity: 1; margin-left: 50px; }
-              to { opacity: 0; margin-left: 400px; }
+              to { opacity: 0; margin-left: 300px; }
         }
         </style>
         <div id="wrapper" class="layout horizontal">
@@ -205,7 +206,7 @@
                         //     this.toggleClass('item_selected', false, items[i]);
                         // }
                         // this.toggleClass('item_selected', true, item);
-                        this.currentAction = this.$.actions.get(item.actionid);
+                        this.currentAction = e.model.__data__.a || this.$.actions.get(item.actionid);
                         this.currentActionURL = this.currentAction.url;
 
                         this.$.actions.set(this.currentAction.id);
