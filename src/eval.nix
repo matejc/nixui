@@ -7,25 +7,13 @@
 with import <nixpkgs/lib>;
 
 let
-  emptyPkgs = import <nixpkgs> { inherit system; };
-  nixpkgsConfig = (import configurationnix { pkgs = emptyPkgs; config = emptyPkgs.config; }).nixpkgs.config // {allowBroken = true;};
-  pkgs = import <nixpkgs> { inherit system; config = nixpkgsConfig; };
+  pkgs = import <nixpkgs> { inherit system; };
+  eval = import <nixpkgs/nixos> {
+    configuration = configuration configurationnix;
+    inherit system;
+  };
   lib = import <nixpkgs/lib>;
-  configuration = configurationnix: (import configurationnix { inherit pkgs lib; config = nixpkgsConfig; });
-  configurationModuleFun = configuration: filePath: rec {
-    _file = filePath;
-    # _file = <nixpkgs/nixos/lib/eval-config.nix>;
-    key = _file;
-    config = {
-      nixpkgs.system = mkDefault system;
-      _module.args.configuration = mkForce configuration;
-      _module.check = false;
-    };
-  };
-  evalConfig = filePath: evalModuleFun (configurationModuleFun (configuration filePath) filePath);
-  evalModuleFun = module: evalModules {
-    modules = [ module ];
-  };
+  configuration = configurationnix: (import configurationnix { config = eval.config; inherit pkgs lib; });
 
   trySubst = x:
     let
@@ -47,10 +35,7 @@ let
   t = o: builtins.trace (builtins.toJSON o) o;
   tr = o: pass: builtins.trace (builtins.toJSON o) pass;
 
-  emptyEval = import <nixpkgs/nixos> {
-    inherit system;
-  };
-  optionsList = filter (opt: opt.visible && !opt.internal) (optionAttrSetToDocList emptyEval.options);
+  optionsList = filter (opt: opt.visible && !opt.internal) (optionAttrSetToDocList eval.options);
   prefix = toString <nixpkgs>;
   stripPrefix = fn:
     if substring 0 (stringLength prefix) fn == prefix then
