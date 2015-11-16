@@ -1,0 +1,23 @@
+<dom-module name="key-bindig">
+    <script>
+        Polymer({
+            is: 'key-binding',
+            ready: function() {
+                this.onkeydownHandlers = {};
+
+                function keyHandler(e) {
+                    var pK = e ? e.which : window.event.keyCode;
+                    if (this.onkeydownHandlers[pK]) {
+                        return this.onkeydownHandlers[pK](e);
+                    }
+                    return true;
+                }
+                document.onkeydown = keyHandler.bind(this);
+                document.captureEvents(Event.KEYDOWN);
+            },
+            register: function(code, handler) {
+                this.onkeydownHandlers[code] = handler;
+            }
+        });
+    </script>
+</dom-module>
