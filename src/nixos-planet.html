@@ -16,7 +16,7 @@
         <nixui-page id="page" selection="NixOS Planet" on-finish="onFinish">
             <div container id="container">
                 <template is="dom-repeat" items="{{entries}}">
-                    <planet-item entry="{{item}}" on-click="selected"></planet-item>
+                    <planet-item entry="{{item}}" on-mousedown="selected" on-keyup="selected"></planet-item>
                 </template>
                 <planet-panel id="panel" entry="{{entry}}"></planet-panel>
             </div>
@@ -41,8 +41,12 @@
                   }
               },
               selected: function(e) {
-                  this.entry = e.model.item;
-                  this.$.panel.open();
+                  if (e.keyCode == 13 || e.keyCode == 9 || (e.keyCode == 0 && e.button == 0)) {
+                      this.entry = e.model.item;
+                      this.$.panel.open();
+                  } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
+                      this.$.panel.close();
+                  }
               },
               ready: function() {
                   window.addEventListener('google-feeds-response', function(e) {
@@ -106,17 +110,6 @@
             <div class="snippet">{{entry.contentSnippet}}</div>
             <paper-ripple fit></paper-ripple>
         </div>
-
-        <!-- <div id="container">
-            <div>{{entry.title}}</div>
-            <div>{{entry.link}}</div>
-            <div>{{entry.author}}</div>
-            <div>{{entry.publishedDate}}</div>
-            <div>{{entry.contentSnippet}}</div>
-            <div>{{entry.categories}}</div>
-
-        </div> -->
-            <!-- ["title", "link", "author", "publishedDate", "contentSnippet", "content", "categories"] -->
     </template>
     <script>
         (function() {
