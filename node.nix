@@ -257,6 +257,26 @@
   };
   by-spec."inherits"."2.0.1" =
     self.by-version."inherits"."2.0.1";
+  by-spec."isnumber"."^1.0.0" =
+    self.by-version."isnumber"."1.0.0";
+  by-version."isnumber"."1.0.0" = self.buildNodePackage {
+    name = "isnumber-1.0.0";
+    version = "1.0.0";
+    bin = false;
+    src = fetchurl {
+      url = "http://registry.npmjs.org/isnumber/-/isnumber-1.0.0.tgz";
+      name = "isnumber-1.0.0.tgz";
+      sha1 = "0e3f9759b581d99dd85086f0ec2a74909cfadd01";
+    };
+    deps = {
+    };
+    optionalDependencies = {
+    };
+    peerDependencies = [];
+    os = [ ];
+    cpu = [ ];
+  };
+  "isnumber" = self.by-version."isnumber"."1.0.0";
   by-spec."jade"."0.26.3" =
     self.by-version."jade"."0.26.3";
   by-version."jade"."0.26.3" = self.buildNodePackage {
