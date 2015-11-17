@@ -373,7 +373,7 @@ exports.options = function (configurationnix, path, optionsWithVal, file_arg, en
         "./src/eval.nix", "--eval", "--strict", "--show-trace",
         "-A", "options", "--arg", "optionsWithVal", optionsWithVal
     ]
-    .concat(configurationnix?["--argstr", "configurationnix", configurationnix]:[])
+    .concat((configurationnix && optionsWithVal)?["--argstr", "configurationnix", configurationnix]:[])
     .concat(path?["--argstr", "path", path]:[])
     .concat(file_arg?["-I", "nixpkgs="+file_arg]:["-I", "nixpkgs="+exports.nixpkgs()]),
     null,
