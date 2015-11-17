@@ -215,7 +215,7 @@ limitations under the License. -->
                         }.bind(this));
                     },
                     openPanel: function(e, detail, sender) {
-                        if (e.keyCode == 13 || e.keyCode == 9 || (e.keyCode == 0 && e.button == 0)) {
+                        if (e.keyCode == 13 || (e.keyCode == 0 && e.button == 0)) {
                             var optionName = e.model.option.name;
                             this.$.panel.open(optionName);
                         } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
