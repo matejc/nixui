@@ -1,6 +1,6 @@
 {
   "name": "nixui",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "homepage": "https://github.com/matejc/nixui",
   "authors": [
     "Matej Cotman <cotman.matej@gmail.com>"
@@ -13,7 +13,7 @@
     "nix",
     "package manager"
   ],
-  "license": "BSD 2-Clause",
+  "license": "Apache-2.0",
   "ignore": [
     "**/.*",
     "node_modules",

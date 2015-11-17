@@ -12,7 +12,7 @@
     "node-webkit"
   ],
   "author": "Matej Cotman",
-  "license": "BSD 2-Clause",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/matejc/nixui",
   "bugs": {
     "url": "https://github.com/matejc/nixui/issues"
