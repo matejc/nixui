@@ -1,6 +1,6 @@
 {
     "profilePaths": ["/nix/var/nix/profiles"],
     "dataDir": "/tmp",
-    "configurations": ["/etc/nixos/configuration.nix"],
-    "NIX_PATH": "/nix/var/nix/profiles/per-user/root/channels/nixos:nixpkgs=/etc/nixos/nixpkgs:nixos-config=/etc/nixos/configuration.nix"
+    "configurations": ["/etc/nixos/configuration.nix", "/etc/nixos/hardware-configuration.nix"],
+    "NIX_PATH": false
 }

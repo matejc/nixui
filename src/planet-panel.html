@@ -1,0 +1,118 @@
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
+<link rel="import" href="./animated-panel.html">
+<script src="../bower_components/underscore/underscore-min.js"></script>
+
+<dom-module name="planet-panel">
+    <template>
+        <style is="custom-style">
+            :host {
+                top: 2em;
+                padding: 1em;
+                color: #4d70b8;
+            }
+            #title {
+                font-size: 200%;
+                font-weight: bold;
+                font-variant: small-caps;
+            }
+            #meta {
+                font-size: 80%;
+                margin-bottom: 1.5em;
+            }
+            #container /deep/ a {
+                pointer-events: none;
+                cursor: default;
+            }
+            #container /deep/ pre {
+                color: gray;
+                font-weight: bold;
+            }
+        </style>
+        <animated-panel id="panel">
+            <div id="title"></div>
+            <hr color="#7eb3de">
+            <div id="meta">
+                <span id="author"></span>
+                <span id="publishedDate"></span>
+            </div>
+            <div id="container"></div>
+        </animated-panel>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'planet-panel',
+                properties: {
+                    entry: {
+                        type: Object,
+                        value: {},
+                        observer: 'entryChange'
+                    }
+                },
+                open: function(optionName) {
+                    this.$.panel.close(function() {
+                        this.$.panel.open();
+                    }.bind(this));
+                },
+                close: function() {
+                    this.$.panel.close();
+                },
+                entryChange: function() {
+                    this.injectBoundHTML(this.entry.title, this.$.title);
+                    this.injectBoundHTML(this.entry.publishedDate, this.$.publishedDate);
+                    this.injectBoundHTML(this.entry.author, this.$.author);
+                    this.injectBoundHTML((this.entry.content||'').replace(/<a(.*?)(>)?<\/a>/g,'<fake-link $1$2</fake-link>'), this.$.container);
+                },
+                injectBoundHTML: function(html, element) {
+                    var template = document.createElement('template', 'dom-bind');
+                    var doc = template.content.ownerDocument;
+                    var div = doc.createElement('div');
+                    div.innerHTML = html;
+                    template.content.appendChild(div);
+                    while (element.firstChild) {
+                        element.removeChild(element.firstChild);
+                    }
+                    element.appendChild(Polymer.Base.instanceTemplate(template));
+                }
+            });
+        })();
+    </script>
+</dom-module>
+
+
+<dom-module name="fake-link">
+
+    <template>
+        <style is="custom-style">
+            :host {
+                font-style: italic;
+            }
+            href {
+                color: gray;
+            }
+        </style>
+        <content></content> <href>(<span>{{href}}</span>)</href>
+    </template>
+    <script>
+        Polymer({
+            is: 'fake-link',
+            properties: {
+                href: String
+            }
+        });
+    </script>
+
+</dom-module>

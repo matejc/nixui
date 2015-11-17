@@ -1,18 +1,40 @@
+/*
+Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 var fs = require('fs');
 var path = require('path');
 var NixInterface = require("./interface.js");
 var nedb = require('nedb');
 
 if (process.env.NIXUI_DEBUG !== undefined) {
-    window.require('nw.gui').Window.get().showDevTools();
+    var gui = window.require('nw.gui');
+    gui.Window.get().showDevTools();
 }
 
 var config = process.env.NIXUI_CONFIG ? require(process.env.NIXUI_CONFIG) : require("./config.json"),
     dbs = {},
     data = {},
-    dataDir = config.dataDir ? config.dataDir : '/tmp';
+    dataDir = config.dataDir ? config.dataDir : '/tmp',
+    env = {};
 
-process.env.NIX_PATH = config.NIX_PATH ? config.NIX_PATH : process.env.NIX_PATH;
+env.NIX_PATH = config.NIX_PATH ? config.NIX_PATH : process.env.NIX_PATH;
+env.NIX_REMOTE = process.env.NIX_REMOTE;
+env.HOME = process.env.HOME;
+
+console.log("Environment:", env)
 
 module.exports = dbs;
 
@@ -48,7 +70,7 @@ dbs.profiles.current = function(id) {
 dbs.profiles.get = function(profileId, cb) {
     var id = (profileId===undefined) ? dbs.profiles.current() : profileId;
     if (id === '-1') {
-        cb(null, {id: "-1"});
+        cb(null, {id: "-1", name: "None"});
     } else {
         data.profiles.findOne({id: id}, cb);
     }
@@ -91,7 +113,7 @@ dbs.configurations.current = function(id) {
 dbs.configurations.get = function(configurationId, cb) {
     var id = (configurationId===undefined) ? dbs.configurations.current() : configurationId;
     if (id == '-1') {
-        cb(null, {path: "", _id: "-1"});
+        cb(null, {path: "None", _id: "-1"});
     } else {
         data.configurations.findOne({_id: id}, cb);
     }
@@ -111,14 +133,28 @@ dbs.configurations.set = function(configuration, cb) {
 // configs - config options
 
 dbs.configs = function(configurationId, attrs, cb) {
+    var configurationnix, path, optionsWithVal;
+    if (configurationId === null || configurationId === '-1') {
+        configurationnix = null;
+        path = null;
+        optionsWithVal = false;
+    } else {
+        path = attrs;
+        optionsWithVal = true;
+    }
+
     dbs.configurations.get(configurationId, function(err, o) {
-        NixInterface.configTree(o.path, attrs, undefined, process.env, function(tree) {
-            var result = JSON.parse(JSON.parse(tree));
+        if (configurationId !== null && o) {
+            configurationnix = o.path;
+        }
+        NixInterface.options(configurationnix, path, optionsWithVal, undefined, env, function(out) {
+            var result = JSON.parse(out);
             data.configs = new nedb();
-            data.configstree = result;
+            data.configslist = result;
             data.configs.ensureIndex({fieldName: 'name', unique: true}, function(err) {
-                if (err) console.log(err);
-                recurseConfigs([], result);
+                if (err) console.error(err);
+                fillConfigs(result);
+                dbs.configs_isSet = true;
                 cb(null, result);
             });
         }, function(err) {
@@ -127,25 +163,66 @@ dbs.configs = function(configurationId, attrs, cb) {
     });
 };
 
-dbs.configs.tree = function() {
-    return data.configstree;
+dbs.configs.list = function() {
+    return data.configslist;
 };
 
 dbs.configs.all = function(cb) {
-    data.configs.find({}).sort({name: 1}).exec(cb);
+    if (!dbs.configs_isSet) {
+        return cb(null, []);
+    }
+    data.configs.find({}, cb);
 };
 
 dbs.configs.filter = function(query, cb) {
+    if (!dbs.configs_isSet) {
+        return cb(null, []);
+    }
     var requery = new RegExp(query, 'i');
     var refind = {$or: [{name: {$regex: requery}}, {description: {$regex: requery}}, {val: {$regex: requery}}]};
-    data.configs.find(refind).limit(100).sort({name: 1}).exec(function(err, data) {
+    data.configs.find(refind).sort({name: 1}).limit(100).exec(function(err, data) {
         if (err) {
-            console.log(err);
+            console.error(err);
             cb(err);
         }
         cb(null, data);
     });
 };
+
+// dbs.configs.get = function(attrs, cb) {
+//     dbs.configurations.get(undefined, function(err, o) {
+//         NixInterface.get(o.path, attrs, undefined, env, function(result) {
+//             cb(null, result);
+//         }, function(err) {
+//             cb(err);
+//         });
+//     });
+// };
+
+dbs.configs.get = function(attrs, cb) {
+    if (!dbs.configs_isSet) {
+        return cb(null, {});
+    }
+    data.configs.findOne({name: attrs}, function(err, data) {
+        if (err) {
+            console.error(err);
+            cb(err);
+        }
+        cb(null, data);
+    });
+};
+
+dbs.configs.toNixString = function(json, cb) {
+    if (typeof json === 'undefined') {
+        return cb(null, '');
+    }
+    NixInterface.toNixString(json, env, function(result) {
+        cb(null, result);
+    }, function(err) {
+        cb(err);
+    });
+};
+
 
 
 // packages
@@ -178,7 +255,7 @@ dbs.packages.delete_all = function(profileId, cb) {
 
 dbs.packages.fill = function(profileId, cb) {
     if (data.packages[profileId] !== undefined) {
-        cb();
+        cb(null, {});
         return;
     }
     data.packages[profileId] = new nedb();
@@ -208,7 +285,7 @@ dbs.packages.fill = function(profileId, cb) {
             NixInterface.iteratePackages(
                 undefined,
                 profile.path,
-                process.env,
+                env,
                 callback,
                 done_cb,
                 function (err) {
@@ -231,7 +308,11 @@ dbs.packages.filter = function(profileId, query, cb) {
     if (installFilter) {
         refind.compare = {$regex: /^\=.*/};
     }
+<<<<<<< HEAD
     data.packages[profileId].find(refind).limit(100).sort({attribute: 1}).exec(function(err, data) {
+=======
+    data.packages[profileId].find(refind).sort({name: 1}).limit(100).exec(function(err, data) {
+>>>>>>> unstable
         if (err) {
             console.log(err);
             cb(err);
@@ -243,7 +324,7 @@ dbs.packages.filter = function(profileId, query, cb) {
 dbs.packages.info = function(profileId, attribute, cb) {
     if ((new RegExp(/^[\-\.\w]+$/)).test(attribute)) {
 
-        NixInterface.packageInfo(attribute, undefined, process.env, function(data) {
+        NixInterface.packageInfo(attribute, undefined, env, function(data) {
             cb(null, JSON.parse(JSON.parse(data)));  // data is double json encoded :)
         }, function(data) {
             cb(null, data);
@@ -403,8 +484,9 @@ dbs.markeds.list = function(profileId, cb) {
 
 dbs.actions = function() {
     data.actions = [
-        { id: 0, label: "Package Manager", url: "package-manager.html" },
-        { id: 1, label: "Configuration Options", url: "configuration.html" }
+        { id: 0, label: "Package Manager", url: "package-manager.html", tabindex: '1' },
+        { id: 1, label: "Configuration Options", url: "configuration.html", tabindex: '2' },
+        { id: 2, label: "Planet", url: "planet.html", tabindex: '3' }
     ];
 };
 
@@ -418,6 +500,14 @@ dbs.actions.get = function(id) {
             return data.actions[i];
         }
     }
+};
+
+dbs.actions.set = function(id) {
+    data.action = data.actions[id];
+};
+
+dbs.actions.current = function() {
+    return data.action;
 };
 
 
@@ -531,10 +621,10 @@ var applyMark = function(profileId, attribute, name, mark, finish_callback, erro
         };
 
         if (mark == "install") {
-            NixInterface.installPackage(attribute, undefined, profile.path, process.env, onFinish, onError);
+            NixInterface.installPackage(attribute, undefined, profile.path, env, onFinish, onError);
 
         } else if (mark == "uninstall") {
-            NixInterface.uninstallPackage(attribute, name, undefined, profile.path, process.env, onFinish, onError);
+            NixInterface.uninstallPackage(attribute, name, undefined, profile.path, env, onFinish, onError);
         }
     });
 };
@@ -547,6 +637,14 @@ var recurseConfigs = function(position, object) {
             if (object.hasOwnProperty(key)){
                 recurseConfigs(position.concat([key]), object[key]);
             }
+        }
+    }
+};
+
+var fillConfigs = function(object) {
+    for (var key in object) {
+        if (object.hasOwnProperty(key)){
+            data.configs.update({name: key}, object[key], {upsert: true});
         }
     }
 };

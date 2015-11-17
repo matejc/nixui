@@ -1,13 +1,15 @@
 NixUI
 =====
 
-NodeWebkit UI for Nix package manager
+NodeWebkit UI for Nix package manager written with Polymer
 
 
 Requirement
 -----------
 
 - Nix package manager
+- nwjs
+- node (for development)
 
 
 Just Run It
@@ -48,6 +50,15 @@ Explanation:
  - `NIX_PATH`: same as `NIX_PATH` environment variable, if you use `nix-channel` to update then leave it as is
 
 
+Key/mouse bindings
+------------------
+
+- `Tab`: circle through list items and fields
+- `Enter` or `left click`: open panel
+- `ESC` or `right click`: close panel
+- `/`: focus the search field
+
+
 Development
 -----------
 
@@ -63,9 +74,26 @@ Run UI
 $ make develop
 ```
 
+Development - The classical way
+-------------------------------
+
+Install node dependencies
+
+```
+$ npm install
+```
+
+
+Run it
+```
+$ nw .
+```
+
 
 Screenshots
 -----------
+
+(from version 0.1.2)
 
 ![Configuration Options](img/configoptions.jpg)
 ![Packages](img/packages.jpg)

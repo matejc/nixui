@@ -1,0 +1,159 @@
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
+<link rel="import" href="../bower_components/google-feeds/google-feeds.html">
+<link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
+
+<link rel="import" href="./planet-panel.html">
+<link rel="import" href="./key-binding.html">
+
+
+<dom-module name="nixos-planet">
+    <template>
+        <style is="custom-style">
+            :host {
+                overflow: hidden;
+            }
+        </style>
+        <google-feeds feed='http://planet.nixos.org/atom.xml'></google-feeds>
+
+        <nixui-page id="page" selection="NixOS Planet" on-finish="onFinish">
+            <div container id="container">
+                <template is="dom-repeat" items="{{entries}}">
+                    <planet-item entry="{{item}}" on-mousedown="selected" on-keyup="selected"></planet-item>
+                </template>
+                <planet-panel id="panel" entry="{{entry}}"></planet-panel>
+            </div>
+        </nixui-page>
+
+        <key-binding id="keybindings"></key-binding>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'nixos-planet',
+                properties: {
+                    url: {
+                        type: String,
+                        value: 'http://planet.nixos.org/atom.xml'
+                    },
+                    entries: {
+                        type: Array,
+                        value: []
+                    },
+                    feed: {
+                        type: Object,
+                        value: {}
+                    }
+                },
+                selected: function(e) {
+                    if (e.keyCode == 13 || (e.keyCode == 0 && e.button == 0)) {
+                        this.entry = e.model.item;
+                        this.$.panel.open();
+                    } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
+                        this.$.panel.close();
+                    }
+                },
+                ready: function() {
+                    this.$.keybindings.register(27, function() {
+                        this.$.panel.close();
+                    }.bind(this));
+                    this.$.keybindings.register(8, function(e) {
+                        window.location.assign('chooser.html');
+                    }.bind(this));
+
+                    window.addEventListener('google-feeds-response', function(e) {
+                        this.feed = e.detail.feed;
+                        this.entries = e.detail.feed.entries;
+                        console.log(Object.keys(this.entries[0]))
+                        this.fire('iron-signal', {
+                            name: "progress",
+                            data: "finish"
+                        });
+                    }.bind(this));
+                },
+                onFinish: function() {
+
+                }
+            });
+        })();
+    </script>
+</dom-module>
+
+
+<dom-module name="planet-item">
+    <template>
+
+        <style>
+            .entry {
+                position: relative;
+                height: 32px;
+                line-height: 16px;
+                padding: 0.4em;
+                cursor: pointer;
+                color: #7eb3de;
+            }
+
+            .title {
+                color: #4d70b8;
+                font-size: 90%;
+                font-family: sans-serif;
+                font-weight: bold;
+            }
+
+            .author {
+                font-size: 70%;
+                font-weight: bold;
+                color: #7eb3de;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+            .snippet {
+                color: #7eb3de;
+                font-size: 80%;
+                margin-left: 2em;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+            .entry:focus {
+                background-color: #ddd;
+                outline: none;
+            }
+        </style>
+
+        <div class="entry" tabindex="1">
+            <span class="title">{{entry.title}}</span>
+            <span class="author">{{entry.author}}</span>
+            <div class="snippet">{{entry.contentSnippet}}</div>
+            <paper-ripple fit></paper-ripple>
+        </div>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'planet-item',
+                properties: {
+                    entry: {
+                        type: Object,
+                        value: {}
+                    }
+                }
+            });
+        })();
+    </script>
+</dom-module>

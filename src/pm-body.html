@@ -1,368 +1,386 @@
-<link rel="import" href="../bower_components/core-header-panel/core-header-panel.html">
-<link rel="import" href="../bower_components/core-toolbar/core-toolbar.html">
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
+
+<link rel="import" href="../bower_components/paper-header-panel/paper-header-panel.html">
+<link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
-<link rel="import" href="../bower_components/core-signals/core-signals.html">
+<link rel="import" href="../bower_components/iron-signals/iron-signals.html">
 <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../bower_components/paper-dropdown/paper-dropdown.html">
-<link rel="import" href="../bower_components/core-menu/core-menu.html">
-<link rel="import" href="../bower_components/core-input/core-input.html">
+<link rel="import" href="../bower_components/iron-dropdown/iron-dropdown.html">
+<link rel="import" href="../bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="../bower_components/font-awesome-polymer-icons/fa-all.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-collapse/iron-collapse.html">
 
-<link rel="import" href="./progress-bar.html">
 <link rel="import" href="./data.html">
-<link rel="import" href="./marked.html">
-<link rel="import" href="./error-dialog.html">
-<link rel="import" href="./package-dialog.html">
+<!-- <link rel="import" href="./marked.html"> -->
+<!-- <link rel="import" href="./error-dialog.html"> -->
+<link rel="import" href="./package-panel.html">
+<link rel="import" href="./nixui-page.html">
+<link rel="import" href="./input-field.html">
+<link rel="import" href="./key-binding.html">
 
-<polymer-element name="nixui-packagemanager">
+
+<dom-module name="nixui-packagemanager">
     <template>
-        <style>
-            core-header-panel {
-              height: 100%;
-              overflow: auto;
-              -webkit-overflow-scrolling: touch;
-            }
-            core-toolbar {
-              background: white;
-              fill: #005aa0;
-            }
-            .nixuicenter {
-              color: #005aa0;
-              position: relative;
-              text-align: center;
-            }
-            .nixuilink {
-              color: #005aa0;
-              text-decoration: none;
-            }
-            #dimmer {
-                background:#000;
-                opacity:0.2;
-                position:fixed; /* important to use fixed, not absolute */
-                top:0;
-                left:0;
-                width:100%;
-                height:100%;
-                display:none;
-                z-index:1;
-            }
-            paper-menu-button {
-              color: #005aa0;
-            }
-            paper-item {
-              margin: 0.5em;
-              font-size: 80%;
-            }
-            .notactive {
-              pointer-events: none;
-              cursor: default;
-              color: #c9c9c9;
+        <style is="custom-style">
+            :root {
+                --paper-header-panel-seamed-container: {
+                    height: 100%;
+                    /*overflow: auto;*/
+                };
+                --paper-toolbar: {
+                    background: white;
+                    border-color: #4d70b8;
+                };
             }
         </style>
-        <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
-        <core-signals on-core-signal-resetcache="{{resetCache}}"></core-signals>
-        <core-signals on-core-signal-message="{{message}}"></core-signals>
-        <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
-        <core-header-panel id="contentpanel" mode="seamed" on-keyup="{{globalKeyUp}}">
-            <div id="dimmer"></div>
-            <div class="core-header">
-                <core-toolbar>
-                    <div class="nixuicenter">
-                        <a href="chooser.html" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
-                            NixUI
-                            <paper-ripple fit></paper-ripple>
-                        </a>
-                    </div>
-                    <div class="nixuilink {{ {notactive: workLock} | tokenList }}">></div>
-                    <div>
-                      <a href="{{action.url}}" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
-                        {{action.label}}
-                      </a>
-                    </div>
-                    <div flex></div>
-                    <query-input id="queryfield" query="{{query}}" disabled?="{{workLock}}"></query-input>
+        <style>
+            .nixuicenter {
+                color: #4d70b8;
+                /*position: relative;
+                text-align: center;
+                margin: 0 0 0 1em;*/
+            }
 
-                    <paper-menu-button tabindex="-1" disabled?="{{workLock}}">
-                        <paper-icon-button icon="more-vert"></paper-icon-button>
-                        <paper-dropdown class="dropdown" halign="right">
-                            <core-menu class="menu">
-                                <paper-item on-click="{{searchFor}}" data-query="!i">Search installed</paper-item>
-                                <paper-item on-click="{{upgradeInstalled}}">Upgrade installed ...</paper-item>
-                                <paper-item on-click="{{openMarkedDialog}}">Manage marked ...</paper-item>
-                                <paper-item on-click="{{resetCache}}">Reset cache</paper-item>
-                            </core-menu>
-                        </paper-dropdown>
-                    </paper-menu-button>
+            .nixuilink {
+                color: #4d70b8;
+                text-decoration: none;
+            }
 
-                </core-toolbar>
-                <progress-bar id="progressbar"></progress-bar>
-            </div>
-            <list-packages disabled?="{{workLock}}"></list-packages>
-        </core-header-panel>
-        <package-dialog controlDim="true"></package-dialog>
-        <error-dialog controlDim="true"></error-dialog>
-        <marked-dialog controlDim="true"></marked-dialog>
+            search-input {
+                margin: 0 3em 0 0;
+            }
+
+            [disabled] {
+                pointer-events: none;
+                cursor: default;
+                color: #ccc;
+            }
+            #logo {
+                margin-right: 1em;
+            }
+            #logo img {
+                width: 40px;
+            }
+        </style>
+<!--         <iron-signals on-iron-signal-resetcache="resetCache"></iron-signals> -->
+
+        <nixui-page id="page" selection="{{profile.name}}" on-finish="onFinish">
+            <search-input searchfield id="queryfield" class="fixed-right" value="{{query}}"></search-input>
+            <list-packages container packages="{{packages}}"></list-packages>
+        </nixui-page>
+
+<!--         <error-dialog controlDim="true"></error-dialog> -->
+        <!-- <marked-dialog controlDim="true"></marked-dialog> -->
         <nixui-packages id="packages"></nixui-packages>
         <nixui-profiles id="profiles"></nixui-profiles>
-        <nixui-markeds id="markeds"></nixui-markeds>
+        <!-- <nixui-markeds id="markeds"></nixui-markeds> -->
         <nixui-actions id="actions"></nixui-actions>
-        <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
+        <key-binding id="keybindings"></key-binding>
+
     </template>
     <script>
         (function() {
 
-          Polymer('nixui-packagemanager', {
-            progressSignal: function(e, detail, sender) {
-              this.$.progressbar.doProgress(detail);
-            },
-            observe: {
-              '$.progressbar.animating': 'observeAnimating'
-            },
-            observeAnimating: function (oldValue, newValue) {
-              this.workLock = newValue;
-            },
-            dimSignal: function(e, detail, sender) {
-              this.$.dimmer.style.display=(detail)?"block":"none";
-            },
-            searchFor: function(e, detail, sender) {
-              this.query = sender.getAttribute("data-query");
-            },
-            openMarkedDialog: function(e, detail, sender) {
-              this.fire('core-signal', {name: "openmarked"});
-            },
-            ready: function() {
-              this.action = this.$.actions.get(0);
-              this.workLock = false;
-              setTimeout(this.fillCache.bind(this), 1);
-            },
-            fillCache: function() {
-              this.fire('core-signal', {name: "progress", data: "start"});
-              this.$.queryfield.fillCache();
-            },
-            resetCache: function() {
-              this.fire('core-signal', {name: "progress", data: "start"});
-              this.$.queryfield.resetCache();
-            },
-            message: function(e, detail, sender) {
-              this.$.message.text = detail.text;
-              var color = "#007ac0";
-              switch (detail.type) {
-              case "error":
-                  color = "#a05a5a";
-                  break;
-              }
-              this.$.message.style.color = color;
-              this.$.message.show();
-            },
-            upgradeInstalled: function(e, detail, sender) {
-              this.$.packages.filter(this.$.profiles.current(), "!i", function(err, data) {
-                if (err) {
-                  this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
-                } else {
-                  for (item in data) {
-                    this.$.markeds.set(
-                        this.$.profiles.current(),
-                        data[item].attribute,
-                        'install',
-                        function(data) {}.bind(this)
-                    );
-                  }
-                  this.fire('core-signal', {name: "openmarked"});
+            Polymer({
+                is: 'nixui-packagemanager',
+                onFinish: function() {
+                    this.$.queryfield.focus();
+                },
+                searchFor: function(e, detail, sender) {
+                    this.query = "!i";
+                },
+                ready: function() {
+                    this.$.profiles.get(undefined, function(err, profile) {
+                        this.profile = profile;
+                        this.async(this.fillCache, 100);
+                    }.bind(this));
+                    this.$.keybindings.register(191, function(e) {
+                        if (e.target.id !== 'queryfield') {
+                            this.$.queryfield.focus();
+                        } else {
+                            return true;
+                        }
+                        return false;
+                    }.bind(this)); // key === '/'
+                    this.$.keybindings.register(8, function(e) {
+                        if (e.target.id !== 'searchfield') {
+                            window.location.assign('chooser.html');
+                        } else {
+                            return true;
+                        }
+                    }.bind(this));
+                },
+                fillCache: function() {
+                    this.fire('iron-signal', {
+                        name: "progress",
+                        data: "start"
+                    });
+//                     this.$.queryfield.fillCache();
+                    this.$.queryfield.fillCache((function(err, data){
+                        this.packages = data;
+                    }).bind(this));
+                },
+                resetCache: function() {
+                    this.fire('iron-signal', {
+                        name: "progress",
+                        data: "start"
+                    });
+                    this.$.queryfield.resetCache();
                 }
-              }.bind(this));
-            },
-            globalKeyUp: function(e, detail, sender) {
-              if (e.keyCode == 191) {  // the '/' key
-                this.$.queryfield.focus();
-              }
-            }
-          });
+            });
 
         })();
     </script>
-</polymer-element>
-<polymer-element name="query-input" attributes="query disabled" on-keypress="{{keypressHandler}}">
-    <template>
-    <style type="text/css">
-    #searchfield {
-      border-bottom: 1px solid #50a0ff;
-      font-family: sans-serif;
-      width: 20em;
-      margin: 0.25em;
-      color: #005aa0;
-    }
-    #searchfield.notactive {
-      pointer-events: none;
-      cursor: default;
-      color: #c9c9c9;
-      border-bottom-color: #c9c9c9;
-    }
-    </style>
-    <span>
-      <div id="container" relative>
-        <input is="core-input" id="searchfield" tabindex="{{disabled===null?1:-1}}" on-keyup="{{keyHandler}}"
-          value="{{value}}" placeholder="Search packages ..." disabled?="{{disabled}}"
-          class="{{ {notactive: disabled!==null} | tokenList }}">
-        </input>
-      </div>
-    </span>
+</dom-module>
 
+
+<dom-module name="search-input">
+    <template>
+    <span>
+        <input-field id="searchfield" on-submit="triggerSearch" label="Search packages ..."></input-field>
+    </span>
     <nixui-packages id="packages"></nixui-packages>
     <nixui-profiles id="profiles"></nixui-profiles>
     </template>
     <script>
         (function() {
-            Polymer('query-input', {
-              setPackages: function () {
-                this.fire('core-signal', {name: "progress", data: "start"});
+          Polymer({
+            is: 'search-input',
+            properties: {
+                value: String
+            },
+            focus: function() {
+                this.$.searchfield.focus();
+            },
+            triggerSearch: function(e, detail) {
+                this.value = detail;
+                this.setPackages();
+            },
+            setPackages: function(cb) {
+                this.fire('iron-signal', {
+                    name: "progress",
+                    data: "start"
+                });
 
                 this.$.packages.filter(this.$.profiles.current(), this.value, function(err, data) {
-                  try {
-                    if (err) {
-                      this.fire('core-signal', {name: "error", data: {text: err, controlDim: true}});
-                    } else {
-                      this.fire('core-signal', {name: "query", data: data});
+                    if (cb) {
+                        cb(err, data);
                     }
-                    this.$.profiles.get(this.$.profiles.current(), function(err, profile) {
-                      this.fire('core-signal', {name: "message", data: {type: "info", text: "Finished for "+profile.name}});
-                    }.bind(this));
-                    this.fire('core-signal', {name: "progress", data: "finish"});
+                    if (err) {
+                        this.fire('iron-signal', {
+                            name: "error",
+                            data: {
+                                text: err,
+                                controlDim: true
+                            }
+                        });
+                    } else {
+                        this.fire('iron-signal', {
+                            name: "query",
+                            data: data
+                        });
+                        this.fire('iron-signal', {
+                            name: "progress",
+                            data: "finish"
+                        });
+                    }
                     this.focus();
-                  } catch (err) {
-                    // console.log('not on the `package manager` page');
-                  }
                 }.bind(this));
-              },
-              focus: function() {
-                this.$.searchfield.focus();
-              },
-              ready: function() {
-                this.value = "";
-              },
-              resetCache: function() {
-                this.$.packages.reset(this.$.profiles.current(), function() {
-                  this.setPackages.bind(this)();
-                }.bind(this));
-              },
-              fillCache: function() {
-                this.$.packages.fill(this.$.profiles.current(), function() {
-                  try {
-                    this.setPackages.bind(this)();
-                  } catch (err) {
-                    // console.log('not on the `package manager` page');
-                  }
-                }.bind(this));
-              },
-              keyHandler: function(event, detail, sender) {
-                if (event.keyCode == 13) {
-                  this.setPackages();
-                }
-              },
-              queryChanged: function() {
-                if (this.query) {
-                  this.value = this.query;
-                  this.setPackages();
-                  this.query = "";  // unset so that next time change is detected
-                }
-              }
-            });
-          })();
-    </script>
-</polymer-element>
-<polymer-element name="list-packages" attributes="disabled">
-    <template>
-        <core-signals on-core-signal-query="{{querySignal}}"></core-signals>
-        <style>
-            .pkgname {
-              float: left;
-              color: #005aa0;
-            }
-            .pkgattr {
-              float: right;
-              text-align: right;
-              color: #646464;
-            }
-            .pkgstate {
-              float: left;
-              font-weight: bold;
-              font-size: 70%;
-              margin-left: 2em;
-            }
-            .package {
-              position: relative;
-              height: 40px;
-              line-height: 40px;
-              color: #646464;
-              padding-right: 0.5em;
-              padding-left: 0.5em;
-              outline: none;
-              font-size: 85%;
-            }
-            .package:hover {
-              background-color: #eeeeee;
-            }
-            .package:focus {
-              background-color: #dddddd;
-              outline: none;
-            }
-            .available {
-              display:none;
-            }
-            .uptodate {
-              display: block;
-              color: #00a05a;
-            }
-            .different {
-              display: block;
-              color: #a05a5a;
-            }
-        </style>
-        <div id="listcontainer">
-            <template repeat="{{package in packages}}" bind="{{classNameFromCompare as classNameFromCompare}}">
-                <div on-click="{{openPackageDialog}}" on-keyup="{{openPackageDialog}}" data-pkgattr="{{package.attribute}}" data-pkgname="{{package.name}}" data-pkgcomp="{{package.compare}}" class="package" tabindex="1">
-                    <div class="pkgname">{{package.name}}</div>
-                    <div class="pkgstate {{package.compare | classNameFromCompare}}" class="pkgstate">{{package.compare}}</div>
-                    <div class="pkgattr">{{package.attribute}}</div>
-                    <paper-ripple fit></paper-ripple>
-                </div>
-            </template>
-        </div>
-    </template>
-    <script>
-        (function() {
-          Polymer('list-packages', {
-            classNameFromCompare: function(value) {
-              var result = "";
-              switch (value[0]) {
-                case "-":
-                  result = "available";
-                  break;
-                case "=":
-                  result = "uptodate";
-                  break;
-                case "<":
-                case ">":
-                  result = "different";
-              }
-              return result;
             },
-            querySignal: function(e, detail, sender) {
-              this.packages = detail;
+            focus: function() {
+                this.$.searchfield.focus();
             },
             ready: function() {
-              this.packages = [];
+                this.value = "";
             },
-            openPackageDialog: function(e, detail, sender) {
-              if ((e.keyCode == 13 || e.keyCode == 0) && this.disabled===null) {
-                var attribute = sender.getAttribute('data-pkgattr');
-                var name = sender.getAttribute('data-pkgname');
-                var compare = sender.getAttribute('data-pkgcomp');
-                this.fire('core-signal', {name: "pkginfo", data: {pkgattr: attribute, pkgname: name, pkgcomp: compare, controlDim: true}});
-              }
+            resetCache: function() {
+                this.$.packages.reset(this.$.profiles.current(), function() {
+                    this.setPackages.bind(this)();
+                }.bind(this));
+            },
+            fillCache: function(cb) {
+                this.$.packages.fill(this.$.profiles.current(), function() {
+                    this.setPackages.bind(this)(cb);
+                }.bind(this));
             }
           });
         })();
     </script>
-</polymer-element>
+</dom-module>
+
+
+<dom-module name="list-packages">
+    <template>
+        <div id="listcontainer">
+            <template is="dom-repeat" items="{{packages}}" as="package">
+                <package-item on-mousedown="openPackagePanel" on-keyup="openPackagePanel" package="{{package}}">
+                </package-item>
+            </template>
+        </div>
+        <package-panel id="panel"></package-panel>
+        <iron-signals on-iron-signal-query="querySignal"></iron-signals>
+        <key-binding id="keybindings"></key-binding>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'list-packages',
+                properties: {
+                    packages: {
+                        type: Object,
+                        value: []
+                    }
+                },
+                querySignal: function(e, detail, sender) {
+                    this.packages = detail;
+                    this.$.panel.close();
+                },
+                ready: function() {
+                    this.$.keybindings.register(27, function() {
+                        this.$.panel.close();
+                    }.bind(this));
+                },
+                openPackagePanel: function(e) {
+                    if (e.keyCode == 13 || (e.keyCode == 0 && e.button == 0)) {
+                        this.$.panel.open(e.model.package);
+                    } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
+                        this.$.panel.close();
+                    }
+                }
+            });
+        })();
+    </script>
+</dom-module>
+
+<dom-module name="package-item">
+    <template>
+        <style is="custom-style">
+            :root {
+            }
+        </style>
+        <style>
+            #pkgname {
+                float: left;
+                color: #4d70b8;
+            }
+
+            #pkgattr {
+                float: right;
+                text-align: right;
+                color: #7eb3de;
+            }
+
+            #pkgstate {
+                float: left;
+                font-weight: bold;
+                font-size: 70%;
+                margin-left: 2em;
+            }
+
+            .package {
+                position: relative;
+                height: 40px;
+                line-height: 40px;
+                padding-right: 0.5em;
+                padding-left: 0.5em;
+                outline: none;
+                font-size: 85%;
+                cursor: pointer;
+            }
+
+            /*.package:hover {*/
+                /*background-color: #ccc;*/
+            /*}*/
+
+            .package:focus {
+                background-color: #ccc;
+                outline: none;
+            }
+
+            .available {
+                display: none;
+            }
+
+            .uptodate {
+                display: block;
+                color: #00a05a;
+            }
+
+            .different {
+                display: block;
+                color: #a05a5a;
+            }
+            #container {
+                color: #7eb3de;
+            }
+        </style>
+        <span>
+            <div id="container" class="package" tabindex="1">
+                <div id="pkgname">{{package.name}}</div>
+                <div id="pkgstate">{{package.compare}}</div>
+                <div id="pkgattr">{{package.attribute}}</div>
+                <paper-ripple fit></paper-ripple>
+            </div>
+            <!-- <iron-collapse id="collapse" opened="{{opened}}">
+                <div id=""></div>
+            </iron-collapse> -->
+        </span>
+    </template>
+    <script>
+        (function() {
+          Polymer({
+            is: 'package-item',
+            properties: {
+                package: {
+                    type: Object,
+                    observer: 'classNameFromCompare'
+                }
+                // opened: {
+                //     type: Boolean,
+                //     value: false
+                // }
+            },
+            ready: function() {
+            },
+            // triggerCollapse: function(e) {
+            //     this.opened = !this.opened;
+            // },
+            classNameFromCompare: function() {
+                if (!this.package) {
+                    return;
+                }
+                var result = "";
+                switch (this.package.compare[0]) {
+                    case "-":
+                        result = "available";
+                        break;
+                    case "=":
+                        result = "uptodate";
+                        break;
+                    case "<":
+                    case ">":
+                        result = "different";
+                }
+                this.toggleClass(result, true, this.$.pkgstate);
+            }
+          });
+        })();
+    </script>
+</dom-module>

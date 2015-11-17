@@ -1,3 +1,17 @@
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
 <!doctype html>
 <html>
 
@@ -5,11 +19,13 @@
     <title>NixUI</title>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+    <script src="../bower_components/underscore/underscore-min.js"></script>
     <link rel="import" href="../bower_components/polymer/polymer.html">
     <link rel="import" href="../bower_components/paper-input/paper-input.html">
     <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
-    <link rel="import" href="../bower_components/core-animation/core-animation.html">
-    <link rel="import" href="../bower_components/core-signals/core-signals.html">
+    <link rel="import" href="../bower_components/neon-animation/neon-animation.html">
+    <link rel="import" href="../bower_components/iron-signals/iron-signals.html">
+    <link rel="import" href="../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
 
     <link rel="import" href="./data.html">
 
@@ -19,10 +35,11 @@
         margin: 0;
         background-color: white;
         font-family: sans-serif;
+        overflow: hidden;
     }
     </style>
 
-    <polymer-element name="nixos-logo">
+    <dom-module name="nixos-logo">
         <template>
             <img id="logo" src="../static/nixos.png"></img>
             <style>
@@ -38,19 +55,19 @@
         <script>
           (function() {
           Polymer({
+              is: 'nixos-logo',
               ready: function() {
                   var elem = this.$.logo;
-                  var anim = new Animation(elem, [{opacity: 0, transform: "rotate(0deg)"}, {opacity: 0.75, transform: "rotate(360deg)"}], {fill: "forwards", duration: 750, iterations: 1, easing: "ease", delay: 500});
-                  var player = document.timeline.play(anim);
+                  elem.animate([{opacity: 0, transform: "rotate(0deg)"}, {opacity: 0.75, transform: "rotate(360deg)"}], {fill: "forwards", duration: 900, iterations: 1, easing: "ease", delay: 500});
               }
           });
           })();
         </script>
-    </polymer-element>
+    </dom-module>
 
-    <polymer-element name="nixui-chooser">
+    <dom-module name="nixui-chooser">
     <template>
-        <core-signals on-core-signal-setconfiguration="{{setConfiguration}}"></core-signals>
+        <iron-signals on-iron-signal-setconfiguration="setConfiguration"></iron-signals>
         <style>
         #actionlist {
             width: 200px;
@@ -60,37 +77,29 @@
         #profilelist {
             width: auto;
             height: 100%;
-            margin-left: 100px;
+            margin-left: 50px;
             display: none;
-            opacity: 0;
         }
         #configlist {
             width: auto;
             height: 100%;
-            margin-left: 100px;
+            margin-left: 50px;
             display: none;
-            opacity: 0;
         }
         .item {
             position: relative;
             height: 30px;
             line-height: 30px;
-            color: #888;
+            color: #7eb3de;
             padding-right: 0.5em;
             padding-left: 0.5em;
         }
-        span.default {
-            color: #0080d0;
-        }
-        .item:hover {
-            background: rgba(240,240,240, .8);
-        }
         .item:focus {
-          background-color: #dddddd;
-          outline: none;
+            /*background-color: #7eb3de;*/
+            outline: none;
+            color: #4d70b8;
         }
         .item_selected {
-            color: #005aa0;
         }
         #container {
             width: 100%;
@@ -102,51 +111,59 @@
         .label {
             font-weight: bold;
             font-size: 70%;
-            color: #005aa0;
+            color: #4d70b8;
         }
         #footer {
             position: absolute;
             bottom: 2em;
             left: 2em;
             font-size: 70%;
-            color: #005aa0;
+            color: #7eb3de;
         }
         #version {
             position: absolute;
             bottom: 0.1em;
             right: 0.1em;
             font-size: 70%;
-            color: #005aa0;
+            color: #4d70b8;
+        }
+        @-webkit-keyframes fadeIn {
+            from { opacity: 0; margin-left: 300px; }
+              to { opacity: 1; margin-left: 50px; }
+        }
+        @-webkit-keyframes fadeOut {
+            from { opacity: 1; margin-left: 50px; }
+              to { opacity: 0; margin-left: 300px; }
         }
         </style>
-        <div id="wrapper" layout horizontal>
-            <div id="actionlist" center-justified layout vertical>
+        <div id="wrapper" class="layout horizontal">
+            <div id="actionlist" class="layout center-justified vertical">
                 <div class="label">Select action:</div>
-                <template repeat="{{ a in actions }}">
-                    <div class="item" on-click="{{selectaction}}" on-keyup="{{selectaction}}" data-url="{{a.url}}" data-id="{{a.id}}" tabindex="1">
+                <template is="dom-repeat" items="{{actions}}" as="a">
+                    <div class="item" on-click="selectaction" on-keyup="selectaction" actionid$="{{a.id}}" tabindex$="{{a.tabindex}}">
                         <span>{{a.label}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
             </div>
-            <div id="profilelist" center-justified layout vertical>
+            <div id="profilelist" class="center-justified layout vertical">
                 <div class="label">Select profile:</div>
-                <template repeat="{{ p in profiles }}">
-                    <div class="item" on-click="{{selectprofile}}" on-keyup="{{selectprofile}}" data-id="{{p.id}}" tabindex="1">
-                        <span class="{{ {default: p.profile} | tokenList}}">{{p.name}}</span>
+                <template is="dom-repeat" items="{{profiles}}">
+                    <div class="item" on-click="selectprofile" on-keyup="selectprofile" tabindex="1">
+                        <span>{{item.name}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
             </div>
-            <div id="configlist" center-justified layout vertical>
+            <div id="configlist" class="center-justified layout vertical">
                 <div class="label">Select configuration:</div>
-                <div class="item" on-click="{{selectconfig}}" on-keyup="{{selectconfig}}" data-id="-1" tabindex="1">
+                <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="2">
                     <span>Empty</span>
                     <paper-ripple fit/>
                 </div>
-                <template repeat="{{ c in configurations }}">
-                    <div class="item" on-click="{{selectconfig}}" on-keyup="{{selectconfig}}" data-id="{{c._id}}" tabindex="1">
-                        <span>{{c.path}}</span>
+                <template is="dom-repeat" items="{{configurations}}">
+                    <div class="item" on-click="selectconfig" on-keyup="selectconfig" tabindex="2">
+                        <span>{{item.path}}</span>
                         <paper-ripple fit/>
                     </div>
                 </template>
@@ -154,7 +171,7 @@
             </div>
         </div>
         <div id="footer">
-            NIX_PATH: {{nixPath}}
+            NIX_PATH: <span>{{nixPath}}</span>
         </div>
 
         <div id="version">{{nixuiVersion}}</div>
@@ -166,13 +183,16 @@
     </template>
     <script>
     (function() {
-        Polymer('nixui-chooser', {
+        var isNumber = require('isnumber');
+        Polymer({
+            is: 'nixui-chooser',
             ready: function() {
                 this.nixPath = process.env.NIX_PATH;
                 this.nixuiVersion = this.$.meta.all().package.version;
 
                 this.profiles = [];
                 this.actions = this.$.actions.all();
+                this.currentAction = {};
 
                 this.$.profiles.init();
                 this.$.profiles.all(function (err, profiles) {
@@ -183,84 +203,110 @@
                 this.$.configurations.all(function (err, cfgs) {
                     this.configurations = cfgs;
                 }.bind(this));
+
+                function getParameterByName(name) {
+                    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+                    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+                        results = regex.exec(location.search);
+                    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+                }
+
+                this.async(function() {
+                    var actionId = parseInt(getParameterByName('actionId'));
+                    if (!isNumber(actionId)) {
+                        return;
+                    }
+                    this.selectaction({actionId: actionId});
+                }, 500);
             },
-            selectaction: function(e, detail, sender) {
-                if (e.keyCode == 13 || e.keyCode == 0) {
+            selectaction: function(e) {
+                if (_.isNumber(e.actionId) || e.keyCode == 13 || e.keyCode == 0) {
 
                     if (this.animating === true) {
                         return;
                     }
 
-                    var item = sender;
+                    var item = e.target?e.target.parentNode:{};
+                    var actionId = _.find([e.actionId, (e.model?e.model.__data__.a.id:undefined), item.actionid], function(id) {
+                        return isNumber(id);
+                    });
 
-                    if (item) {
-                        items = this.shadowRoot.querySelectorAll(".item");
-                        for (var i in items) {
-                            items[i].className = item.className.replace( /(?:^|\s)item_selected(?!\S)/g , '' )
-                        }
-                        item.className += " item_selected";
-                        this.currentActionURL = item.getAttribute("data-url");
-                        this.currentActionId = item.getAttribute("data-id");
+                    this.currentAction = this.$.actions.get(actionId);
 
-                        switch (this.currentActionId) {
-                            case '0':
-                                this.listAnimationShow(this.$.profilelist);
-                                break;
+                    this.$.actions.set(this.currentAction.id);
 
-                            case '1':
-                                this.listAnimationShow(this.$.configlist);
-                                break;
-                        }
+                    switch (this.currentAction.id) {
+                        case 0:
+                            this.listAnimationShow(this.$.profilelist,this.$.configlist);
+                            break;
+
+                        case 1:
+                            this.listAnimationShow(this.$.configlist,this.$.profilelist);
+                            break;
+
+                        case 2:
+                            window.location.assign(this.currentAction.url);
+                            break;
                     }
                 }
             },
-            selectconfig: function(e, detail, sender) {
+            selectconfig: function(e) {
                 if (e.keyCode == 13 || e.keyCode == 0) {
-                    var item = sender;
-                    if (item) {
-                        this.$.configurations.current(item.getAttribute("data-id"));
-                        window.location.assign(this.currentActionURL);
+                    var model = e.model;
+                    if (model) {
+                        this.$.configurations.current(model.item._id);
+                        window.location.assign(this.currentAction.url);
+                    } else {
+                        this.$.configurations.current('-1');
+                        window.location.assign(this.currentAction.url);
                     }
                 }
             },
-            selectprofile: function(e, detail, sender) {
+            selectprofile: function(e) {
                 if (e.keyCode == 13 || e.keyCode == 0) {
-                    var item = sender;
-                    if (item) {
-                        this.$.profiles.current(item.getAttribute("data-id"));
-                        window.location.assign(this.currentActionURL);
+                    var model = e.model;
+                    if (model) {
+                        this.$.profiles.current(model.item.id);
+                        window.location.assign(this.currentAction.url);
                     }
                 }
             },
-            generateListAnimation: function(elem, show) {
-                var anim;
-                if (show) {
-                    anim = new Animation(elem, [{opacity: "0", 'margin-left': '400px', display: 'none'}, {opacity: "1", 'margin-left': '100px', display: 'flex'}], {fill: "forwards", duration: 200, easing: "ease"});
-                } else {
-                    anim = new Animation(elem, [{opacity: "1", 'margin-left': '100px', display: 'flex'}, {opacity: "0", 'margin-left': '400px', display: 'none'}], {fill: "forwards", duration: 200, easing: "ease"});
-                }
-                return anim;
-            },
-            listAnimationShow: function(elem) {
-                this.animating = true;
-                var sequence = [], hideElem;
+//             generateListAnimation: function(elem, show) {
+//                 var anim;
+//                 if (show) {
+//                     anim = new KeyframeEffect(elem, [{opacity: "0", 'margin-left': '400px', display: 'none'}, {opacity: "1", 'margin-left': '100px', display: 'flex'}], {fill: "forwards", duration: 200, easing: "ease"});
+//                 } else {
+//                     anim = new KeyframeEffect(elem, [{opacity: "1", 'margin-left': '100px', display: 'flex'}, {opacity: "0", 'margin-left': '400px', display: 'none'}], {fill: "forwards", duration: 200, easing: "ease"});
+//                 }
+//                 return anim;
+//             },
+//             listAnimationShow: function(elem) {
+//                 this.animating = true;
+//                 var sequence = [], hideElem;
 
-                if (this.$.profilelist.style.opacity == '1') {
-                    hideElem = this.$.profilelist;
-                    sequence.push(this.generateListAnimation(hideElem, false));
-                } else if (this.$.configlist.style.opacity == '1') {
-                    hideElem = this.$.configlist;
-                    sequence.push(this.generateListAnimation(hideElem, false));
-                }
+//                 if (this.$.profilelist.style.opacity == '1') {
+//                     hideElem = this.$.profilelist;
+//                     sequence.push(this.generateListAnimation(hideElem, false));
+//                 } else if (this.$.configlist.style.opacity == '1') {
+//                     hideElem = this.$.configlist;
+//                     sequence.push(this.generateListAnimation(hideElem, false));
+//                 }
 
-                sequence.push(this.generateListAnimation(elem, true));
+//                 sequence.push(this.generateListAnimation(elem, true));
 
-                var anim = new AnimationSequence(sequence);
+//                 var anim = new SequenceEffect(sequence);
 
-                var player = document.timeline.play(anim);
-                player.onfinish = function() {
-                    this.animating = false;
-                }.bind(this);
+//                 var player = document.timeline.play(anim);
+//                 player.onfinish = function() {
+//                     this.animating = false;
+//                 }.bind(this);
+//             },
+            listAnimationShow: function(showElem, hideElem) {
+                showElem.style['-webkit-animation'] = 'fadeIn 0.3s';
+                this.async(function() {showElem.style['display'] = 'flex';}, 300);
+                hideElem.style['-webkit-animation'] = 'fadeOut 0.3s';
+                this.async(function() {hideElem.style['display'] = 'none';}, 300);
+//                 this.updateStyles();
             },
             setConfiguration: function(event, detail, sender) {
                 this.$.configurations.set(detail, function() {
@@ -272,36 +318,70 @@
         });
     })();
     </script>
-    </polymer-element>
-
-    <polymer-element name="configurations-input">
+    </dom-module>
+    <dom-module name="configurations-input">
           <template>
-              <style type="text/css">
+              <!-- /*<style type="text/css">
                   #configurationsfield {
-                      border-bottom: 1px solid #50a0ff;
+                      /*border-bottom: 1px solid #50a0ff;*/
                       font-family: sans-serif;
                       /*font-variant: small-caps;*/
-                      font-size: 75%;
                       width: 18em;
                       margin: 1em 0.25em 0.25em 0.25em;
-                      color: #005aa0;
+                      color: #4d70b8;
                   }
+              </style>*/ -->
+              <style is="custom-style">
+              :root {
+                  --paper-input-container: {
+                      font-size: 75%;
+                  };
+                  --paper-input-container-label: {
+                      color: #ccc;
+                  }
+                  ;
+                  --paper-input-container-label-focus: {
+                      color: #ccc;
+                  }
+                  ;
+                  --paper-input-container-underline: {
+                      background: #7eb3de;
+                  }
+                  ;
+                  --paper-input-container-underline-focus: {
+                      background: #7eb3de;
+                  }
+                  ;
+                  --paper-input-container-input: {
+                      color: #4d70b8;
+                  }
+                  ;
+                  --paper-input-container-input-disabled: {
+                      pointer-events: none;
+                      cursor: default;
+                      color: #ccc;
+                  }
+                  ;
+              }
               </style>
               <span>
-                  <div id="container" relative>
-                      <input is="core-input" id="configurationsfield" on-keyup="{{keyUpHandler}}" value="{{value}}" placeholder="new configuration"></input>
-                  </div>
+                  <paper-input-container id="container" relative>
+                      <label>Enter configuration ...</label>
+                      <input is="iron-input" id="configurationsfield" on-keyup="keyUpHandler"
+                          bind-value="{{value}}"></input>
+                  </paper-input-container>
               </span>
           </template>
           <script>
               (function() {
-                Polymer('configurations-input', {
+                Polymer({
+                  is: 'configurations-input',
                   ready: function() {
                     this.value = "";
                   },
                   keyUpHandler: function(event, detail, sender) {
                     if (event.keyCode == 13) {
-                      this.fire('core-signal', {
+                      this.fire('iron-signal', {
                           name: "setconfiguration",
                           data: this.value
                       });
@@ -310,7 +390,7 @@
                 });
               })();
           </script>
-      </polymer-element>
+      </dom-module>
 
 </head>
 <body>

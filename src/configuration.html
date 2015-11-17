@@ -1,418 +1,304 @@
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
 <!doctype html>
 <html>
-    <head>
-        <title>NixUI</title>
-        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-        <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
-        <link rel="import" href="../bower_components/polymer/polymer.html">
-        <link rel="import" href="../bower_components/core-header-panel/core-header-panel.html">
-        <link rel="import" href="../bower_components/core-toolbar/core-toolbar.html">
-        <link rel="import" href="../bower_components/core-input/core-input.html">
-        <link rel="import" href="../bower_components/paper-input/paper-input.html">
-        <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
-        <link rel="import" href="../bower_components/core-icon-button/core-icon-button.html">
-        <link rel="import" href="../bower_components/core-signals/core-signals.html">
-        <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
-        <link rel="import" href="../bower_components/paper-item/paper-item.html">
-        <link rel="import" href="../bower_components/paper-toast/paper-toast.html">
-        <link rel="import" href="../bower_components/core-dropdown/core-dropdown.html">
-        <link rel="import" href="../bower_components/core-item/core-item.html">
-        <link rel="import" href="../bower_components/core-menu/core-menu.html">
-        <link rel="import" href="../bower_components/core-animation/web-animations.html">
-        <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
-        <link rel="import" href="../bower_components/paper-dropdown/paper-dropdown.html">
 
-        <link rel="import" href="./progress-bar.html">
-        <link rel="import" href="./data.html">
+<head>
+    <title>NixUI</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+    <link rel="import" href="../bower_components/polymer/polymer.html">
+    <link rel="import" href="../bower_components/iron-input/iron-input.html">
+    <link rel="import" href="../bower_components/paper-input/paper-input-container.html">
+    <link rel="import" href="../bower_components/paper-ripple/paper-ripple.html">
+    <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+    <link rel="import" href="../bower_components/iron-signals/iron-signals.html">
+    <link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
+    <link rel="import" href="../bower_components/paper-item/paper-item.html">
+    <link rel="import" href="../bower_components/paper-menu/paper-menu.html">
+    <link rel="import" href="../bower_components/neon-animation/neon-animation.html">
+    <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+    <script src="../bower_components/js-beautify/js/lib/beautify.js"></script>
+    <script src="../bower_components/underscore/underscore-min.js"></script>
 
-        <polymer-element name="nixui-configuration">
-            <template>
-                <style>
-                    core-header-panel {
+    <link rel="import" href="./data.html">
+    <link rel="import" href="./option-panel.html">
+    <link rel="import" href="./nixui-page.html">
+    <link rel="import" href="./input-field.html">
+    <link rel="import" href="./key-binding.html">
+
+    <dom-module name="nixui-configuration">
+        <template>
+            <style is="custom-style">
+                :root {
+                    --paper-header-panel-seamed-container: {
                         height: 100%;
-                        overflow: auto;
-                        -webkit-overflow-scrolling: touch;
+                        /*overflow: auto;*/
                     }
-                    core-toolbar {
+                    ;
+                    --paper-toolbar: {
                         background: white;
-                        border-color: #005aa0;
+                        border-color: #4d70b8;
                     }
-                    .nixuicenter {
-                        color: #005aa0;
-                        position: relative;
-                        text-align: center;
+                    ;
+                }
+            </style>
+            <style>
+                search-input {
+                    margin: 0 3em 0 0;
+                }
+
+                [disabled] {
+                    pointer-events: none;
+                    cursor: default;
+                    color: #ccc;
+                }
+            </style>
+
+            <nixui-page id="page" selection="{{configuration.path}}" on-finish="onFinish">
+                <search-input searchfield class="fixed-right" id="searchfield"></search-input>
+                <config-options container id="configoptions"></config-options>
+            </nixui-page>
+            <error-dialog controlDim="true"></error-dialog>
+            <nixui-configurations id="configurations"></nixui-configurations>
+            <key-binding id="keybindings"></key-binding>
+        </template>
+        <script>
+            (function() {
+                Polymer({
+                    is: 'nixui-configuration',
+                    ready: function() {
+                        this.$.configurations.get(undefined, function(err, configuration) {
+                            this.configuration = configuration;
+                        }.bind(this));
+
+                        this.$.keybindings.register(191, function() {
+                            if (e.target.id !== 'searchfield') {
+                                this.$.searchfield.focus();
+                            } else {
+                                return true;
+                            }
+                            return false;
+                        }.bind(this)); // key === '/'
+                        this.$.keybindings.register(8, function(e) {
+                            if (e.target.id !== 'searchfield') {
+                                window.location.assign('chooser.html');
+                            } else {
+                                return true;
+                            }
+                        }.bind(this));
+                    },
+                    onFinish: function() {
+                        this.$.searchfield.focus();
                     }
-                    .nixuilink {
-                        color: #005aa0;
-                        text-decoration: none;
-                    }
-                    #dimmer
-                    {
-                        background:#000;
-                        opacity:0.2;
-                        position:fixed; /* important to use fixed, not absolute */
-                        top:0;
-                        left:0;
-                        width:100%;
-                        height:100%;
-                        display:none;
-                        z-index:1;
-                    }
-                    .notactive {
-                      pointer-events: none;
-                      cursor: default;
-                      color: #c9c9c9;
-                    }
-                </style>
-                <core-signals on-core-signal-progress="{{progressSignal}}"></core-signals>
-                <core-signals on-core-signal-dim="{{dimSignal}}"></core-signals>
-                <core-signals on-core-signal-message="{{message}}"></core-signals>
-                <core-header-panel id="contentpanel" mode="seamed" on-keyup="{{globalKeyUp}}">
-                    <div id="dimmer"></div>
-                    <div class="core-header">
-                        <core-toolbar>
-                            <div class="nixuicenter">
-                                <a href="chooser.html" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
-                                    NixUI
-                                    <paper-ripple fit></paper-ripple>
-                                </a>
-                            </div>
-                            <div class="nixuilink {{ {notactive: workLock} | tokenList }}">></div>
-                            <div>
-                                <a href="{{action.url}}" class="nixuilink {{ {notactive: workLock} | tokenList }}" tabindex="-1">
-                                    {{action.label}}
-                                </a>
-                            </div>
-                            <div flex></div>
-                            <search-input id="searchfield" disabled?="{{workLock}}"></search-input>
-                        </core-toolbar>
-                        <progress-bar id="progressbar"></progress-bar>
+                });
+
+            })();
+        </script>
+    </dom-module>
+
+    <dom-module name="config-options">
+        <template>
+            <iron-signals on-iron-signal-search="searchSignal"></iron-signals>
+            <style>
+                .optionname {
+                    color: #4d70b8;
+                    font-size: 90%;
+                    font-family: sans-serif;
+                    font-weight: bold;
+                }
+
+                .optionval {
+                    font-size: 70%;
+                    font-weight: bold;
+                    color: #7edeb3;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+
+                .optiondesc {
+                    color: #7eb3de;
+                    font-size: 70%;
+                    margin-left: 2em;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+
+                .option {
+                    position: relative;
+                    height: 32px;
+                    line-height: 16px;
+                    padding: 0.4em;
+                    cursor: pointer;
+                    color: #7eb3de;
+                }
+
+                .option:hover {
+                    /*background-color: #eeeeee;*/
+                }
+
+                .option:focus {
+                    background-color: #ddd;
+                    outline: none;
+                }
+
+                paper-input {
+                    font-family: monospace;
+                }
+            </style>
+            <div id="listcontainer">
+                <template is="dom-repeat" items="{{configs}}" as="option">
+                    <div on-mousedown="openPanel" on-keyup="openPanel" tabindex="1" data-optionname="{{option.name}}" class="option">
+                        <span class="optionname">{{option.name}}</span>
+                        <template is="dom-if" if="{{option.val}}">
+                            <span class="optionval">VALUE SET</span>
+                        </template>
+                        <div class="optiondesc">{{option.description}}</div>
+                        <paper-ripple fit></paper-ripple>
                     </div>
-                    <div id="optionscontainer">
-                        <config-options id="configoptions" disabled?="{{workLock}}"></config-options>
-                    </div>
-                </core-header-panel>
-                <!--<package-dialog controlDim="true"></package-dialog>-->
-                <error-dialog controlDim="true"></error-dialog>
-                <!--<marked-dialog controlDim="true"></marked-dialog>-->
-                <paper-toast id="message" text="PLACEHOLDER"></paper-toast>
-                <nixui-actions id="actions"></nixui-actions>
-            </template>
-            <script>
-                (function() {
-                    Polymer('nixui-configuration', {
-                      observe: {
-                        '$.progressbar.animating': 'observeAnimating'
-                      },
-                      observeAnimating: function (oldValue, newValue) {
-                        this.workLock = newValue;
-                      },
-                      ready: function() {
-                        this.action = this.$.actions.get(1);
-                        this.workLock = false;
-                      },
-                      progressSignal: function(e, detail, sender) {
-                        this.$.progressbar.doProgress(detail);
-                        if (detail === "finish") {
-                            this.$.searchfield.focus();
-                        }
-                      },
-                      dimSignal: function(e, detail, sender) {
-                        this.$.dimmer.style.display=(detail)?"block":"none";
-                      },
-                      searchFor: function(e, detail, sender) {
-                        this.query = sender.getAttribute("data-query");
-                      },
-                      message: function(e, detail, sender) {
-                        this.$.message.text = detail.text;
-                        var color = "#005aa0";
-                        switch (detail.type) {
-                        case "error":
-                            color = "#a05a5a";
-                            break;
-                        }
-                        this.$.message.style.color = color;
-                        this.$.message.show();
-                      },
-                      globalKeyUp: function(e, detail, sender) {
-                        if (e.keyCode == 191) {  // the '/' key
-                          this.$.searchfield.focus();
-                          if (this.$.configoptions.panelVisible) this.$.configoptions.panelAnimate(false);
-                        }
-                      }
-                    });
-
-                  })();
-            </script>
-        </polymer-element>
-
-        <polymer-element name="config-options" attributes="disabled">
-            <template>
-                <core-signals on-core-signal-search="{{searchSignal}}"></core-signals>
-                <style>
-                    .optionname {
-                      color: #005aa0;
-                      font-size: 90%;
-                      font-family: sans-serif;
-                      font-weight: bold;
-                    }
-                    .optionval {
-                      font-size: 70%;
-                      font-weight: bold;
-                      color: #589f4a;
-                      text-overflow: ellipsis;
-                      white-space: nowrap;
-                      overflow: hidden;
-                    }
-                    .optiondesc {
-                      color: #777;
-                      font-size: 70%;
-                      margin-left: 2em;
-                      text-overflow: ellipsis;
-                      white-space: nowrap;
-                      overflow: hidden;
-                    }
-                    .option {
-                      position: relative;
-                      height: 40;
-                      line-height: 16px;
-                      padding: 0.4em;
-                    }
-                    .option:hover {
-                      background-color: #eeeeee;
-                    }
-                    .option:focus {
-                      background-color: #dddddd;
-                      outline: none;
-                    }
-                    #editpanel {
-                      border: 1px solid #50a0ff;
-                      background: white;
-                      display: none;
-                      top: 5em;
-                      right: 1em;
-                      bottom: 1em;
-                      position: fixed;
-                      overflow: auto;
-                      padding: 0.5em;
-                      width: 60%;
-                    }
-                    #editpanel #path {
-                        font-family: sans-serif;
-                        font-weight: bold;
-                        color: #005aa0;
-                    }
-                    #editpanel #type {
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        font-weight: bold;
-                        color: #888;
-                    }
-                    #editpanel #description {
-                        color: #666;
-                        margin: 1em 0 1em 0;
-                    }
-                    #editpanel pre {
-                        background-color: #eee;
-                        border-radius: 4px;
-                        padding: 5px;
-                        margin: 0 0 1em 0;
-
-                        white-space: pre-wrap;       /* css-3 */
-                        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-                        white-space: -pre-wrap;      /* Opera 4-6 */
-                        white-space: -o-pre-wrap;    /* Opera 7 */
-                        word-wrap: break-word;       /* Internet Explorer 5.5+ */
-                    }
-                    .label {
-                        font-family: sans-serif;
-                        font-variant: small-caps;
-                        width: 100%;
-                        text-align: right;
-                        color: #005aa0;
-                        font-size: 80%;
-                    }
-                    #editpanel #value {
-                        width: 100%;
-                    }
-                    paper-input {
-                        font-family: monospace;
-                    }
-                </style>
-                <div id="listcontainer" on-mouseleave="{{closeToolTips}}">
-                    <template repeat="{{option in configs}}">
-                        <div on-click="{{openPanel}}" on-keyup="{{openPanel}}" tabindex="2" data-optionname="{{option.name}}" class="option">
-                            <span class="optionname">{{option.name}}</span>
-                            <span class="optionval">{{option.val}}</span>
-                            <div class="optiondesc">{{option.description}}</div>
-                            <paper-ripple fit></paper-ripple>
-                        </div>
-                    </template>
-                </div>
-                <div id="editpanel">
-                    <div id="path">{{optionDetails._path}}</div>
-                    <div id="type">{{optionDetails.optType}}</div>
-                    <div id="description">{{optionDetails.description}}</div>
-                    <template if="{{optionDetails.example}}">
-                        <div class="label">example</div> <pre id="example">{{optionDetails.example}}</pre>
-
-                    </template>
-                    <template if="{{optionDetails.default}}">
-                        <div class="label">default</div> <pre id="default">{{optionDetails.default}}</pre>
-
-                    </template>
-
-                    <template if="{{optionDetails.val}}">
-                        <div class="label">value</div> <pre id="val">{{optionDetails.val}}</pre>
-                    </template>
-                    <!--<paper-input id="value" multiline maxRows="5" floatingLabel label="value ..." value="{{optionDetails.val}}" on-keydown="{{optionValueKeyDown}}" on-keypress="{{optionValueKeyPress}}"></paper-input>-->
-                </div>
-                <nixui-configs id="configs"></nixui-configs>
-                <nixui-configurations id="configurations"></nixui-configurations>
-            </template>
-            <script>
-                (function() {
-                  Polymer({
-                      ready: function() {
-                        this.panelVisible = false;
+                </template>
+            </div>
+            <nixui-configurations id="configurations"></nixui-configurations>
+            <nixui-configs id="configs"></nixui-configs>
+            <option-panel id="panel"></option-panel>
+            <key-binding id="keybindings"></key-binding>
+        </template>
+        <script>
+            (function() {
+                Polymer({
+                    is: 'config-options',
+                    properties: {
+                        disabled: Boolean
+                    },
+                    ready: function() {
                         this.query = "";
-                        this.configstree = {};
                         this.configs = [];
-                        this.optionDetails = {};
-
-                        this.fire('core-signal', {name: "progress", data: "start"});
 
                         this.$.configs.init(this.$.configurations.current(), function(err, result) {
-                            if (err) throw err;
-                            this.configstree = result;
-                            this.searchSignal(undefined, {query: ""});
-                        }.bind(this));
-                      },
-                      searchSignal: function(e, detail, sender) {
-                        this.query = detail.query;
-                        this.fire('core-signal', {name: "progress", data: "start"});
-                        this.$.configs.filter(this.query, function(err, result) {
-                            if (err) throw err;
-                            this.configs = result;
-                            this.fire('core-signal', {name: "progress", data: "finish"});
-                        }.bind(this));
-                        if (this.panelVisible) this.panelAnimate(false);
-                      },
-                      openPanel: function(e, detail, sender) {
-                        if ((e.keyCode == 13 || e.keyCode == 9 || e.keyCode == 0) && this.disabled===null) {
-                            var optionName = sender.getAttribute("data-optionname");
-                            var optionPath = optionName.split('.');
-
-                            var option = this.getOptionByPath(optionPath);
-                            if (option && option.optType) {
-                                this.optionDetails = option;
-                                this.optionDetails._path = optionPath.join(".");
-                                if (!this.panelVisible) this.panelAnimate(true);
-                                return;
+                            if (err) {
+                                this.fire('iron-signal', {
+                                    name: "error",
+                                    data: {
+                                        text: err,
+                                        controlDim: true
+                                    }
+                                });
+                                this.fire('iron-signal', {
+                                    name: "progress",
+                                    data: "error"
+                                });
+                                throw err;
                             }
-                        } else if (e.keyCode == 27) {
-                            if (this.panelVisible) this.panelAnimate(false);
+
+                            this.searchSignal(undefined, {
+                                query: ""
+                            });
+
+                        }.bind(this));
+
+                        this.$.keybindings.register(27, function() {
+                            this.$.panel.close();
+                        }.bind(this));
+                    },
+                    openPanel: function(e, detail, sender) {
+                        if (e.keyCode == 13 || (e.keyCode == 0 && e.button == 0)) {
+                            var optionName = e.model.option.name;
+                            this.$.panel.open(optionName);
+                        } else if (e.keyCode == 27 || (e.keyCode == 0 && e.button == 2)) {
+                            this.$.panel.close();
                         }
-                      },
-                      getOptionByPath: function(path) {
-                          option = this.configstree;
-                          if (path.length > 0) {
-                              for (var i in path) {
-                                  if (path[i] === "") {
-                                      continue;
-                                  }
-                                  try {
-                                      option = option[path[i]];
-                                  } catch (ex) {
-                                      console.log("Not found option: " + path.join("."));
-                                      return null;
-                                  }
-                              }
-                          } else {
-                              option = this.configstree;
-                          }
-                          return option;
-                      },
-                      panelAnimate: function(show) {
-                        var elem = this.$.editpanel;
-                        var anim;
-                        if (show) {
-                            anim = new Animation(elem, [{transform: "scale(0.3)", opacity: "0"}, {transform: "scale(1)", opacity: "1"}], {fill: "forwards", duration: 200});
-                            // this.force.size([this.graph_width * 0.66, this.graph_height]).start();
-                            elem.style.display = "block";
-                            this.panelVisible = true;
-                        } else {
-                            anim = new Animation(elem, [{transform: "scale(1)", opacity: "1"}, {transform: "scale(0.3)", opacity: "0"}], {fill: "forwards", duration: 200});
-                            // this.force.size([this.graph_width, this.graph_height]).start();
-                            anim.onfinish = function() {
-                                this.$.editpanel.style.display = "none";
-                            }.bind(this);
-                            this.panelVisible = false;
-                        }
-                        var player = document.timeline.play(anim);
-                      }
-                  });
-                })();
-            </script>
-        </polymer-element>
+                    },
+                    searchSignal: function(e, detail, sender) {
+                        this.query = detail.query;
+                        this.fire('iron-signal', {
+                            name: "progress",
+                            data: "start"
+                        });
+                        this.$.configs.filter(this.query, function(err, result) {
+                            if (err) {
+                                this.fire('iron-signal', {
+                                    name: "error",
+                                    data: {
+                                        text: err,
+                                        controlDim: true
+                                    }
+                                });
+                                this.fire('iron-signal', {
+                                    name: "progress",
+                                    data: "error"
+                                });
+                                throw err;
+                            }
+                            this.configs = result;
+                            this.fire('iron-signal', {
+                                name: "progress",
+                                data: "finish"
+                            });
+                        }.bind(this));
+                        this.$.panel.close();
+                    }
+                });
+            })();
+        </script>
+    </dom-module>
 
 
-        <polymer-element name="search-input" attributes="disabled">
-            <template>
-                <style type="text/css">
-                    #searchfield {
-                        border-bottom: 1px solid #50a0ff;
-                        font-family: sans-serif;
-                        width: 20em;
-                        margin: 0.25em;
-                        color: #005aa0;
-                    }
-                    #searchfield.notactive {
-                      pointer-events: none;
-                      cursor: default;
-                      color: #c9c9c9;
-                      border-bottom-color: #c9c9c9;
-                    }
-                </style>
-                <span>
-                    <div id="container" relative>
-                        <input is="core-input" id="searchfield" tabindex="{{disabled===null?1:-1}}" on-keydown="{{keyDownHandler}}"
-                            value="{{value}}" placeholder="Search configuration ..." disabled?="{{disabled}}"
-                            class="{{ {notactive: disabled!==null} | tokenList }}"></input>
-                    </div>
-                </span>
-            </template>
-            <script>
-                (function() {
-                  Polymer('search-input', {
+    <dom-module name="search-input">
+        <template>
+            <span>
+                <input-field id="searchfield" on-submit="triggerSearch" label="Search options ..."></input-field>
+            </span>
+        </template>
+        <script>
+            (function() {
+                Polymer({
+                    is: 'search-input',
                     focus: function() {
                         this.$.searchfield.focus();
                     },
-                    ready: function() {
-                        this.value = "";
-                    },
-                    keyDownHandler: function(event, detail, sender) {
-                      if (event.keyCode == 13) {
-                        this.fire('core-signal', {
+                    triggerSearch: function(e, detail) {
+                        this.fire('iron-signal', {
                             name: "search",
-                            data: { query: this.value }
+                            data: {
+                                query: detail
+                            }
                         });
-                      }
                     }
-                  });
-                })();
-            </script>
-        </polymer-element>
-        <style>
-            html,body {
-                height: 100%;
-                margin: 0;
-                background-color: white;
-                font-family: sans-serif;
-              }
-        </style>
-    </head>
-    <body unresolved touch-action="auto">
-        <nixui-configuration></nixui-configuration>
-    </body>
+                });
+            })();
+        </script>
+    </dom-module>
+
+
+
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background-color: white;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+
+<body unresolved touch-action="auto">
+    <nixui-configuration></nixui-configuration>
+</body>
+
 </html>

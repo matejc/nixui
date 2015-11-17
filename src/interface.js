@@ -1,3 +1,19 @@
+/*
+Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 var spawn = require('child_process').spawn;
 var fs = require('fs');
 var path = require('path');
@@ -55,9 +71,9 @@ exports.nixInstantiate = function (prefix_args, expression, removeQuotations, us
   if (useStdin) {
     nixProcess.stdin.write(expression);
     nixProcess.stdin.end();
-    console.log("nix-instantiate: " + args + "\n" + expression);
+    console.log("nix-instantiate " + args.join(" ") + "\n" + expression);
   } else {
-    console.log("nix-instantiate: " + args);
+    console.log("nix-instantiate " + args.join(" "));
   }
 
   nixProcess.stdout.on("data", function(data) {
@@ -72,7 +88,7 @@ exports.nixInstantiate = function (prefix_args, expression, removeQuotations, us
   nixProcess.on("close", function(code) {
     if(code === 0) {
       if (removeQuotations) {
-        callback(output.substring(1, output.length - 2));
+        callback(JSON.parse(output));
       } else {
         // callback(output.substring(0, output.length - 1));  // why?
         callback(output);
@@ -80,6 +96,34 @@ exports.nixInstantiate = function (prefix_args, expression, removeQuotations, us
     } else
       error_callback(outerr+"\nnix-instantiate exited with status: " + code);
   });
+};
+
+exports.nixBuild = function(args, env, callback, error_callback) {
+  var output = "";
+  var outerr = "";
+
+  var options = { env: (env?env:process.env) };
+
+  var nixProcess = spawn('nix-build', args, options);
+
+  console.log("nix-build: " + args);
+
+  nixProcess.stdout.on("data", function(data) {
+    output += data;
+  });
+
+  nixProcess.stderr.on("data", function(data) {
+    console.error("nix-build: " + data);
+    outerr += data;
+  });
+
+  nixProcess.on("close", function(code) {
+    if(code === 0) {
+      callback(output.substring(0, output.length - 1));
+    } else {
+      error_callback(outerr+"\nnix-build exited with status: " + code);
+    }
+  }.bind(nixProcess));
 };
 
 exports.createArgsArray = function(prefix_args, file_arg, profile_arg, postfix_args) {
@@ -242,6 +286,18 @@ exports.configTree = function (configurationnix, attrs, file_arg, env, callback,
   );
 };
 
+exports.gitRev = function (file_arg, env, callback, error_callback) {
+  exports.nixBuild(
+    [
+        "./src/revision.nix",
+        "--arg", "nixpkgs", file_arg?file_arg:exports.nixpkgs()
+    ],
+    env,
+    function (file) { callback(fs.readFileSync(file, {encoding: 'utf8'})); },
+    error_callback
+  );
+};
+
 exports.listProfiles = function (directory, name, depth, result) {
     var abspath = path.join(directory, name);
 
@@ -309,4 +365,54 @@ exports.nixpkgs = function () {
     } else {
         return '/nix/var/nix/profiles/per-user/root/channels/nixos/nixpkgs';
     }
+};
+
+exports.options = function (configurationnix, path, optionsWithVal, file_arg, env, callback, error_callback) {
+  exports.nixInstantiate(
+    [
+        "./src/eval.nix", "--eval", "--strict", "--show-trace",
+        "-A", "options", "--arg", "optionsWithVal", optionsWithVal
+    ]
+    .concat(configurationnix?["--argstr", "configurationnix", configurationnix]:[])
+    .concat(path?["--argstr", "path", path]:[])
+    .concat(file_arg?["-I", "nixpkgs="+file_arg]:["-I", "nixpkgs="+exports.nixpkgs()]),
+    null,
+    true,
+    false,
+    env,
+    callback,
+    error_callback
+  );
+};
+
+exports.get = function (configurationnix, path, file_arg, env, callback, error_callback) {
+  exports.nixInstantiate(
+    [
+        "./src/eval.nix", "--eval", "--strict", "--show-trace",
+        "-A", "get", "--argstr", "path", path
+    ]
+    .concat(configurationnix?["--argstr", "configurationnix", configurationnix]:[])
+    .concat(file_arg?["-I", "nixpkgs="+file_arg]:["-I", "nixpkgs="+exports.nixpkgs()]),
+    null,
+    false,
+    false,
+    env,
+    callback,
+    error_callback
+  );
+};
+
+exports.toNixString = function (object, env, callback, error_callback) {
+  exports.nixInstantiate(
+    [
+        "./src/eval.nix", "--eval", "--strict", "--show-trace",
+        "-A", "parse", "--argstr", "json", object
+    ],
+    null,
+    false,
+    false,
+    env,
+    callback,
+    error_callback
+  );
 };

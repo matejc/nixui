@@ -1,97 +1,97 @@
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
 <link rel="import" href="../bower_components/paper-progress/paper-progress.html">
-<link rel="import" href="../bower_components/core-signals/core-signals.html">
+<link rel="import" href="../bower_components/iron-signals/iron-signals.html">
 
 
-<polymer-element name="progress-bar" attributes="progress">
+<dom-module name="progress-bar">
 <template>
   <style>
-  paper-progress::shadow #activeProgress {
-    background-color: {{progressColor}};
-  }
-  paper-progress::shadow #progressContainer {
-    background-color: #e0e0e0;
-  }
   #progressbar {
     display: block;
     width: 100%;
   }
   </style>
-  <paper-progress id="progressbar" value="{{position}}" max="1000"></paper-progress>
+  <style is="custom-style">
+  :root {
+      --paper-progress-transition-timing-function: ease;
+      --paper-progress-transition-transition-delay: 0s;
+      --paper-progress-active-color: #7eb3de;
+  }
+  </style>
+  <paper-progress id="progressbar" class="transiting" value="{{position}}" id="progressbar" step="5" max="1000"></paper-progress>
 </template>
 <script>
 (function() {
-  Polymer('progress-bar', {
-    nextProgress: function() {
-      if (this.position < 1000) {
-        this.position += (this.step || 1);
-      } else {
-        if (this.animating)
-          this.position = 0;
-        else
-          return;
-      }
-      this.async(this.nextProgress, null, this.delay);
+  Polymer({
+    is: 'progress-bar',
+    properties: {
+        progress: String
     },
     doProgress: function(command) {
       if (this.progress == command)
         return;
-      switch (command) {
+      this.progress = command;
+      this.async(this.waitProgress);
+      this.async(this._doProgress, 100);
+    },
+    _doProgress: function() {
+      console.log(this.progress);
+      switch (this.progress) {
         case "start":
-          this.progress = command;
           this.startProgress();
           break;
         case "finish":
-          this.progress = command;
           this.finishProgress();
           break;
         case "error":
-          this.progress = command;
           this.errorProgress();
           break;
-        default:
-          this.progress = "wait";
-          this.waitProgress();
       }
     },
     waitProgress: function() {
-      this.animating = false;
+//       this.position = this.$.progressbar.value;
+      this.customStyle['--paper-progress-active-color'] = "#7eb3de";
+      this.toggleAttribute('indeterminate', false, this.$.progressbar);
+      this.updateStyles();
+      this.position = 0;
     },
     startProgress: function() {
-      this.position = 0;
-      this.step = 5;
-      this.progressColor = "#00a05a";
-      if (!this.animating) {
-        this.delay = 200;
-        this.animating = true;
-        this.nextProgress();
-      }
+      this.customStyle['--paper-progress-transition-duration'] = "5s";
+      this.customStyle['--paper-progress-active-color'] = "#7eb3de";
+      this.toggleAttribute('indeterminate', true, this.$.progressbar);
+      this.updateStyles();
+      this.position = 1000;
     },
     ready: function() {
-      this.progressColor = "#00a05a";
       this.progress = null;
-      this.doProgress("wait");
+      this.waitProgress();
     },
     finishProgress: function() {
-      this.step = 50;
-      this.delay = 10;
-      this.progressColor = "#005aa0";
-      if (this.animating)
-        this.animating = false;
-      else {
-        this.animating = false;
-        this.nextProgress();
-      }
+      this.customStyle['--paper-progress-transition-duration'] = "0.5s";
+      this.customStyle['--paper-progress-active-color'] = "#4d70b8";
+      this.toggleAttribute('indeterminate', false, this.$.progressbar);
+      this.updateStyles();
+      this.position = 1000;
     },
     errorProgress: function() {
-      this.step = 50;
-      this.delay = 10;
-      this.progressColor = "#a05a5a";
-      if (this.animating)
-        this.animating = false;
-      else {
-        this.animating = false;
-        this.nextProgress();
-      }
+      this.customStyle['--paper-progress-transition-duration'] = "0.5s";
+      this.customStyle['--paper-progress-active-color'] = "#c07a7a";
+      this.toggleAttribute('indeterminate', false, this.$.progressbar);
+      this.updateStyles();
+      this.position = 1000;
     },
     getProgress: function() {
       return this.progress;
@@ -99,4 +99,4 @@
   });
 })();
 </script>
-</polymer-element>
+</dom-module>

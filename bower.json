@@ -1,6 +1,6 @@
 {
   "name": "nixui",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "homepage": "https://github.com/matejc/nixui",
   "authors": [
     "Matej Cotman <cotman.matej@gmail.com>"
@@ -13,7 +13,7 @@
     "nix",
     "package manager"
   ],
-  "license": "BSD 2-Clause",
+  "license": "Apache-2.0",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -22,13 +22,16 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#0.5.1",
-    "core-elements": "Polymer/core-elements#0.5.1",
-    "core-signals": "Polymer/core-signals#0.5.1",
-    "paper-elements": "Polymer/paper-elements#0.5.1",
-    "core-animation": "Polymer/core-animation#0.5.1",
     "underscore": "underscore#1.7.0",
-    "jQuery": "~2.1.1",
-    "d3": "~3.4.13"
+    "polymer": "Polymer/polymer#1.1.0",
+    "paper-elements": "PolymerElements/paper-elements#1.0.2",
+    "iron-elements": "PolymerElements/iron-elements#1.0.3",
+    "neon-elements": "PolymerElements/neon-elements#1.0.0",
+    "google-feeds": "GoogleWebComponents/google-feeds#1.0.1",
+    "js-beautify": "1.5.10",
+    "font-awesome-polymer-icons": "philya/font-awesome-polymer-icons#39d6e60662"
+  },
+  "resolutions": {
+    "polymer": "^1.0.0"
   }
 }

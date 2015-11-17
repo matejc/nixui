@@ -1,0 +1,201 @@
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
+<link rel="import" href="./data.html">
+<link rel="import" href="./animated-panel.html">
+<script src="../bower_components/underscore/underscore-min.js"></script>
+
+<dom-module name="package-panel">
+    <template>
+        <style>
+            :host {
+                top: 2em;
+                padding: 1em;
+            }
+            labeled-panel {
+                font-family: sans-serif;
+                font-size: 90%;
+            }
+        </style>
+        <animated-panel id="panel">
+            <labeled-panel label="Name" content="{{pkginfo.name}}"></labeled-panel>
+            <labeled-panel label="Attribute" content="{{data.attribute}}"></labeled-panel>
+            <labeled-panel label="Path" content="{{pkginfo.path}}"></labeled-panel>
+
+            <labeled-panel label="native Build Inputs" content="{{pkginfo.nativeBuildInputs}}"></labeled-panel>
+            <labeled-panel label="propagated Native Build Inputs" content="{{pkginfo.propagatedNativeBuildInputs}}"></labeled-panel>
+
+            <labeled-panel label="Home Page" content="{{pkginfo.meta.homepage}}"></labeled-panel>
+            <labeled-panel label="Description" content="{{pkginfo.meta.description}}"></labeled-panel>
+            <labeled-panel label="Long Description" content="{{pkginfo.meta.longDescription}}"></labeled-panel>
+            <labeled-panel label="License" content="{{pkginfo.meta.license}}"></labeled-panel>
+            <labeled-panel label="Position" content="{{pkginfo.meta.position}}"></labeled-panel>
+
+            <labeled-panel label="Maintainers" content="{{pkginfo.meta.maintainers}}"></labeled-panel>
+        </animated-panel>
+        <nixui-profiles id="profiles"></nixui-profiles>
+        <nixui-packages id="packages"></nixui-packages>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'package-panel',
+                properties: {
+                    data: {
+                        type: Object,
+                        value: {},
+                        // observer: 'pkginfoChange'
+                    }
+                },
+                donotclick: function(e, detail, sender) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                },
+                open: function(packageData) {
+                    this.$.panel.close(function() {
+                        this.data = packageData;
+                        this.pkginfoChange(function() {
+                            this.$.panel.open();
+                        }.bind(this));
+                    }.bind(this));
+                },
+                close: function() {
+                    this.$.panel.close();
+                },
+                pkginfoChange: function(cb) {
+                    this.$.packages.info(this.$.profiles.current(), this.data.attribute, function(err, data) {
+                        if (err) {
+                            this.fire('iron-signal', {
+                                name: "error",
+                                data: {
+                                    text: err,
+                                    controlDim: true
+                                }
+                            });
+                            return;
+                        }
+                        this.pkginfo = data;
+                        if (cb) {
+                            cb();
+                        }
+                        // this.open();
+                    }.bind(this));
+                },
+                ready: function() {
+                    var emptyInfo = {
+                        name: "",
+                        path: "",
+                        propagatedNativeBuildInputs: [],
+                        nativeBuildInputs: [],
+                        meta: {
+                            description: "",
+                            longDescription: "",
+                            maintainers: [],
+                            position: "",
+                            homepage: "",
+                            license: ""
+                        }
+                    };
+                    this.pkginfo = emptyInfo;
+
+                    this.autoFitOnAttach = true;
+                    this.withBackdrop = true;
+
+                }
+            });
+        })();
+    </script>
+</dom-module>
+
+
+<dom-module name="labeled-panel">
+    <template>
+        <style>
+            #panellabel {
+                font-family: sans-serif;
+                text-transform: uppercase;
+                font-weight: bold;
+                font-size: 60%;
+                color: #4d70b8;
+            }
+
+            #panelcontent {
+                font-family: sans-serif;
+                color: #646464;
+            }
+
+            .hidden {
+                display: none;
+            }
+
+            #container {
+                padding: 0.6em;
+            }
+        </style>
+        <div id="container">
+            <div id="panellabel">{{label}}</div>
+            <div id="panelcontent">{{contentToString(content)}}</div>
+        </div>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'labeled-panel',
+                properties: {
+                    label: String,
+                    content: String
+                },
+                contentToString: function(entry) {
+
+                    var result = null;
+
+                    if (_.isArray(entry)) {
+                        var array = [];
+                        for (var key in entry) {
+                            console.log(entry[key]);
+                            if (entry[key].hasOwnProperty("name") && _.isString(entry[key].name)) {
+                                array.push(entry[key].name);
+                            } else if (entry[key].hasOwnProperty("fullName") && _.isString(entry[key].fullName)) {
+                                array.push(entry[key].fullName);
+                            } else {
+                                array.push(entry[key]);
+                            }
+                        }
+                        result = array.join(", ");
+                    } else if (_.isObject(entry) && entry.hasOwnProperty("fullName")) {
+                        result = entry.fullName;
+                    } else {
+                        result = entry;
+                    }
+
+                    // console.log(this.emptyEntryClass)
+                    if (result) {
+                        // this.emptyEntryClass = "shown";
+                        this.toggleClass("hidden", false, this.$.container);
+                        return result;
+                    } else {
+                        this.toggleClass("hidden", true, this.$.container);
+                        // this.emptyEntryClass = "hidden";
+                        return "";
+                    }
+
+
+                },
+                ready: function() {
+                    this.emptyEntryClass = "";
+                }
+            });
+        })();
+    </script>
+</dom-module>

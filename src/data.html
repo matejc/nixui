@@ -1,9 +1,24 @@
-<polymer-element name="nixui-profiles">
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
+<dom-module name="nixui-profiles">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-profiles', {
+        Polymer({
+            is: 'nixui-profiles',
             ready: function() {
                 this.profiles = require("./data.js").profiles;
             },
@@ -22,14 +37,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-configurations">
+<dom-module name="nixui-configurations">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-configurations', {
+        Polymer({
+            is: 'nixui-configurations',
             ready: function() {
                 this.configurations = require("./data.js").configurations;
             },
@@ -51,40 +67,48 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-configs">
+<dom-module name="nixui-configs">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-configs', {
+        Polymer({
+            is: 'nixui-configs',
             ready: function() {
                 this.configs = require("./data.js").configs;
             },
             init: function(configurationId, cb) {
-                this.configs(configurationId, "configuration", cb);
+                this.configs(configurationId, null, cb);
             },
-            tree: function() {
-                return this.configs.tree();
+            list: function() {
+                return this.configs.list();
             },
             all: function(cb) {
                 this.configs.all(cb);
             },
             filter: function(query, cb) {
                 this.configs.filter(query, cb);
+            },
+            get: function(attrs, cb) {
+                this.configs.get(attrs, cb);
+            },
+            toNixString: function(obj, cb) {
+                this.configs.toNixString(obj, cb);
             }
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-packages">
+<dom-module name="nixui-packages">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-packages', {
+        Polymer({
+            is: 'nixui-packages',
             ready: function() {
                 this.packages = require("./data.js").packages;
                 // this.init();
@@ -116,14 +140,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-markeds">
+<dom-module name="nixui-markeds">
     <template>
     </template>
     <script>
     (function() {
-        Polymer('nixui-markeds', {
+        Polymer({
+            is: 'nixui-markeds',
             ready: function() {
                 this.markeds = require("./data.js").markeds;
                 this.init();
@@ -161,14 +186,15 @@
         });
     })();
     </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-actions">
+<dom-module name="nixui-actions">
   <template>
   </template>
   <script>
   (function() {
     Polymer({
+      is: 'nixui-actions',
       ready: function() {
         this.actions = require("./data.js").actions;
         this.actions();
@@ -178,18 +204,25 @@
       },
       get: function(id) {
         return this.actions.get(id);
+      },
+      set: function(id) {
+        return this.actions.set(id);
+      },
+      current: function() {
+        return this.actions.current();
       }
     });
   })();
   </script>
-</polymer-element>
+</dom-module>
 
-<polymer-element name="nixui-meta">
+<dom-module name="nixui-meta">
   <template>
   </template>
   <script>
   (function() {
     Polymer({
+      is: 'nixui-meta',
       ready: function() {
         this.meta = require("./data.js").meta;
         this.meta();
@@ -200,4 +233,4 @@
     });
   })();
   </script>
-</polymer-element>
+</dom-module>

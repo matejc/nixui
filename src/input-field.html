@@ -1,0 +1,108 @@
+<!-- Copyright 2014-2015 Matej Cotman
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
+<link rel="import" href="../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../bower_components/paper-input/paper-input-container.html">
+
+
+
+<dom-module name="input-field" on-keypress="keypressHandler">
+    <template>
+        <style is="custom-style">
+        :root {
+            --paper-input-container-label: {
+                color: #ccc;
+            }
+            ;
+            --paper-input-container-label-focus: {
+                color: #ccc;
+            }
+            ;
+            --paper-input-container-underline: {
+                background: #7eb3de;
+            }
+            ;
+            --paper-input-container-underline-focus: {
+                background: #7eb3de;
+            }
+            ;
+            --paper-input-container-input: {
+                color: #4d70b8;
+            }
+            ;
+            --paper-input-container-input-disabled: {
+                pointer-events: none;
+                cursor: default;
+                color: #ccc;
+            }
+            ;
+        }
+        </style>
+        <span>
+            <div id="container" relative>
+                <paper-input-container disabled$="{{disabled}}">
+                    <label>{{label}}</label>
+                    <input is="iron-input" id="searchfield" tabindex="{{disabled===null?1:-1}}" on-keydown="keyHandler"
+                        bind-value="{{value}}"></input>
+                </paper-input-container>
+            </div>
+        </span>
+    </template>
+    <script>
+        (function() {
+            Polymer({
+                is: 'input-field',
+                properties: {
+                    disabled: Boolean,
+                    label: String,
+                    value: {
+                        type: String,
+                        value: "",
+                        observer: 'triggerSearchCheck'
+                    },
+                    prevValue: {
+                        type: String,
+                        value: ""
+                    }
+                },
+                focus: function() {
+                    this.$.searchfield.focus();
+                },
+                ready: function() {
+                    this.value = "";
+                },
+                submit: function() {
+                    this.fire('submit', this.value);
+                    this.prevValue = this.value;
+                },
+                keyHandler: function(event, detail, sender) {
+                    if (event.keyCode == 13) {
+                        if (this.triggerSearchAsync) {
+                            this.cancelAsync(this.triggerSearchAsync);
+                        }
+                        this.submit();
+                    }
+                },
+                triggerSearchCheck: function() {
+                    if (this.value !== this.prevValue && typeof this.prevValue !== 'undefined') {
+                        if (this.triggerSearchAsync) {
+                            this.cancelAsync(this.triggerSearchAsync);
+                        }
+                        this.triggerSearchAsync = this.async(this.submit, 250);
+                    }
+                }
+            });
+        })();
+    </script>
+</dom-module>
