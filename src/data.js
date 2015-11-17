@@ -308,11 +308,7 @@ dbs.packages.filter = function(profileId, query, cb) {
     if (installFilter) {
         refind.compare = {$regex: /^\=.*/};
     }
-<<<<<<< HEAD
-    data.packages[profileId].find(refind).limit(100).sort({attribute: 1}).exec(function(err, data) {
-=======
     data.packages[profileId].find(refind).sort({name: 1}).limit(100).exec(function(err, data) {
->>>>>>> unstable
         if (err) {
             console.log(err);
             cb(err);
